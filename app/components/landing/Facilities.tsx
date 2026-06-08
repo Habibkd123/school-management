@@ -33,7 +33,7 @@ export function Facilities() {
           {facilities.map((fac, idx) => (
             <div key={idx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-sm p-8 flex flex-col items-center justify-center text-center hover:bg-[#F59E0B] transition-colors cursor-pointer group">
               <div className={`w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                {React.cloneElement(fac.icon as React.ReactElement, { className: "w-8 h-8" })}
+                {React.cloneElement(fac.icon as React.ReactElement<any>, { className: "w-8 h-8" })}
               </div>
               <h4 className="text-[15px] font-bold text-white tracking-wide">{fac.title}</h4>
             </div>
