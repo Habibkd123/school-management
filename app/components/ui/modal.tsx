@@ -6,10 +6,10 @@ import { X } from "lucide-react";
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
 export function Modal({
@@ -38,7 +38,8 @@ export function Modal({
     sm: "max-w-md",
     md: "max-w-lg",
     lg: "max-w-2xl",
-    xl: "max-w-4xl"
+    xl: "max-w-4xl",
+    "2xl": "max-w-[1000px]"
   };
 
   return (
@@ -67,7 +68,7 @@ export function Modal({
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 overflow-y-auto flex-1 text-sm text-zinc-600 dark:text-zinc-300">
+        <div className="px-6 py-5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-1 text-sm text-zinc-600 dark:text-zinc-300">
           {children}
         </div>
 

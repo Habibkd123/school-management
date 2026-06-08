@@ -6,16 +6,16 @@ import { ArrowLeft, ServerCrash } from "lucide-react";
 
 export default function Error500Page() {
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white font-sans text-foreground relative">
+    <div className="min-h-screen w-full flex flex-col bg-white dark:bg-slate-900 font-sans text-foreground relative">
       <div className="flex-1 flex flex-col justify-center items-center p-8 text-center max-w-md mx-auto">
         
         {/* Illustration Placeholder */}
         <div className="mb-8 w-64 h-64 bg-red-50/50 rounded-full flex items-center justify-center relative">
           <ServerCrash className="w-24 h-24 text-danger opacity-80" />
-          <div className="absolute top-10 right-0 bg-white shadow-lg border border-gray-100 rounded-xl px-4 py-2 rotate-12">
+          <div className="absolute top-10 right-0 bg-white dark:bg-slate-900 shadow-lg border border-gray-100 rounded-xl px-4 py-2 rotate-12">
             <span className="text-xl font-bold text-gray-900">500</span>
           </div>
-          <div className="absolute bottom-4 -left-4 font-black text-4xl text-danger drop-shadow-md bg-white px-3 py-1 rounded-lg border border-danger/20">
+          <div className="absolute bottom-4 -left-4 font-black text-4xl text-danger drop-shadow-md bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border border-danger/20">
             Error
           </div>
         </div>

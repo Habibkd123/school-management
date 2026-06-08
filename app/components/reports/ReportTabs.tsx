@@ -1,0 +1,38 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export function ReportTabs() {
+  const pathname = usePathname();
+
+  const tabs = [
+    { name: "Attendance Report", href: "/dashboard/reports/attendance-report" },
+    { name: "Students Attendance Type", href: "/dashboard/reports/students-attendance-type" },
+    { name: "Daily Attendance", href: "/dashboard/reports/daily-attendance" },
+    { name: "Student Day Wise", href: "/dashboard/reports/student-day-wise" },
+    { name: "Teacher Day Wise", href: "/dashboard/reports/teacher-day-wise" },
+    { name: "Teacher Report", href: "/dashboard/reports/teacher-report" },
+  ];
+
+  return (
+    <div className="flex items-center gap-6 border-b border-border mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
+      {tabs.map((tab) => {
+        const isActive = pathname === tab.href;
+        return (
+          <Link
+            key={tab.name}
+            href={tab.href}
+            className={`pb-3 text-[14px] font-medium transition-colors relative ${isActive ? "text-[#F59E0B]" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
+              }`}
+          >
+            {tab.name}
+            {isActive && (
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#F59E0B] rounded-t-full" />
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

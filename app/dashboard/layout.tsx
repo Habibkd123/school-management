@@ -22,7 +22,7 @@ export default function DashboardLayout({
 
         {/* Dynamic Page Content */}
         <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-7xl">
+          <div className="w-full h-full">
             {children}
           </div>
         </main>

@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  /* Core SaaS Theme */
+  /* Core SaaS Theme - Light Mode */
   --background: #F8FAFC;
   --foreground: #0F172A;
   
-  --primary: #2563EB;
+  --primary: #F59E0B;
   --success: #10B981;
   --danger: #EF4444;
   --warning: #F59E0B;
@@ -14,6 +16,22 @@
   --card-bg: #FFFFFF;
   --border-color: #E2E8F0;
   --sidebar-bg: #0F172A;
+}
+
+.dark {
+  /* Core SaaS Theme - Dark Mode */
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  
+  --primary: #F59E0B;
+  --success: #10B981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  
+  --card-bg: #0F172A;
+  --border-color: #334155;
+  --sidebar-bg: #0f172a;
 }
 
 @theme inline {
@@ -31,16 +49,6 @@
   --color-sidebar: var(--sidebar-bg);
 
   --font-sans: var(--font-roboto);
-}
-
-/* Force light mode globally for enterprise consistency */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #F8FAFC;
-    --foreground: #0F172A;
-    --card-bg: #FFFFFF;
-    --border-color: #E2E8F0;
-  }
 }
 
 body {
@@ -63,7 +71,7 @@ body {
   font-size: 20px;
   line-height: 24px;
   font-weight: 600;
-  color: #202c4b;
+  color: #0F172A;
 }
 
 .page-desc {

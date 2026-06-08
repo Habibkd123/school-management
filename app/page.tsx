@@ -1,24 +1,40 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import { Header } from "./components/landing/Header";
+import { Hero } from "./components/landing/Hero";
+import { Highlights } from "./components/landing/Highlights";
+import { AboutSchool } from "./components/landing/AboutSchool";
+import { WhyChooseUs } from "./components/landing/WhyChooseUs";
+import { AcademicPrograms } from "./components/landing/AcademicPrograms";
+import { Facilities } from "./components/landing/Facilities";
+import { Achievements } from "./components/landing/Achievements";
+import { Gallery } from "./components/landing/Gallery";
+import { VirtualCampusTour } from "./components/landing/VirtualCampusTour";
+import { Testimonials } from "./components/landing/Testimonials";
+import { AdmissionProcess } from "./components/landing/AdmissionProcess";
+import { LatestNews } from "./components/landing/LatestNews";
+import { FAQ } from "./components/landing/FAQ";
+import { Contact } from "./components/landing/Contact";
+import { Footer } from "./components/landing/Footer";
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/dashboard");
-  }, [router]);
-
   return (
-    <div className="flex flex-1 items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div className="flex flex-col items-center gap-4">
-        {/* Loading Spinner */}
-        <div className="w-8 h-8 rounded-full border-2 border-zinc-900 border-t-transparent dark:border-zinc-50 dark:border-t-transparent animate-spin" />
-        <span className="text-xs font-semibold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase animate-pulse">
-          Entering ERP Portal...
-        </span>
-      </div>
-    </div>
+    <main className="min-h-screen bg-white">
+      <Header />
+      <Hero />
+      <Highlights />
+      <AboutSchool />
+      <WhyChooseUs />
+      <AcademicPrograms />
+      <Facilities />
+      <Achievements />
+      <Gallery />
+      <VirtualCampusTour />
+      <Testimonials />
+      <AdmissionProcess />
+      <LatestNews />
+      <FAQ />
+      <Contact />
+      <Footer />
+    </main>
   );
 }

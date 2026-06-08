@@ -283,10 +283,10 @@ export function DoughnutChart({ data, colors = ["#2563EB", "#10B981", "#F59E0B",
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             Total
           </span>
-          <span className="text-2xl font-bold text-slate-900 mt-0.5">
+          <span className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">
             {total}
           </span>
         </div>
@@ -297,14 +297,14 @@ export function DoughnutChart({ data, colors = ["#2563EB", "#10B981", "#F59E0B",
         {data.map((d, i) => {
           const percentage = total > 0 ? Math.round((d.value / total) * 100) : 0;
           return (
-            <div key={i} className="flex items-center gap-3 text-[13px] text-slate-600">
+            <div key={i} className="flex items-center gap-3 text-[13px] text-slate-600 dark:text-slate-300">
               <span
                 className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: colors[i % colors.length] }}
               />
-              <span className="font-semibold text-slate-700 min-w-[70px]">{d.label}</span>
-              <span className="font-bold text-slate-900">{d.value}</span>
-              <span className="text-slate-400 font-mono text-[11px] ml-1">({percentage}%)</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200 min-w-[70px]">{d.label}</span>
+              <span className="font-bold text-slate-900 dark:text-white">{d.value}</span>
+              <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px] ml-1">({percentage}%)</span>
             </div>
           );
         })}

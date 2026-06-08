@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: "A premium, unified dashboard for managing school operations, attendance, grading, billing, and scheduling.",
 };
 
+import { ThemeProvider } from "./providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,9 +25,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${roboto.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">
-        <AppProvider>{children}</AppProvider>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AppProvider>{children}</AppProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

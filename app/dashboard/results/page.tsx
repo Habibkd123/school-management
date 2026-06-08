@@ -98,46 +98,46 @@ export default function ResultsPage() {
         <div className="space-y-6">
           {/* GPA Card Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">Term Average GPA</span>
-                <span className="text-2xl font-bold block text-slate-900 mt-0.5">{studentAverage}%</span>
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Term Average GPA</span>
+                <span className="text-2xl font-bold block text-slate-900 dark:text-white mt-0.5">{studentAverage}%</span>
               </div>
             </div>
 
-            <div className="bg-white border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">Total Exams Written</span>
-                <span className="text-2xl font-bold block text-slate-900 mt-0.5">{studentGrades.length} Subjects</span>
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Exams Written</span>
+                <span className="text-2xl font-bold block text-slate-900 dark:text-white mt-0.5">{studentGrades.length} Subjects</span>
               </div>
             </div>
 
-             <div className="bg-white border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
+             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow text-left flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">Performance Status</span>
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Performance Status</span>
                 <span className="text-2xl font-bold block text-emerald-600 mt-0.5">Pass / Excellent</span>
               </div>
             </div>
           </div>
 
           {/* Transcript List */}
-          <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden text-left">
-            <div className="px-6 py-4 border-b border-border bg-slate-50/50">
-              <h2 className="text-[15px] font-semibold text-slate-900">Report Card transcript</h2>
+          <div className="bg-white dark:bg-slate-900 border border-border rounded-xl card-shadow overflow-hidden text-left">
+            <div className="px-6 py-4 border-b border-border bg-slate-50/50 dark:bg-slate-800/50">
+              <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Report Card transcript</h2>
             </div>
-            <div className="overflow-x-auto bg-white">
+            <div className="overflow-x-auto bg-white dark:bg-slate-900">
               <table className="w-full border-collapse">
                 <thead>
-                   <tr className="border-b border-border bg-white text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                   <tr className="border-b border-border bg-white dark:bg-slate-900 text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                     <th className="px-6 py-4">Subject</th>
                     <th className="px-6 py-4">Exam Name</th>
                     <th className="px-6 py-4 font-mono">Date Entered</th>
@@ -148,7 +148,7 @@ export default function ResultsPage() {
                  <tbody className="divide-y divide-border text-[13px]">
                   {studentGrades.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                         No examination grades have been uploaded for your profile yet.
                       </td>
                     </tr>
@@ -157,12 +157,12 @@ export default function ResultsPage() {
                       const percent = Math.round((grade.score / grade.maxScore) * 100);
                       const rate = letterRating(percent);
                       return (
-                        <tr key={grade.id} className="hover:bg-slate-50/50 transition-colors">
-                           <td className="px-6 py-4 font-bold text-slate-900">{grade.subject}</td>
-                          <td className="px-6 py-4 text-slate-600">{grade.examName}</td>
-                          <td className="px-6 py-4 text-slate-500 font-mono">{grade.date}</td>
-                           <td className="px-6 py-4 font-mono font-semibold text-slate-700">
-                            {grade.score} / {grade.maxScore} <span className="text-slate-400 text-[11px] ml-1">({percent}%)</span>
+                        <tr key={grade.id} className="hover:bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
+                           <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{grade.subject}</td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{grade.examName}</td>
+                          <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono">{grade.date}</td>
+                           <td className="px-6 py-4 font-mono font-semibold text-slate-700 dark:text-slate-200">
+                            {grade.score} / {grade.maxScore} <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-1">({percent}%)</span>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 rounded-md font-bold text-[11px] ${rate.class}`}>
@@ -184,14 +184,14 @@ export default function ResultsPage() {
           FACULTY VIEW (GENERAL GRADEBOOK TRANSCRIPT)
           ---------------------------------------------------- */}
       {activeRole !== "student" && (
-         <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden text-left">
-           <div className="px-6 py-4 border-b border-border bg-slate-50/50">
-            <h2 className="text-[15px] font-semibold text-slate-900">Institutional Gradebook Logs</h2>
+         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl card-shadow overflow-hidden text-left">
+           <div className="px-6 py-4 border-b border-border bg-slate-50/50 dark:bg-slate-800/50">
+            <h2 className="text-[15px] font-semibold text-slate-900 dark:text-white">Institutional Gradebook Logs</h2>
           </div>
-          <div className="overflow-x-auto bg-white">
+          <div className="overflow-x-auto bg-white dark:bg-slate-900">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-border bg-white text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+                <tr className="border-b border-border bg-white dark:bg-slate-900 text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                   <th className="px-6 py-4">Student</th>
                   <th className="px-6 py-4">Subject Specialty</th>
                   <th className="px-6 py-4">Exam Term</th>
@@ -203,7 +203,7 @@ export default function ResultsPage() {
                <tbody className="divide-y divide-border text-[13px]">
                 {grades.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                       No grade evaluations recorded yet. Use &ldquo;Post Marks&rdquo; to begin.
                     </td>
                   </tr>
@@ -212,13 +212,13 @@ export default function ResultsPage() {
                     const percent = Math.round((grade.score / grade.maxScore) * 100);
                     const rate = letterRating(percent);
                     return (
-                      <tr key={grade.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-slate-900">{getStudentName(grade.studentId)}</td>
-                        <td className="px-6 py-4 font-bold text-slate-700">{grade.subject}</td>
-                        <td className="px-6 py-4 text-slate-600">{grade.examName}</td>
-                        <td className="px-6 py-4 text-slate-500 font-mono">{grade.date}</td>
-                         <td className="px-6 py-4 font-mono font-semibold text-slate-700">
-                          {grade.score} / {grade.maxScore} <span className="text-slate-400 text-[11px] ml-1">({percent}%)</span>
+                      <tr key={grade.id} className="hover:bg-slate-50/50 dark:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{getStudentName(grade.studentId)}</td>
+                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">{grade.subject}</td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{grade.examName}</td>
+                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono">{grade.date}</td>
+                         <td className="px-6 py-4 font-mono font-semibold text-slate-700 dark:text-slate-200">
+                          {grade.score} / {grade.maxScore} <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-1">({percent}%)</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2.5 py-1 rounded-md font-bold text-[11px] ${rate.class}`}>
@@ -242,11 +242,11 @@ export default function ResultsPage() {
         <form onSubmit={handleAddGradeSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Select Class</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Select Class</label>
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                 className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] font-medium text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
+                 className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
               >
                 {classes.map((c) => (
                    <option key={c.id} value={c.id}>
@@ -257,11 +257,11 @@ export default function ResultsPage() {
             </div>
 
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Select Student</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Select Student</label>
               <select
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                 className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] font-medium text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
+                 className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
               >
                 {students
                   .filter((s) => s.classId === selectedClassId)
@@ -279,52 +279,52 @@ export default function ResultsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Subject specialty</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Subject specialty</label>
               <input
                 required
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. Mathematics"
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               />
             </div>
 
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Examination Term</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Examination Term</label>
               <input
                 required
                 type="text"
                 value={examName}
                 onChange={(e) => setExamName(e.target.value)}
                 placeholder="e.g. Mid-Term / Final Prep"
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Marks Scored</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Marks Scored</label>
               <input
                 required
                 type="number"
                 value={score}
                 onChange={(e) => setScore(Number(e.target.value))}
                 min={0}
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               />
             </div>
 
             <div className="flex flex-col gap-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase text-slate-500">Maximum Possible Marks</label>
+               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Maximum Possible Marks</label>
               <input
                 required
                 type="number"
                 value={maxScore}
                 onChange={(e) => setMaxScore(Number(e.target.value))}
                 min={1}
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white text-[13px] text-slate-900 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
               />
             </div>
           </div>
@@ -333,7 +333,7 @@ export default function ResultsPage() {
              <button
               type="button"
               onClick={() => setIsAddOpen(false)}
-               className="px-4 py-2 border border-border text-[13px] font-bold rounded-lg bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-sm cursor-pointer"
+               className="px-4 py-2 border border-border text-[13px] font-bold rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-200 transition-colors shadow-sm cursor-pointer"
             >
               Cancel
             </button>
