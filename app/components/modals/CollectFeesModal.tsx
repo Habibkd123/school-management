@@ -1,12 +1,12 @@
 import React from "react";
 import { Modal } from "../ui/modal";
 import { X, Calendar } from "lucide-react";
-import { Student } from "../../context/store";
+import { ApiStudent } from "../../hooks/useStudents";
 
 interface CollectFeesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  student: Student | null;
+  student: ApiStudent | null;
 }
 
 export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalProps) {
@@ -25,7 +25,7 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
             <h2 className="text-[18px] font-bold text-slate-900 dark:text-white">Collect Fees</h2>
-            <span className="bg-[#3B82F6] text-white text-[11px] font-bold px-2 py-0.5 rounded">AD9892{student.rollNo}</span>
+            <span className="bg-[#3B82F6] text-white text-[11px] font-bold px-2 py-0.5 rounded">AD9892{student.roll_no}</span>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
             <X className="w-4 h-4" />
@@ -40,7 +40,7 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
                  <img src={getAvatar(student.name)} className="w-10 h-10 rounded object-cover" alt="Student" />
                  <div>
                    <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">{student.name}</h3>
-                   <p className="text-[12px] text-slate-500">III, {getSection(student.id)}</p>
+                   <p className="text-[12px] text-slate-500">III, {getSection(student._id)}</p>
                  </div>
               </div>
 

@@ -43,8 +43,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = getAccessToken();
     if (storedUser && token) {
       setUser(storedUser);
+      
+      // If cookie is missing but token exists in localStorage, restore cookie
+      const hasCookie = document.cookie.split(";").some((c) => c.trim().startsWith("sm_access_token="));
+      if (!hasCookie) {
+        document.cookie = `sm_access_token=${encodeURIComponent(token)}; path=/; max-age=900; SameSite=Lax`;
+      }
+
+      refreshUser().finally(() => {
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   // ─── Login ────────────────────────────────────────────────────

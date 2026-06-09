@@ -1,12 +1,12 @@
 import React from "react";
 import { Modal } from "../ui/modal";
 import { X } from "lucide-react";
-import { Student } from "../../context/store";
+import { ApiStudent } from "../../hooks/useStudents";
 
 interface LoginDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  student: Student | null;
+  student: ApiStudent | null;
 }
 
 export function LoginDetailsModal({ isOpen, onClose, student }: LoginDetailsModalProps) {
@@ -35,7 +35,7 @@ export function LoginDetailsModal({ isOpen, onClose, student }: LoginDetailsModa
               <img src={getAvatar(student.name)} className="w-12 h-12 rounded object-cover shadow-sm" alt="Student" />
               <div>
                 <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">{student.name}</h3>
-                <p className="text-[12px] text-slate-500 font-medium">III, {getSection(student.id)}</p>
+                <p className="text-[12px] text-slate-500 font-medium">III, {getSection(student._id)}</p>
               </div>
            </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../context/auth";
 import { Mail, Eye, EyeOff, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -16,13 +16,22 @@ const newsItems = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Already logged in? Redirect to dashboard (or previous page)
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      router.replace(redirectTo);
+    }
+  }, [isAuthenticated, authLoading, router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +45,8 @@ export default function LoginPage() {
     const result = await login(email.trim(), password);
 
     if (result.success) {
-      router.push("/dashboard");
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      router.replace(redirectTo);
     } else {
       setError(result.message);
       setIsLoading(false);

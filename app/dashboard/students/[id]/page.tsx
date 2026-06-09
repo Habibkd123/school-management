@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useAppState } from "../../../context/store";
+import { getAuthHeaders } from "@/lib/utils/session";
 import {
-  User, Phone, Mail, FileText, Calendar, Droplet, Users, BookOpen, Clock, Settings, Building2, MapPin, Bus, Lock, Edit, ChevronDown, CheckCircle, RefreshCcw, Check, X, Download, Paperclip
+  User, Phone, Mail, FileText, Calendar, Droplet, Users, BookOpen, Clock, Settings, Building2, MapPin, Bus, Lock, Edit, ChevronDown, CheckCircle, RefreshCcw, Check, X, Download, Paperclip, Loader2
 } from "lucide-react";
 
 function StudentViewContent() {
@@ -13,9 +13,36 @@ function StudentViewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const studentId = params.id as string;
-  const { students, classes } = useAppState();
 
-  const student = students.find(s => s.id === studentId) || students[0];
+  const [student, setStudent] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadStudent() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/students/${studentId}`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setError(data.message || "Failed to load student details");
+          return;
+        }
+        setStudent(data.data.student);
+      } catch {
+        setError("Network error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    if (studentId) {
+      loadStudent();
+    }
+  }, [studentId]);
+
   const [bottomTab, setBottomTab] = useState<"Hostel" | "Transportation">("Hostel");
 
   // Tab states
@@ -26,10 +53,29 @@ function StudentViewContent() {
   const [isFeesModalOpen, setIsFeesModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
-  if (!student) return <div className="p-10">Student not found.</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-[#5D6BEE] animate-spin" />
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">Loading Student Details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !student) {
+    return (
+      <div className="p-10 text-center text-rose-600">
+        <p className="font-bold text-[15px]">{error || "Student not found."}</p>
+        <Link href="/dashboard/students" className="mt-4 inline-block text-[13px] font-semibold text-blue-600 hover:underline">
+          Back to Students List
+        </Link>
+      </div>
+    );
+  }
 
   const getAvatar = (name: string) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F1F5F9&color=5D6BEE&bold=true`;
-  const getClassName = (cid: string) => classes.find(c => c.id === cid)?.name || "Unknown";
 
   return (
     <div className="space-y-6 bg-[#F8FAFC] dark:bg-[#0F172A] min-h-screen -m-6 p-6">
@@ -52,7 +98,7 @@ function StudentViewContent() {
             <span>Login Details</span>
           </button>
           <button
-            onClick={() => router.push(`/dashboard/students/add?edit=${student.id}`)}
+            onClick={() => router.push(`/dashboard/students/add?edit=${student._id}`)}
             className="flex items-center gap-2 px-3 py-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[12px] font-bold rounded-lg shadow-sm transition-colors"
           >
             <Edit className="w-3.5 h-3.5" />
@@ -75,7 +121,7 @@ function StudentViewContent() {
                   Active
                 </div>
                 <h2 className="text-[16px] leading-[19.2px] font-medium text-[#0F172A] dark:text-slate-100">{student.name}</h2>
-                <p className="text-[12px] text-[#F59E0B] font-bold mt-0.5">AD1 256589</p>
+                <p className="text-[12px] text-[#F59E0B] font-bold mt-0.5">{student.admission_no || "—"}</p>
               </div>
             </div>
           </div>
@@ -87,20 +133,18 @@ function StudentViewContent() {
             </div>
             <div className="p-4 text-[12px]">
               <div className="space-y-3.5">
-                <InfoRow label="Roll No" value={student.rollNo} />
-                <InfoRow label="Gender" value="Female" />
-                <InfoRow label="Date Of Birth" value="25 Jan 2008" />
-                <InfoRow label="Blood Group" value="O +ve" />
-                <InfoRow label="Blood Group" value="Red" />
-                <InfoRow label="Religion" value="Christianity" />
-                <InfoRow label="Caste" value="Catholic" />
-                <InfoRow label="Category" value="OBC" />
-                <InfoRow label="Mother tongue" value="English" />
+                <InfoRow label="Roll No" value={student.roll_no || "—"} />
+                <InfoRow label="Gender" value={student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : "—"} />
+                <InfoRow label="Date Of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"} />
+                <InfoRow label="Blood Group" value={student.blood_group || "—"} />
+                <InfoRow label="Religion" value="—" />
+                <InfoRow label="Caste" value="—" />
+                <InfoRow label="Category" value="—" />
+                <InfoRow label="Mother tongue" value="—" />
                 <div className="flex justify-between py-1">
                   <span className="text-[14px] leading-[21px] font-medium text-[#0F172A] dark:text-slate-100">Language</span>
                   <div className="flex gap-1.5">
                     <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-700 dark:text-slate-200">English</span>
-                    <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-700 dark:text-slate-200">Spanish</span>
                   </div>
                 </div>
               </div>
@@ -122,7 +166,7 @@ function StudentViewContent() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Phone Number</p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">+1 46548 84498</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.phone || "—"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -131,7 +175,7 @@ function StudentViewContent() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Email Address</p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.email}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.guardian_email || "—"}</p>
                 </div>
               </div>
             </div>
@@ -227,9 +271,13 @@ function StudentViewContent() {
                   <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Parents Information</h3>
                 </div>
                 <div className="p-5 space-y-4">
-                  <ParentRow name="Jerald Vicinius" role="Father" phone="+1 45545 46464" email="jera@example.com" />
-                  <ParentRow name="Roberta Webber" role="Mother" phone="+1 46499 24357" email="robe@example.com" />
-                  <ParentRow name="Jerald Vicinius" role="Guardian (Father)" phone="+1 45545 46464" email="jera@example.com" hideBorder />
+                  <ParentRow 
+                    name={student.guardian_name || "—"} 
+                    role={student.guardian_relation || "Guardian"} 
+                    phone={student.guardian_phone || "—"} 
+                    email={student.guardian_email || "—"} 
+                    hideBorder 
+                  />
                 </div>
               </div>
 
@@ -258,7 +306,7 @@ function StudentViewContent() {
                       </div>
                       <div>
                         <p className="text-[12px] font-bold text-slate-900 dark:text-white mb-0.5">Current Address</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">3495 Red Hawk Road, Buffalo Lake, MN 55314</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{student.address || "—"}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -267,7 +315,7 @@ function StudentViewContent() {
                       </div>
                       <div>
                         <p className="text-[12px] font-bold text-slate-900 dark:text-white mb-0.5">Permanent Address</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">3495 Red Hawk Road, Buffalo Lake, MN 55314</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{student.address || "—"}</p>
                       </div>
                     </div>
                   </div>

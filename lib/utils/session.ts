@@ -1,11 +1,15 @@
-// ─── Token Storage Helpers (localStorage) ────────────────────────
-// Ye helpers browser mein access_token aur refresh_token save/load karte hain
+// ─── Token Storage Helpers (localStorage + Cookie) ───────────────
+// localStorage: client-side access ke liye
+// Cookie: middleware (server-side) routing ke liye
 
 const KEYS = {
   ACCESS_TOKEN: "sm_access_token",
   REFRESH_TOKEN: "sm_refresh_token",
   USER: "sm_user",
 } as const;
+
+// Cookie max-age: 15 minutes (same as JWT_ACCESS_EXPIRY)
+const COOKIE_MAX_AGE = 60 * 15;
 
 export interface StoredUser {
   id: string;
@@ -15,15 +19,28 @@ export interface StoredUser {
   school_id: string | null;
 }
 
+// ─── Cookie helpers ───────────────────────────────────────────────
+function setCookie(name: string, value: string, maxAge: number) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+}
+
 // ─── Save ─────────────────────────────────────────────────────────
 export const saveSession = (
   accessToken: string,
   refreshToken: string,
   user: StoredUser
 ) => {
+  // localStorage (client use karta hai)
   localStorage.setItem(KEYS.ACCESS_TOKEN, accessToken);
   localStorage.setItem(KEYS.REFRESH_TOKEN, refreshToken);
   localStorage.setItem(KEYS.USER, JSON.stringify(user));
+
+  // Cookie (middleware read karta hai)
+  setCookie(KEYS.ACCESS_TOKEN, accessToken, COOKIE_MAX_AGE);
 };
 
 // ─── Load ─────────────────────────────────────────────────────────
@@ -47,6 +64,9 @@ export const clearSession = () => {
   localStorage.removeItem(KEYS.ACCESS_TOKEN);
   localStorage.removeItem(KEYS.REFRESH_TOKEN);
   localStorage.removeItem(KEYS.USER);
+
+  // Cookie bhi clear karo taake middleware redirect kare
+  deleteCookie(KEYS.ACCESS_TOKEN);
 };
 
 // ─── Auth Header Helper ───────────────────────────────────────────
