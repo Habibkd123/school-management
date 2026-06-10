@@ -9,6 +9,8 @@ export function AboutSchool() {
     "State-of-the-art infrastructure for holistic development"
   ];
 
+
+
   return (
     <section id="about" className="py-24 bg-slate-50 overflow-hidden relative">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#F59E0B]/5 rounded-full blur-[100px] -z-10" />
