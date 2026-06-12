@@ -22,7 +22,7 @@ export default function MaintenancePage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full px-4 max-w-[600px] text-center">
+      <div className="flex-1 flex flex-col items-center justify-center w-full px-4 max-w-full sm:w-[600px] text-center">
         
         {/* Maintenance Illustration Placeholder */}
         <div className="relative w-64 h-48 mb-8 flex items-center justify-center">
@@ -48,7 +48,7 @@ export default function MaintenancePage() {
           We Are Under Maintenance
         </h1>
         
-        <p className="text-[14px] text-slate-500 dark:text-slate-400 mb-8 max-w-[400px] leading-relaxed mx-auto">
+        <p className="text-[14px] text-slate-500 dark:text-slate-400 mb-8 max-w-full sm:w-[400px] leading-relaxed mx-auto">
           Please check back later, We are working hard to get everything just right.
         </p>
 

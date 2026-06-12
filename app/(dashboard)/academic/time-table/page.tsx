@@ -166,16 +166,16 @@ export default function TimeTablePage() {
           </div>
         ) : (
           <div className="overflow-x-auto pb-4">
-            <div className="min-w-[1000px]">
+            <div className="min-w-full sm:w-[1000px]">
               {/* Headers */}
-              <div className="grid grid-cols-6 gap-4 mb-4 border-b border-border pb-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 border-b border-border pb-3">
                 {days.map(day => (
                   <div key={day} className="font-bold text-[14px] text-[#0F172A] dark:text-slate-100 pl-2">{day}</div>
                 ))}
               </div>
 
               {/* Time Table Content */}
-              <div className="grid grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {days.map(day => (
                   <div key={day} className="space-y-4">
                     {timeTableData.filter(d => d.day === day).length === 0 ? (
@@ -213,7 +213,7 @@ export default function TimeTablePage() {
       {isAddOpen && (
         <>
           <div className="fixed inset-0 bg-slate-900/50 z-[60] backdrop-blur-sm" onClick={() => setIsAddOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden text-left flex flex-col max-h-[90vh]">
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-full sm:w-[500px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden text-left flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-border bg-white dark:bg-slate-900">
               <h2 className="text-xl font-bold text-[#0F172A] dark:text-slate-100">Add Time Table Entry</h2>
               <button onClick={() => setIsAddOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer">
@@ -299,7 +299,7 @@ export default function TimeTablePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Start Time</label>
                   <input

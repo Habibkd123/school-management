@@ -30,7 +30,7 @@ export function AdmissionProcess() {
                   {idx + 1}
                 </div>
                 <h4 className="text-[16px] font-bold text-white mb-3">{step.title}</h4>
-                <p className="text-slate-400 text-[14px] leading-relaxed max-w-[200px]">{step.desc}</p>
+                <p className="text-slate-400 text-[14px] leading-relaxed max-w-full sm:w-[200px]">{step.desc}</p>
               </div>
             ))}
           </div>

@@ -91,7 +91,7 @@ export default function TwoStepVerificationPage() {
         <div className="absolute inset-0 bg-[#5D6BEE]/80 dark:bg-slate-900/80 backdrop-blur-[2px]" />
 
         {/* Glassmorphism Card */}
-        <div className="relative z-10 w-full max-w-[500px] bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-6 shadow-2xl">
+        <div className="relative z-10 w-full max-w-full sm:w-[500px] bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-6 shadow-2xl">
           <h2 className="text-xl font-bold text-white mb-6">What's New on Preskool !!!</h2>
           
           <div className="space-y-3">
@@ -99,7 +99,7 @@ export default function TwoStepVerificationPage() {
               <div key={idx} className="bg-white dark:bg-slate-900 rounded-lg p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-shadow">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-tight">{item.title}</h3>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-tight truncate max-w-[320px]">{item.desc}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-tight truncate max-w-full sm:w-[320px]">{item.desc}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
               </div>
@@ -123,7 +123,7 @@ export default function TwoStepVerificationPage() {
 
         {/* Main Form Container */}
         <div className="flex-1 flex flex-col justify-start items-center px-6 sm:px-12 lg:px-16 xl:px-24">
-          <div className="w-full max-w-[420px] bg-white dark:bg-slate-900 border border-border/60 dark:border-slate-800 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
+          <div className="w-full max-w-full sm:w-[420px] bg-white dark:bg-slate-900 border border-border/60 dark:border-slate-800 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
             
             <div className="mb-8">
               <h1 className="text-[22px] font-bold text-[#202c4b] dark:text-slate-100 mb-2">Login with your Email Address</h1>

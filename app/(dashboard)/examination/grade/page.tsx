@@ -292,7 +292,7 @@ export default function GradeListPage() {
                   }`}
               >
                 <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span className="max-w-[120px] truncate">{dateRangeLabel}</span>
+                <span className="max-w-full sm:w-[120px] truncate">{dateRangeLabel}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDateRangeOpen ? "rotate-180" : ""}`} />
               </button>
               {isDateRangeOpen && (
@@ -449,7 +449,7 @@ export default function GradeListPage() {
               placeholder="Search grade or points..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
         </div>
@@ -541,7 +541,7 @@ export default function GradeListPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Marks From(%)</label>
               <input 
@@ -634,7 +634,7 @@ export default function GradeListPage() {
       {isDeleteOpen && (
         <>
           <div className="fixed inset-0 bg-slate-900/50 z-[60] backdrop-blur-sm" onClick={() => setIsDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden p-8 text-center animate-in fade-in zoom-in duration-200">
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-full sm:w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden p-8 text-center animate-in fade-in zoom-in duration-200">
             <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8 text-rose-500" />
             </div>

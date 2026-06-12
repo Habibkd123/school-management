@@ -463,11 +463,11 @@ export default function StudentsPage() {
               {isFilterOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute right-0 top-11 w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border z-50 overflow-hidden">
+                  <div className="absolute right-0 top-11 w-full sm:w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border z-50 overflow-hidden">
                     <div className="p-4 border-b border-border">
                       <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">Filter</h3>
                     </div>
-                    <div className="p-5 grid grid-cols-2 gap-4">
+                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5 text-left col-span-2">
                         <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">Class</label>
                         <select
@@ -577,7 +577,7 @@ export default function StudentsPage() {
               placeholder="Search Name/Roll/Admission No"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-[250px] pl-3 pr-4 py-2 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-[#F59E0B]/50 transition-all"
+              className="w-full sm:w-[250px] pl-3 pr-4 py-2 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-[#F59E0B]/50 transition-all"
             />
           </div>
         </div>
@@ -713,7 +713,7 @@ export default function StudentsPage() {
                     </div>
 
                     {/* Details grid */}
-                    <div className="grid grid-cols-3 gap-2 mb-5 border-t border-b border-slate-100 dark:border-slate-700/50 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-5 border-t border-b border-slate-100 dark:border-slate-700/50 py-4">
                       <div>
                         <p className="text-[11px] text-slate-500 mb-1">Roll No</p>
                         <p className="text-[12px] font-bold text-slate-900 dark:text-white">{student.roll_no || "N/A"}</p>
@@ -760,7 +760,7 @@ export default function StudentsPage() {
           ---------------------------------------------------- */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Register Student">
         <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Full Name</label>
               <input
@@ -785,7 +785,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Assign Class</label>
               <select
@@ -815,7 +815,7 @@ export default function StudentsPage() {
 
           <div className="w-full h-px bg-border my-2" />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Parent/Guardian Name</label>
               <input
@@ -863,7 +863,7 @@ export default function StudentsPage() {
           ---------------------------------------------------- */}
       <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Modify Student Info">
         <form onSubmit={handleEditSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Full Name</label>
               <input
@@ -886,7 +886,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Assign Class</label>
               <select
@@ -913,7 +913,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Parent/Guardian Name</label>
               <input

@@ -286,7 +286,7 @@ export default function ExamAttendancePage() {
 
       {/* Stats */}
       {selectedClassId && classStudents.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(["present", "absent", "late"] as AttendanceStatus[]).map((s) => (
             <div key={s} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm text-center">
               <p className={`text-2xl font-bold ${s === "present" ? "text-emerald-600" : s === "absent" ? "text-rose-600" : "text-amber-500"}`}>

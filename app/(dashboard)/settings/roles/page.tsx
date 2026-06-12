@@ -193,7 +193,7 @@ function ModuleRow({
         <tr className="bg-slate-50 dark:bg-slate-900/40 animate-in fade-in duration-200">
           <td colSpan={3} className="px-8 py-3 border-b border-border">
             {canEdit ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {ALL_ACTIONS.map((action) => {
                   const allowed = modulePerms.includes(action);
                   const cfg = actionConfig[action];
@@ -231,7 +231,7 @@ function ModuleRow({
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {ALL_ACTIONS.map((action) => {
                   const allowed = modulePerms.includes(action);
                   const cfg = actionConfig[action];
@@ -423,7 +423,7 @@ export default function RolesPermissionsPage() {
       </div>
 
       {/* ── Role Cards ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {ALL_ROLES.map((role) => (
           <RoleCard
             key={role}

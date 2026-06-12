@@ -351,7 +351,7 @@ function StudentViewContent() {
           {/* Profile Card */}
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow text-left relative overflow-hidden">
             <div className="flex items-center gap-4">
-              <img src={student.photo_url || getAvatar(student.name)} className="w-[60px] h-[60px] rounded-xl object-cover border border-slate-200 dark:border-slate-800" alt="Avatar" />
+              <img src={student.photo_url || getAvatar(student.name)} className="w-full sm:w-[60px] h-[60px] rounded-xl object-cover border border-slate-200 dark:border-slate-800" alt="Avatar" />
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold bg-[#E8F8E8] text-[#1D7F2C] mb-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1DD04A]" />
@@ -619,7 +619,7 @@ function StudentViewContent() {
                   <div className="p-4 border-b border-border bg-slate-50/50 dark:bg-slate-800/50">
                     <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Bank Details</h3>
                   </div>
-                  <div className="p-5 grid grid-cols-3 gap-4">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-1">Bank Name</p>
                       <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.bank_name || "—"}</p>
@@ -638,7 +638,7 @@ function StudentViewContent() {
                   <div className="p-4 border-b border-border bg-slate-50/50 dark:bg-slate-800/50">
                     <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Medical History</h3>
                   </div>
-                  <div className="p-5 grid grid-cols-2 gap-4">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-2">Known Allergies</p>
                       <div className="flex gap-1.5 flex-wrap">
@@ -710,7 +710,7 @@ function StudentViewContent() {
                 </div>
 
                 <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left text-[12px] min-w-[900px]">
+                  <table className="w-full text-left text-[12px] min-w-full sm:w-[900px]">
                     <thead className="bg-[#F8FAFC] dark:bg-[#0F172A] text-slate-700 dark:text-slate-200 border-b border-border font-bold">
                       <tr>
                         <th className="px-5 py-3 whitespace-nowrap">Fees Group</th>
@@ -819,8 +819,8 @@ function StudentViewContent() {
 
               {/* Time Table Grid */}
               <div className="overflow-x-auto custom-scrollbar">
-                <div className="min-w-[900px]">
-                  <div className="grid grid-cols-6 gap-3 mb-3">
+                <div className="min-w-full sm:w-[900px]">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
                     {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
                       <div key={day} className="text-[13px] font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800/50">{day}</div>
                     ))}
@@ -829,7 +829,7 @@ function StudentViewContent() {
                   {schedules.length === 0 ? (
                     <div className="text-center text-slate-400 font-semibold py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl">No class routine timetable set for this class.</div>
                   ) : (
-                    <div className="grid grid-cols-6 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
                       {dynamicTimeTableData.map((col, idx) => (
                         <div key={idx} className="flex flex-col gap-3">
                           {col.map((slot, sIdx) => (
@@ -1020,7 +1020,7 @@ function StudentViewContent() {
                     </div>
 
                     <div className="overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-left text-[12px] min-w-[800px]">
+                      <table className="w-full text-left text-[12px] min-w-full sm:w-[800px]">
                         <thead className="bg-[#F8FAFC] dark:bg-[#0F172A] text-slate-700 dark:text-slate-200 border-b border-border font-bold">
                           <tr>
                             <th className="px-4 py-3 whitespace-nowrap">Date | Month</th>
@@ -1378,7 +1378,7 @@ function DocRow({ title, url }: { title: string, url?: string }) {
         <div className="w-8 h-8 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/50 flex items-center justify-center">
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">FILE</span>
         </div>
-        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[180px]">{title}</span>
+        <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-full sm:w-[180px]">{title}</span>
       </div>
       {url ? (
         <a href={url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors shadow-sm">
@@ -1435,7 +1435,7 @@ function ExamCard({ title, initiallyExpanded, results = [] }: { title: string, i
       {expanded && (
         <div className="p-5 bg-white dark:bg-slate-900 border-t border-border animate-in slide-in-from-top-2 duration-200">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[12px] min-w-[600px]">
+            <table className="w-full text-left text-[12px] min-w-full sm:w-[600px]">
               <thead className="border-b border-border text-slate-900 dark:text-white font-bold">
                 <tr>
                   <th className="py-2.5 px-4">Subject</th>

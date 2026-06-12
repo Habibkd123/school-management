@@ -154,7 +154,7 @@ export default function BusDetailsPage() {
       <TransportTabs />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Buses", value: buses.length, icon: Bus, color: "bg-amber-50 dark:bg-amber-900/20 text-[#F59E0B]" },
           { label: "Active", value: buses.filter(b => b.status === "Active").length, icon: Gauge, color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600" },
@@ -250,7 +250,7 @@ export default function BusDetailsPage() {
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Search bus or driver..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
           </div>
         </div>
 
@@ -300,7 +300,7 @@ export default function BusDetailsPage() {
                       <span className="font-semibold text-slate-700 dark:text-slate-200">{bus.capacity}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{bus.assignedRoute}</td>
+                  <td className="px-4 py-4 text-slate-600 dark:text-slate-300 max-w-full sm:w-[160px] truncate">{bus.assignedRoute}</td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-bold ${bus.status === "Active" ? "bg-[#E8F8E8] text-[#1D7F2C]" : "bg-[#FFEBF0] text-[#FF4A6B]"}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${bus.status === "Active" ? "bg-[#1DD04A]" : "bg-[#FF4A6B]"}`} />
@@ -364,7 +364,7 @@ export default function BusDetailsPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Bus Number", value: viewBus.busNumber, icon: Hash },
                 { label: "Registration No", value: viewBus.registrationNo, icon: FileText },
@@ -399,7 +399,7 @@ export default function BusDetailsPage() {
       {(isAddOpen || !!editBus) && (
         <Modal isOpen={isAddOpen || !!editBus} onClose={() => { setIsAddOpen(false); setEditBus(null); }} title={editBus ? "Edit Bus" : "Add Bus"} size="md">
           <form onSubmit={e => { e.preventDefault(); editBus ? handleEdit() : handleAdd(); }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FieldInput label="Bus Number" value={form.busNumber} onChange={v => setField("busNumber", v)} placeholder="e.g. KA-01-AB-1234" />
               <FieldInput label="Registration No" value={form.registrationNo} onChange={v => setField("registrationNo", v)} placeholder="e.g. KA01AB1234" />
               <FieldInput label="Model" value={form.busModel} onChange={v => setField("busModel", v)} placeholder="e.g. Tata Starbus" />

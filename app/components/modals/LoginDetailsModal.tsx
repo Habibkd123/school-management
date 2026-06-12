@@ -122,7 +122,7 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
             <div className="space-y-2.5 text-[13px] border-t border-border pt-3">
               <div className="flex justify-between">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Username (Email)</span>
-                <span className="font-bold text-slate-900 dark:text-white font-mono break-all max-w-[200px] text-right">
+                <span className="font-bold text-slate-900 dark:text-white font-mono break-all max-w-full sm:w-[200px] text-right">
                   {email || "—"}
                 </span>
               </div>

@@ -5,9 +5,13 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAppState } from "../../context/store";
 import { useAuth } from "../../context/auth";
-import { Search, Bell, Sun, Moon, Calendar, BarChart2, ChevronDown, LogOut, User, Settings, Shield } from "lucide-react";
+import { Search, Bell, Sun, Moon, Calendar, BarChart2, ChevronDown, LogOut, User, Settings, Shield, Menu } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const { academicYear, setAcademicYear } = useAppState();
@@ -27,14 +31,23 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-40 h-[72px] w-full px-6 flex items-center justify-between transition-all duration-200 ${scrolled
+      className={`sticky top-0 z-40 h-[72px] w-full px-4 md:px-6 flex items-center justify-between transition-all duration-200 ${scrolled
           ? "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-border shadow-sm"
           : "bg-white dark:bg-slate-900 border-b border-border"
         }`}
     >
-      {/* Search Input Bar */}
-      <div className="flex-1 max-w-md">
-        <div className="relative w-[280px]">
+      <div className="flex items-center flex-1 max-w-md">
+        {/* Mobile Hamburger toggle button */}
+        <button
+          onClick={onMenuClick}
+          className="p-1.5 mr-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg md:hidden block cursor-pointer transition-colors"
+          title="Open Sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Search Input Bar - Hidden on extra small mobile screens */}
+        <div className="relative w-full sm:w-[280px] hidden sm:block">
           <input
             type="text"
             placeholder="Search"
@@ -47,22 +60,23 @@ export function Header() {
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 md:gap-3">
         {/* Academic Year */}
         <div className="relative">
           <button
             onClick={() => setIsAcademicYearOpen(!isAcademicYearOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
-            <Calendar className="w-4 h-4" />
-            <span>Academic Year : {academicYear.replace("-", " / ")}</span>
-            <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <span className="hidden md:inline">Academic Year : </span>
+            <span>{academicYear.replace("-", " / ")}</span>
+            <ChevronDown className="w-3 h-3 ml-0.5 text-slate-400" />
           </button>
 
           {isAcademicYearOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsAcademicYearOpen(false)} />
-              <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1">
+              <div className="absolute top-full left-0 mt-2 w-full min-w-full sm:w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1">
                 {["2023-2024", "2024-2025", "2025-2026"].map((year) => (
                   <button
                     key={year}
@@ -103,7 +117,7 @@ export function Header() {
           {isNotifOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
-              <div className="absolute right-0 top-12 w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-border z-50 overflow-hidden flex flex-col">
+              <div className="absolute right-0 top-12 w-full sm:w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-border z-50 overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Notifications (2)</h3>
@@ -200,7 +214,7 @@ export function Header() {
           {isProfileOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 w-[220px] bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-lg z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-full sm:w-[220px] bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl shadow-lg z-50 overflow-hidden">
                 {/* User info */}
                 <div className="px-4 py-3 border-b border-border dark:border-slate-800">
                   <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate">{user?.name}</p>

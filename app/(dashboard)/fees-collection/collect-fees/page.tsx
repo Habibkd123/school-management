@@ -271,7 +271,7 @@ export default function CollectFeesPage() {
                 <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Official Payment Receipt</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
                 <div>
                   <div className="text-slate-500 mb-1">Receipt No</div>
                   <div className="font-bold text-slate-900 dark:text-white">{lastReceipt.receipt_number}</div>
@@ -283,17 +283,17 @@ export default function CollectFeesPage() {
               </div>
 
               <div className="border-t border-b border-border py-4 mb-6 text-sm">
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                   <span className="text-slate-500 col-span-1">Received From:</span>
                   <span className="font-bold text-slate-900 dark:text-white col-span-2">{selectedStudent.name} (Adm: {selectedStudent.admission_no})</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                   <span className="text-slate-500 col-span-1">Fee Category:</span>
                   <span className="font-bold text-slate-900 dark:text-white col-span-2">
                     {lastReceipt.fee_master_id.fee_group_id.name} - {lastReceipt.fee_master_id.fee_type_id.name}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <span className="text-slate-500 col-span-1">Payment Method:</span>
                   <span className="font-bold text-slate-900 dark:text-white col-span-2">{lastReceipt.payment_method}</span>
                 </div>

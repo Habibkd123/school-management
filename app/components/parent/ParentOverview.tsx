@@ -26,7 +26,7 @@ export function ParentOverview() {
         </div>
         
         {/* Child Selector at the top of the dashboard */}
-        <div className="relative z-10 mt-6 md:mt-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 min-w-[250px]">
+        <div className="relative z-10 mt-6 md:mt-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 min-w-full sm:w-[250px]">
           <p className="text-xs text-purple-200 mb-1 font-medium uppercase tracking-wider">Viewing data for:</p>
           <ChildSelector 
             childrenList={children} 

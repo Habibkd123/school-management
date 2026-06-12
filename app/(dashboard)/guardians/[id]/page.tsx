@@ -244,7 +244,7 @@ export default function ParentDetailPage() {
           {/* Profile Card */}
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left relative overflow-hidden">
             <div className="flex flex-col items-center text-center p-2">
-              <img src={getAvatar(parent.name, parent.photo_url)} className="w-[80px] h-[80px] rounded-xl object-cover border border-slate-200 dark:border-slate-800 shadow-sm mb-4" alt="Avatar" />
+              <img src={getAvatar(parent.name, parent.photo_url)} className="w-full sm:w-[80px] h-[80px] rounded-xl object-cover border border-slate-200 dark:border-slate-800 shadow-sm mb-4" alt="Avatar" />
               <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[9px] font-bold mb-3
                 ${parent.is_active ? "bg-[#E8F8E8] text-[#1D7F2C]" : "bg-[#FFEBF0] text-[#FF4A6B]"}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${parent.is_active ? "bg-[#1DD04A]" : "bg-[#FF4A6B]"}`} />
@@ -299,7 +299,7 @@ export default function ParentDetailPage() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Email Address</p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[170px]">{parent.email || "—"}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold truncate max-w-full sm:w-[170px]">{parent.email || "—"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -348,7 +348,7 @@ export default function ParentDetailPage() {
 
                       {/* Middle profile */}
                       <div className="flex items-center gap-4 mb-5">
-                        <img src={getAvatar(child.name)} className="w-[50px] h-[50px] rounded-xl object-cover border border-border" alt="Child" />
+                        <img src={getAvatar(child.name)} className="w-full sm:w-[50px] h-[50px] rounded-xl object-cover border border-border" alt="Child" />
                         <div>
                           <h4 className="font-bold text-slate-900 dark:text-white text-[15px]">
                             {child.name}
@@ -358,7 +358,7 @@ export default function ParentDetailPage() {
                       </div>
 
                       {/* Stats Table */}
-                      <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-slate-100 dark:border-slate-700/50 mb-5 text-[12px]">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 py-3 border-t border-b border-slate-100 dark:border-slate-700/50 mb-5 text-[12px]">
                         <div>
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5">Roll No</p>
                           <p className="font-bold text-slate-800 dark:text-slate-100">{child.roll_no || "—"}</p>
@@ -462,7 +462,7 @@ export default function ParentDetailPage() {
                   className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-[#F59E0B]/50 transition-all shadow-sm" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Relationship</label>
                   <input type="text" value={formRelation} onChange={e => setFormRelation(e.target.value)} placeholder="e.g. Father"
@@ -475,7 +475,7 @@ export default function ParentDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Phone Number</label>
                   <input type="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="e.g. +1 (555) 123-4567"

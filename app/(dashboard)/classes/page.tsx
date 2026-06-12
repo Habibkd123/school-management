@@ -512,7 +512,7 @@ export default function ClassesPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[#0F172A] dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
               <div className="relative">
@@ -540,7 +540,7 @@ export default function ClassesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[#0F172A] dark:text-slate-100">Academic Year <span className="text-red-500">*</span></label>
               <div className="relative">
@@ -600,7 +600,7 @@ export default function ClassesPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[#0F172A] dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
               <div className="relative">
@@ -628,7 +628,7 @@ export default function ClassesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-[#0F172A] dark:text-slate-100">Academic Year <span className="text-red-500">*</span></label>
               <div className="relative">

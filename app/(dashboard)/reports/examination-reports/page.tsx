@@ -85,11 +85,11 @@ export default function ExaminationReportPage() {
             Examinations Overview
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer min-w-[150px]">
+            <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer min-w-full sm:w-[150px]">
               <option value="">All Exam Types</option>
               {examTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer min-w-[150px]">
+            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer min-w-full sm:w-[150px]">
               <option value="">All Classes</option>
               {classes.map(c => <option key={c._id} value={c._id}>{c.name} - {c.section}</option>)}
             </select>
@@ -100,7 +100,7 @@ export default function ExaminationReportPage() {
           <span className="text-[13px] text-slate-500">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredExams.length}</span> exams</span>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search exam…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
+            <input type="text" placeholder="Search exam…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
           </div>
         </div>
 

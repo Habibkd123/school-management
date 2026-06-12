@@ -14,11 +14,26 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const examId = url.searchParams.get("exam_id");
     const studentId = url.searchParams.get("student_id");
+    const classId = url.searchParams.get("class_id");
     const academic_year = url.searchParams.get("academic_year");
 
     const query: any = { school_id: schoolId };
     if (examId) query.exam_id = examId;
-    if (studentId) query.student_id = studentId;
+    
+    let targetStudentIds: string[] | null = null;
+    if (classId) {
+      const classStudents = await Student.find({ class_id: classId, school_id: schoolId }).select("_id").lean();
+      targetStudentIds = classStudents.map((s: any) => s._id.toString());
+    }
+
+    if (studentId) {
+      if (targetStudentIds && !targetStudentIds.includes(studentId)) {
+        return NextResponse.json({ success: true, data: { results: [] } });
+      }
+      query.student_id = studentId;
+    } else if (targetStudentIds) {
+      query.student_id = { $in: targetStudentIds };
+    }
 
     if (role === "student") {
       const studentProfile = await Student.findOne({ school_id: schoolId, user_id: userId }).select("_id").lean();

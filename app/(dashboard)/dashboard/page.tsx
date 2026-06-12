@@ -329,7 +329,7 @@ export default function DashboardPage() {
   const approvedLeaves = myLeaves.filter(l => l.status === "approved").length;
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-full sm:w-[1600px] mx-auto">
       {/* ----------------------------------------------------
           GLOBAL PAGE HEADER
           ---------------------------------------------------- */}
@@ -458,7 +458,7 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <img src="/asset 7.webp" alt="Students" className="w-[52px] h-[52px] object-contain" />
+                  <img src="/asset 7.webp" alt="Students" className="w-full sm:w-[52px] h-[52px] object-contain" />
                   <div className="text-left">
                     <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{totalStudents}</h3>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Students</p>
@@ -476,7 +476,7 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <img src="/asset 8.webp" alt="Teachers" className="w-[52px] h-[52px] object-contain" />
+                  <img src="/asset 8.webp" alt="Teachers" className="w-full sm:w-[52px] h-[52px] object-contain" />
                   <div className="text-left">
                     <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{totalTeachers}</h3>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Teachers</p>
@@ -494,7 +494,7 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <img src="/asset 9.webp" alt="Classes" className="w-[52px] h-[52px] object-contain" />
+                  <img src="/asset 9.webp" alt="Classes" className="w-full sm:w-[52px] h-[52px] object-contain" />
                   <div className="text-left">
                     <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{totalClasses}</h3>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Classes</p>
@@ -510,7 +510,7 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <img src="/asset 10.webp" alt="Subjects" className="w-[52px] h-[52px] object-contain" />
+                  <img src="/asset 10.webp" alt="Subjects" className="w-full sm:w-[52px] h-[52px] object-contain" />
                   <div className="text-left">
                     <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{filteredSubjects.length}</h3>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Subjects</p>
@@ -617,7 +617,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Stats Blocks */}
-                <div className="grid grid-cols-3 gap-2 mt-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-5">
                   <div className="bg-[#F8F9FA] dark:bg-slate-800/40 rounded-lg p-3 text-center border border-slate-100 dark:border-slate-700/50">
                     <div className="text-[15px] font-bold text-slate-900 dark:text-white">{emergencyLeaves < 10 ? `0${emergencyLeaves}` : emergencyLeaves}</div>
                     <div className="text-[10px] text-slate-500 dark:text-slate-400">Emergency</div>
@@ -634,7 +634,7 @@ export default function DashboardPage() {
 
                 {/* Half Donut Mockup */}
                 <div className="flex-1 mt-6 flex flex-col items-center justify-end overflow-hidden relative min-h-[140px]">
-                  <svg viewBox="0 0 100 50" className="w-[80%] h-auto drop-shadow-md">
+                  <svg viewBox="0 0 100 50" className="w-full sm:w-[80%] h-auto drop-shadow-md">
                     <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F59E0B" strokeWidth="20" />
                     <path d="M 85 50 A 40 40 0 0 0 90 50" fill="none" stroke="#1DD04A" strokeWidth="20" />
                   </svg>
@@ -648,7 +648,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Best Performers Row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Best Performer */}
                 <div className="bg-[#3DC84A] rounded-xl card-shadow overflow-hidden text-center relative p-5 h-[280px] flex flex-col items-center">
                   <div className="absolute top-2 left-2 flex gap-1 opacity-20">
@@ -661,7 +661,7 @@ export default function DashboardPage() {
                   <p className="text-[11px] text-white/80">
                     {bestStudent ? `${bestStudent.percentage.toFixed(1)}%` : 'No Data'}
                   </p>
-                  <img src="/student-performer-01.png" alt="Best Performer" className="absolute bottom-0 w-[80%] object-contain" />
+                  <img src="/student-performer-01.png" alt="Best Performer" className="absolute bottom-0 w-full sm:w-[80%] object-contain" />
                 </div>
 
                 {/* Star Students */}
@@ -676,7 +676,7 @@ export default function DashboardPage() {
                   <p className="text-[11px] text-white/80">
                     {starStudent ? `${starStudent.percentage.toFixed(1)}%` : 'No Data'}
                   </p>
-                  <img src="/performer-01.png" alt="Star Student" className="absolute bottom-0 w-[85%] object-contain" />
+                  <img src="/performer-01.png" alt="Star Student" className="absolute bottom-0 w-full sm:w-[85%] object-contain" />
                 </div>
               </div>
             </div>
@@ -687,7 +687,7 @@ export default function DashboardPage() {
               {/* Quick Links Card */}
               <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
                 <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white mb-5">Quick Links</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Link href="/academic/class-routine" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[#E8F8E8] border border-[#BDE8B5] text-[#1D7F2C] flex items-center justify-center group-hover:scale-105 transition-transform">
                       <CalendarIcon className="w-5 h-5" />
@@ -800,7 +800,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="w-[100px] h-[100px] relative shrink-0">
+                  <div className="w-full sm:w-[100px] h-[100px] relative shrink-0">
                     {/* Recreating Donut Chart with SVG to match exact colors */}
                     <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                       <circle cx="50" cy="50" r="40" fill="none" stroke="#F59E0B" strokeWidth="18" strokeDasharray="251.2" strokeDashoffset="0" />
@@ -837,7 +837,7 @@ export default function DashboardPage() {
                     const expectedHeight = Math.min(100, Math.max(10, (q.expected / maxFee) * 100));
                     const collectedHeight = q.expected > 0 ? (q.collected / q.expected) * 100 : 0;
                     return (
-                      <div key={i} className="flex flex-col items-center gap-2 h-full justify-end w-full max-w-[40px] px-1 group">
+                      <div key={i} className="flex flex-col items-center gap-2 h-full justify-end w-full max-w-full sm:w-[40px] px-1 group">
                         <div
                           className="w-full bg-slate-200 dark:bg-slate-700 rounded-t flex flex-col justify-end overflow-hidden transition-all duration-500 relative"
                           style={{ height: `${expectedHeight}%` }}
@@ -909,7 +909,7 @@ export default function DashboardPage() {
           {/* ----------------------------------------------------
               BOTTOM ROW 2: ACTION BUTTONS
               ---------------------------------------------------- */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/attendance/student-attendance" className="bg-[#FFF7E6] hover:bg-[#ffeed1] transition-colors rounded-xl p-4 flex items-center justify-between border border-[#FFE7B3]">
               <div className="flex items-center gap-3 text-[#F59E0B] font-bold text-[13px]">
                 <div className="w-10 h-10 bg-[#F59E0B] rounded-lg text-white flex items-center justify-center shadow-sm">
@@ -1122,7 +1122,7 @@ export default function DashboardPage() {
               {/* Abstract dark shapes mockup */}
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#2D3748] rounded-full opacity-50"></div>
 
-              <img src={(user as any)?.photo_url || "/asset 12.webp"} alt="Profile" className="w-[72px] h-[72px] rounded-lg object-cover border-2 border-slate-700 z-10 bg-slate-800" />
+              <img src={(user as any)?.photo_url || "/asset 12.webp"} alt="Profile" className="w-full sm:w-[72px] h-[72px] rounded-lg object-cover border-2 border-slate-700 z-10 bg-slate-800" />
               <div className="z-10 text-left">
                 <span className="bg-white text-[#F59E0B] text-[9px] font-bold px-2 py-0.5 rounded uppercase">#{(user as any)?.employee_id || "T094001"}</span>
                 <h3 className="text-[15px] font-bold text-white mt-1.5">{user?.name || "Teacher Name"}</h3>
@@ -1137,7 +1137,7 @@ export default function DashboardPage() {
 
             {/* Syllabus Progress */}
             <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center justify-between text-left">
-              <div className="w-[80px] h-[80px] relative shrink-0">
+              <div className="w-full sm:w-[80px] h-[80px] relative shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#FF4A6B" strokeWidth="16" />
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#F59E0B" strokeWidth="16" strokeDasharray="251.2" strokeDashoffset="12.56" />
@@ -1181,7 +1181,7 @@ export default function DashboardPage() {
                 </div>
 
                 {todaysClasses.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
                     {todaysClasses.map((cls, idx) => {
                       // Alternate colors for variety
                       const colors = [
@@ -1223,7 +1223,7 @@ export default function DashboardPage() {
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="text-center p-4 bg-[#F8FAFC] dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase mb-1">Approved Leaves</p>
                       <p className="text-[20px] font-bold text-[#1DD04A]">{approvedLeaves}</p>
@@ -1332,7 +1332,7 @@ export default function DashboardPage() {
                                   </div>
                                 )}
                                 <div>
-                                  <h4 className="text-[13px] font-bold text-slate-900 dark:text-white truncate max-w-[120px]">
+                                  <h4 className="text-[13px] font-bold text-slate-900 dark:text-white truncate max-w-full sm:w-[120px]">
                                     {studentName}
                                   </h4>
                                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -1678,7 +1678,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="relative z-10 mt-6 md:mt-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 min-w-[250px]">
+              <div className="relative z-10 mt-6 md:mt-0 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 min-w-full sm:w-[250px]">
                 <p className="text-xs text-purple-200 mb-2 font-medium uppercase tracking-wider">Select Child:</p>
                 {parentLoading ? (
                   <div className="text-sm">Loading children...</div>
@@ -1905,7 +1905,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Action Buttons Row */}
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <Link href={activeRole === "parent" ? "/parent/fees" : "/fees"} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
                       <div className="w-6 h-6 rounded bg-[#EAEFFF] flex items-center justify-center">
                         <DollarSign className="w-3.5 h-3.5 text-[#F59E0B]" />
@@ -2185,7 +2185,7 @@ export default function DashboardPage() {
                     );
 
                     return uniqueTeachers.map(({ teacher, subject }, idx) => (
-                      <div key={(teacher as any)?._id || idx} className="min-w-[200px] border border-slate-100 dark:border-slate-800 rounded-lg p-3 snap-start">
+                      <div key={(teacher as any)?._id || idx} className="min-w-full sm:w-[200px] border border-slate-100 dark:border-slate-800 rounded-lg p-3 snap-start">
                         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
                           <div className="w-10 h-10 rounded overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
                             {(teacher as any)?.photo_url
@@ -2198,7 +2198,7 @@ export default function DashboardPage() {
                             <p className="text-[11px] text-slate-500 mt-0.5">{(subject as any)?.name || 'Subject'}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           <button className="flex items-center justify-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800">
                             <FileText className="w-3 h-3" /> Email
                           </button>

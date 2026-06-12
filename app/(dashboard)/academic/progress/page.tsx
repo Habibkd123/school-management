@@ -54,8 +54,8 @@ function getDateRangeDates(range: string): { from: Date | null; to: Date | null 
 
 export default function StudentProgressPage() {
   const { classes, isLoading: classesLoading } = useClasses();
-  const { students, isLoading: studentsLoading } = useStudents();
-  const { results, isLoading: resultsLoading } = useResults();
+  const { students, isLoading: studentsLoading, fetchStudents } = useStudents({ skip: true });
+  const { results, isLoading: resultsLoading, fetchResults } = useResults({ skip: true });
   const { exams, loading: examsLoading } = useExams();
 
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -98,6 +98,14 @@ export default function StudentProgressPage() {
       setSelectedClassId(classes[0]._id);
     }
   }, [classes, selectedClassId]);
+
+  // Fetch students and results when class changes
+  React.useEffect(() => {
+    if (selectedClassId) {
+      fetchStudents({ classId: selectedClassId });
+      fetchResults({ class_id: selectedClassId });
+    }
+  }, [selectedClassId, fetchStudents, fetchResults]);
 
   const isLoading = classesLoading || studentsLoading || resultsLoading || examsLoading;
 
@@ -348,7 +356,7 @@ export default function StudentProgressPage() {
                 </div>
                 <div>
                   <span className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">Class Valedictorian</span>
-                  <span className="text-xl font-bold block text-slate-900 dark:text-white mt-0.5 truncate max-w-[150px]">{classSummary.topPerformer}</span>
+                  <span className="text-xl font-bold block text-slate-900 dark:text-white mt-0.5 truncate max-w-full sm:w-[150px]">{classSummary.topPerformer}</span>
                 </div>
               </div>
               <span className="text-[11px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-full">
@@ -400,7 +408,7 @@ export default function StudentProgressPage() {
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => setIsDateRangeOpen(!isDateRangeOpen)} className={triggerCls(isDateRangeOpen)}>
                       <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                      <span className="max-w-[120px] truncate">{dateRangeLabel}</span>
+                      <span className="max-w-full sm:w-[120px] truncate">{dateRangeLabel}</span>
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDateRangeOpen ? "rotate-180" : ""}`} />
                     </button>
                     {isDateRangeOpen && (
@@ -530,7 +538,7 @@ export default function StudentProgressPage() {
                       placeholder="Search student ledger..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 pr-4 py-2 w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors text-slate-700 dark:text-slate-200"
+                      className="pl-9 pr-4 py-2 w-full sm:w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors text-slate-700 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -641,7 +649,7 @@ export default function StudentProgressPage() {
             </div>
 
             {/* Performance Statistics Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
                 <span className="text-[11px] uppercase font-bold text-slate-500">Cumulative Score</span>
                 <span className="text-2xl font-black block mt-1 font-mono text-slate-900 dark:text-white">{selectedStudentMetric.averagePercentage}%</span>

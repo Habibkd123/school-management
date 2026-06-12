@@ -82,7 +82,7 @@ export default function TeacherDayWiseReportPage() {
           <span className="text-[13px] text-slate-500">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredTeachers.length}</span> teachers</span>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search teacher…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
+            <input type="text" placeholder="Search teacher…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
           </div>
         </div>
 
@@ -92,7 +92,7 @@ export default function TeacherDayWiseReportPage() {
               <tr>
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 sticky left-0 bg-[#F8FAFC] dark:bg-[#0F172A] z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">Teacher</th>
                 {Array.from({ length: 31 }).map((_, i) => (
-                  <th key={i} className="px-2 py-4 text-center font-bold text-slate-700 dark:text-slate-200 min-w-[36px]">{i + 1}</th>
+                  <th key={i} className="px-2 py-4 text-center font-bold text-slate-700 dark:text-slate-200 min-w-full sm:w-[36px]">{i + 1}</th>
                 ))}
               </tr>
             </thead>

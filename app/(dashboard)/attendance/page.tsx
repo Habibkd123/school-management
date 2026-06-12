@@ -139,7 +139,7 @@ export default function AttendancePage() {
       ) : (
         <>
           {/* Attendance Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-5">
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Cohort</span>

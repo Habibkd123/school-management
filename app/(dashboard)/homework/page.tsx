@@ -313,7 +313,7 @@ export default function HomeworkPage() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Class Target</label>
               <select
@@ -528,7 +528,7 @@ export default function HomeworkPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5 text-left col-span-1">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Award Grade</label>
               <select

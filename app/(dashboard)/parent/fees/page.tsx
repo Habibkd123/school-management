@@ -46,7 +46,7 @@ export default function ParentFeesPage() {
   const payPag = usePagination(payments, 8);
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto">
+    <div className="space-y-6 max-w-full sm:w-[1200px] mx-auto">
       {/* Header & Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-border card-shadow">
         <div>
@@ -56,7 +56,7 @@ export default function ParentFeesPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">View pending dues and payment history</p>
         </div>
-        <div className="min-w-[250px]">
+        <div className="min-w-full sm:w-[250px]">
           <ChildSelector 
             childrenList={children} 
             selectedChildId={selectedChildId} 

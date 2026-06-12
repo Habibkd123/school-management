@@ -141,7 +141,7 @@ export default function TeacherDetailsPage() {
             {title.split(".").pop() || "PDF"}
           </span>
         </div>
-        <p className="text-[13px] font-bold text-slate-900 dark:text-white max-w-[200px] truncate">{title}</p>
+        <p className="text-[13px] font-bold text-slate-900 dark:text-white max-w-full sm:w-[200px] truncate">{title}</p>
       </div>
       {url ? (
         <a
@@ -337,7 +337,7 @@ export default function TeacherDetailsPage() {
           {/* Profile Card */}
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow text-left relative overflow-hidden">
             <div className="flex items-center gap-4">
-              <img src={teacher.photo_url || "/asset 7.webp"} className="w-[60px] h-[60px] rounded-xl object-cover border border-slate-200 dark:border-slate-800" alt="Avatar" />
+              <img src={teacher.photo_url || "/asset 7.webp"} className="w-full sm:w-[60px] h-[60px] rounded-xl object-cover border border-slate-200 dark:border-slate-800" alt="Avatar" />
               <div>
                 <h2 className="text-[16px] leading-[19.2px] font-medium text-[#0F172A] dark:text-slate-100">{teacher.name}</h2>
                 <p className="text-[12px] text-[#F59E0B] font-bold mt-0.5">{teacher.employee_id || "No ID"}</p>
@@ -587,7 +587,7 @@ export default function TeacherDetailsPage() {
                   <div className="p-4 border-b border-border">
                     <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Bank Details</h3>
                   </div>
-                  <div className="p-5 grid grid-cols-3 gap-4">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-1">Bank Name</p>
                       <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{teacher.bank_name || "Not Specified"}</p>
@@ -606,7 +606,7 @@ export default function TeacherDetailsPage() {
                   <div className="p-4 border-b border-border">
                     <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Work Details</h3>
                   </div>
-                  <div className="p-5 grid grid-cols-3 gap-4">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-1">Contract Type</p>
                       <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{teacher.contract_type || "Not Specified"}</p>
@@ -628,7 +628,7 @@ export default function TeacherDetailsPage() {
                 <div className="p-4 border-b border-border">
                   <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Social Media</h3>
                 </div>
-                <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-6">
+                <div className="p-5 grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-6">
                   <div>
                     <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-1">Facebook</p>
                     {teacher.facebook_url ? (
@@ -699,14 +699,14 @@ export default function TeacherDetailsPage() {
                 <div className="p-10 text-center text-slate-400">No schedules assigned to this teacher.</div>
               ) : (
                 <div className="overflow-x-auto custom-scrollbar pb-6">
-                  <div className="min-w-[900px]">
-                    <div className="grid grid-cols-6 gap-4 mb-4">
+                  <div className="min-w-full sm:w-[900px]">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                       {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
                         <div key={day} className="text-[13px] font-bold text-slate-900 dark:text-white pb-2">{day}</div>
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-6 gap-4 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 relative">
                       {timeTableData.map((col, idx) => (
                         <div key={idx} className="flex flex-col gap-4">
                           {col.map((slot, sIdx) => (
@@ -727,7 +727,7 @@ export default function TeacherDetailsPage() {
                     </div>
 
                     {/* Break sections below table */}
-                    <div className="grid grid-cols-3 gap-4 mt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                       <div className="bg-[#EEF2FF] rounded-xl p-4 flex flex-col justify-center">
                         <span className="inline-block px-2 py-0.5 bg-[#F59E0B] text-white text-[10px] font-bold rounded mb-2 self-start">Morning Break</span>
                         <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-1">
@@ -834,7 +834,7 @@ export default function TeacherDetailsPage() {
                                 <td className="px-5 py-3">{formatDate(l.from_date)} - {formatDate(l.to_date)}</td>
                                 <td className="px-5 py-3">{l.total_days}</td>
                                 <td className="px-5 py-3">{formatDate(l.createdAt)}</td>
-                                <td className="px-5 py-3 truncate max-w-[200px]" title={l.reason}>{l.reason || "-"}</td>
+                                <td className="px-5 py-3 truncate max-w-full sm:w-[200px]" title={l.reason}>{l.reason || "-"}</td>
                                 <td className="px-5 py-3">
                                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold
                                     ${l.status === "approved" ? "bg-[#E8F8E8] text-[#1D7F2C]" : l.status === "rejected" ? "bg-[#FFEBEB] text-[#E02424]" : "bg-[#FFF8E6] text-[#F59E0B]"}
@@ -947,7 +947,7 @@ export default function TeacherDetailsPage() {
                       </div>
                     ) : (
                       <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left text-[12px] min-w-[800px]">
+                        <table className="w-full text-left text-[12px] min-w-full sm:w-[800px]">
                           <thead className="bg-[#F8FAFC] dark:bg-[#0F172A] text-slate-700 dark:text-slate-200 border-y border-border">
                             <tr>
                               <th className="px-4 py-3 font-semibold whitespace-nowrap">Day | Month</th>

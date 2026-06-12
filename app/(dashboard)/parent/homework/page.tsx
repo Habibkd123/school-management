@@ -69,7 +69,7 @@ export default function ParentHomeworkPage() {
     subjectColors[name] || 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300';
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto">
+    <div className="space-y-6 max-w-full sm:w-[1200px] mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-border card-shadow">
         <div>
@@ -79,7 +79,7 @@ export default function ParentHomeworkPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Track assignments and submission status</p>
         </div>
-        <div className="min-w-[250px]">
+        <div className="min-w-full sm:w-[250px]">
           <ChildSelector
             childrenList={children}
             selectedChildId={selectedChildId}

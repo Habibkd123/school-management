@@ -29,7 +29,7 @@ export function AcademicPrograms() {
         {/* Horizontal Scroll/Grid */}
         <div className="flex overflow-x-auto pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-6 snap-x snap-mandatory hide-scrollbar">
           {programs.map((prog, idx) => (
-            <div key={idx} className="min-w-[280px] sm:min-w-0 bg-white rounded-sm shadow-md border border-slate-200 overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 snap-center flex flex-col">
+            <div key={idx} className="min-w-full sm:w-[280px] sm:min-w-0 bg-white rounded-sm shadow-md border border-slate-200 overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 snap-center flex flex-col">
               <div className="h-48 overflow-hidden relative">
                 <img 
                   src={prog.img} 

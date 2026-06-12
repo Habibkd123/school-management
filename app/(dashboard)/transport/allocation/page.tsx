@@ -183,7 +183,7 @@ export default function AllocationPage() {
       <TransportTabs />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Allocations", value: allocations.length, color: "bg-amber-50 dark:bg-amber-900/20 text-[#F59E0B]", icon: UserCheck },
           { label: "Active", value: allocations.filter(a => a.status === "Active").length, color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600", icon: UserCheck },
@@ -272,7 +272,7 @@ export default function AllocationPage() {
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Search student or ID..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
           </div>
         </div>
 
@@ -398,7 +398,7 @@ export default function AllocationPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: "Route", value: viewAlloc.route, icon: Bus },
                 { label: "Bus Number", value: viewAlloc.busNumber, icon: Bus },
@@ -432,7 +432,7 @@ export default function AllocationPage() {
       {(isAddOpen || !!editAlloc) && (
         <Modal isOpen={isAddOpen || !!editAlloc} onClose={() => { setIsAddOpen(false); setEditAlloc(null); }} title={editAlloc ? "Edit Allocation" : "Allocate Student"} size="md">
           <form onSubmit={e => { e.preventDefault(); editAlloc ? handleEdit() : handleAdd(); }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-2 flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Student</label>
                 <select required value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))} className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-[#F59E0B]/50 transition-all">

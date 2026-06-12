@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../components/layout/sidebar";
 import { Header } from "../components/layout/header";
@@ -37,6 +37,7 @@ export default function DashboardLayout({
   const { isAuthenticated, isLoading, user, permissions } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -84,15 +85,18 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background font-sans">
       {/* Sidebar Navigation */}
-      <Sidebar />
+      <Sidebar 
+        isMobileOpen={isMobileSidebarOpen} 
+        onClose={() => setIsMobileSidebarOpen(false)} 
+      />
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Header Top Bar */}
-        <Header />
+        <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6 lg:p-8">
           <div className="w-full h-full">
             {children}
           </div>

@@ -140,7 +140,7 @@ export default function ParentAttendancePage() {
   }, [recordMap, daysInMonth, isCurrentMonth]);
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto">
+    <div className="space-y-6 max-w-full sm:w-[1200px] mx-auto">
 
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-border card-shadow">
@@ -151,7 +151,7 @@ export default function ParentAttendancePage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Monitor your child's daily presence</p>
         </div>
-        <div className="min-w-[250px]">
+        <div className="min-w-full sm:w-[250px]">
           <ChildSelector
             childrenList={children}
             selectedChildId={selectedChildId}

@@ -83,7 +83,7 @@ export default function StudentReportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total Students", value: students.length, color: "text-indigo-600 bg-indigo-50 border-indigo-100" },
           { label: "Active", value: students.filter(s => s.is_active).length, color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
@@ -115,7 +115,7 @@ export default function StudentReportPage() {
                       <h3 className="text-[15px] font-bold text-[#0F172A] dark:text-slate-100">Filter</h3>
                     </div>
                     <div className="p-4 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Class</label>
                           <div className="relative">
@@ -183,7 +183,7 @@ export default function StudentReportPage() {
           <span className="text-[13px] text-slate-500 dark:text-slate-400">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredData.length}</span> of {students.length}</span>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search name, admission no, roll no…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-[280px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
+            <input type="text" placeholder="Search name, admission no, roll no…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[280px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
           </div>
         </div>
 

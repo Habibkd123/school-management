@@ -482,7 +482,7 @@ function StudentPromotionContent() {
 
                 <div className="space-y-3">
                   <h3 className="text-[13px] font-bold text-slate-900 dark:text-white">Promotion From <span className="text-red-500">*</span></h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[12px] font-medium text-slate-600 dark:text-slate-400">Class</label>
                       {studentIdParam ? (
@@ -538,7 +538,7 @@ function StudentPromotionContent() {
 
                 <div className="space-y-3">
                   <h3 className="text-[13px] font-bold text-slate-900 dark:text-white">Promotion To <span className="text-red-500">*</span></h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[12px] font-medium text-slate-600 dark:text-slate-400">Class</label>
                       <select
@@ -701,7 +701,7 @@ function StudentPromotionContent() {
                           <select
                             value={promotionResults[s._id] || "promote"}
                             onChange={(e) => setPromotionResults(prev => ({ ...prev, [s._id]: e.target.value as "promote" | "no_promote" }))}
-                            className="border border-border rounded px-2.5 py-1 text-[12px] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 outline-none w-[170px] cursor-pointer focus:border-[#F59E0B]/50"
+                            className="border border-border rounded px-2.5 py-1 text-[12px] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 outline-none w-full sm:w-[170px] cursor-pointer focus:border-[#F59E0B]/50"
                           >
                             <option value="promote">Promote to {selectedToClassName}</option>
                             <option value="no_promote">No Promotion (Repeat)</option>

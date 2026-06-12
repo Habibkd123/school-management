@@ -7,7 +7,7 @@ import { useAuth } from "../../context/auth";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, Clock, BookOpen,
   ClipboardList, DollarSign, Megaphone, ChevronDown, ChevronRight, Building2,
-  BarChart, LogOut, User, ChevronUp, Menu, Bus
+  BarChart, LogOut, User, ChevronUp, Menu, Bus, X
 } from "lucide-react";
 
 // Map DB roles → sidebar role key
@@ -19,7 +19,12 @@ function mapRole(role?: string): "admin" | "accountant" | "teacher" | "student" 
   return "student";
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const activeRole = mapRole(user?.role);
@@ -236,32 +241,50 @@ export function Sidebar() {
   }, [pathname]);
 
   return (
-    <aside className={`${isCollapsed ? 'w-[80px]' : 'w-[240px]'} bg-sidebar flex flex-col h-full flex-shrink-0 transition-all duration-300 border-r border-slate-800/50`}>
-      {/* Branding */}
-      <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} border-b border-slate-800/50 mt-2`}>
-        {!isCollapsed && (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden bg-white shrink-0">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-1" />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity duration-300"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={`fixed inset-y-0 left-0 z-50 md:relative md:flex ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${isCollapsed ? 'md:w-[80px]' : 'md:w-[240px]'} w-full sm:w-[240px] bg-sidebar flex flex-col h-full flex-shrink-0 transition-all duration-300 border-r border-slate-800/50`}>
+        {/* Branding */}
+        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} border-b border-slate-800/50 mt-2`}>
+          {(!isCollapsed || isMobileOpen) && (
+            <div className="flex items-center gap-3 pl-2 md:pl-0">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden bg-white shrink-0">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-1" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-white tracking-tight text-[15px]">
+                  Preskool
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 tracking-wider uppercase">
+                  Management
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-white tracking-tight text-[15px]">
-                Preskool
-              </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 tracking-wider uppercase">
-                Management
-              </span>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors cursor-pointer ${isCollapsed ? 'mx-auto' : ''}`}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
+          )}
+          
+          {/* Collapse toggle for desktop, close button for mobile */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors cursor-pointer md:block hidden ${isCollapsed ? 'mx-auto' : ''}`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors cursor-pointer md:hidden block mr-2"
+            title="Close Sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
       {/* Navigation Links */}
       {/* Navigation Links */}
@@ -305,6 +328,7 @@ export function Sidebar() {
                         <Link
                           key={sub.name}
                           href={sub.href}
+                          onClick={onClose}
                           className={`text-[12px] font-medium transition-colors py-1.5 ${isSubActive ? "text-primary" : "text-slate-500 dark:text-slate-400 hover:text-slate-300"
                             }`}
                         >
@@ -318,11 +342,12 @@ export function Sidebar() {
             );
           }
 
-          const isActive = pathname === (link as any).href;
+          const isActive = pathname === (link as { href: string }).href;
           return (
             <Link
               key={link.name}
-              href={(link as any).href}
+              href={(link as { href: string }).href}
+              onClick={onClose}
               className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} ${isCollapsed ? 'px-0 py-3' : 'px-3 py-2.5'} text-[13px] rounded-lg transition-all duration-200 font-medium ${isActive
                 ? "bg-primary/10 text-primary"
                 : "text-slate-400 dark:text-slate-500 hover:text-slate-200 hover:bg-slate-800/50"
@@ -346,14 +371,14 @@ export function Sidebar() {
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
               <Link
                 href="/settings/profile"
-                onClick={() => setIsProfileMenuOpen(false)}
+                onClick={() => { setIsProfileMenuOpen(false); onClose?.(); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors cursor-pointer"
               >
                 <User className="w-4 h-4" /> My Profile
               </Link>
               <div className="h-px w-full bg-slate-700/50 my-1" />
               <button
-                onClick={() => { setIsProfileMenuOpen(false); logout(); }}
+                onClick={() => { setIsProfileMenuOpen(false); logout(); onClose?.(); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 transition-colors cursor-pointer text-left"
               >
                 <LogOut className="w-4 h-4" /> Logout
@@ -383,7 +408,7 @@ export function Sidebar() {
                     {activeRole.toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm font-semibold text-white truncate max-w-[140px]">
+                <span className="text-sm font-semibold text-white truncate max-w-full sm:w-[140px]">
                   {user?.name || roleLabels[activeRole].text}
                 </span>
               </div>
@@ -397,5 +422,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

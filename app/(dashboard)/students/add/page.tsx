@@ -107,7 +107,7 @@ function DocUploader({
         </button>
         {doc ? (
           <div className="flex items-center gap-2">
-            <span className="text-[12px] text-slate-600 dark:text-slate-300 font-medium truncate max-w-[180px]">{doc.name}</span>
+            <span className="text-[12px] text-slate-600 dark:text-slate-300 font-medium truncate max-w-full sm:w-[180px]">{doc.name}</span>
             <button type="button" onClick={() => onChange(null)}>
               <X className="w-4 h-4 text-rose-400 hover:text-rose-500" />
             </button>
@@ -143,7 +143,7 @@ function TagInput({ tags, onChange, placeholder }: { tags: string[]; onChange: (
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } }}
         placeholder={placeholder || "Type and press Enter"}
-        className="flex-1 min-w-[120px] text-[12px] outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+        className="flex-1 min-w-full sm:w-[120px] text-[12px] outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
       />
       <button type="button" onClick={add} className="text-[11px] px-2 py-0.5 bg-[#F59E0B] text-white rounded font-semibold hover:bg-[#D97706] transition-colors">Add</button>
     </div>

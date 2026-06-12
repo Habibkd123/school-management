@@ -11,15 +11,15 @@ export function AboutSchool() {
 
   return (
     <section id="about" className="py-24 bg-slate-50 overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#F59E0B]/5 rounded-full blur-[100px] -z-10" />
+      <div className="absolute top-0 right-0 w-full sm:w-[500px] h-[500px] bg-[#F59E0B]/5 rounded-full blur-[100px] -z-10" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           
           {/* Left: Image Grid */}
           <div className="relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[#0F172A]/5 rounded-full -z-10 border border-[#0F172A]/10" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:w-[120%] h-[120%] bg-[#0F172A]/5 rounded-full -z-10 border border-[#0F172A]/10" />
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <img 
                 src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1000&auto=format&fit=crop" 
                 alt="School Building" 

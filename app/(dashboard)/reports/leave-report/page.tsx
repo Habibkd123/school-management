@@ -81,7 +81,7 @@ export default function LeaveReportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total Requests", value: stats.total, color: "text-indigo-600 bg-indigo-50 border-indigo-100" },
           { label: "Approved", value: stats.approved, color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
@@ -161,7 +161,7 @@ export default function LeaveReportPage() {
           <span className="text-[13px] text-slate-500">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredLeaves.length}</span> requests</span>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search applicant…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
+            <input type="text" placeholder="Search applicant…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors" />
           </div>
         </div>
 
@@ -203,7 +203,7 @@ export default function LeaveReportPage() {
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{new Date(l.from_date).toLocaleDateString("en-GB")}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{new Date(l.to_date).toLocaleDateString("en-GB")}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-semibold">{l.total_days || "—"}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 max-w-[200px] truncate" title={l.reason}>{l.reason || "—"}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 max-w-full sm:w-[200px] truncate" title={l.reason}>{l.reason || "—"}</td>
                     <td className="px-6 py-4">
                       {l.status === "approved" && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Approved</span>}
                       {l.status === "pending" && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold bg-amber-50 text-amber-600 border border-amber-100"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Pending</span>}

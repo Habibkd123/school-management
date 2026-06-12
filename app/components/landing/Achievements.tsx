@@ -23,7 +23,7 @@ export function Achievements() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {achievements.map((item, idx) => (
             <div key={idx} className="flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-sm border border-slate-200 hover:border-[#F59E0B] hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="w-24 h-24 rounded-full bg-white shadow-md flex items-center justify-center mb-6 border-4 border-slate-100">

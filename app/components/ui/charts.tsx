@@ -244,7 +244,7 @@ export function DoughnutChart({ data, colors = ["#2563EB", "#10B981", "#F59E0B",
   return (
     <div className="w-full flex flex-col md:flex-row items-center justify-around gap-6">
       {/* Circle */}
-      <div className="relative w-[180px] h-[180px]">
+      <div className="relative w-full sm:w-[180px] h-[180px]">
         <svg width={size} height={size} className="transform -rotate-90">
           <circle
             cx={center}
@@ -302,7 +302,7 @@ export function DoughnutChart({ data, colors = ["#2563EB", "#10B981", "#F59E0B",
                 className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: colors[i % colors.length] }}
               />
-              <span className="font-semibold text-slate-700 dark:text-slate-200 min-w-[70px]">{d.label}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200 min-w-full sm:w-[70px]">{d.label}</span>
               <span className="font-bold text-slate-900 dark:text-white">{d.value}</span>
               <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px] ml-1">({percentage}%)</span>
             </div>

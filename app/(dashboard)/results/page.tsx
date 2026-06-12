@@ -208,7 +208,7 @@ export default function ResultsPage() {
       {/* Post Marks Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Post Exam Marks">
         <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Exam</label>
               <select
@@ -248,7 +248,7 @@ export default function ResultsPage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Marks Obtained</label>
               <input

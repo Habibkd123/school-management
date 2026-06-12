@@ -10,7 +10,7 @@ export function Testimonials() {
 
   return (
     <section className="py-24 bg-white relative border-b border-slate-200">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#F59E0B]/5 rounded-full blur-[120px] -z-10" />
+      <div className="absolute top-0 right-0 w-full sm:w-[600px] h-[600px] bg-[#F59E0B]/5 rounded-full blur-[120px] -z-10" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
         <div className="text-center max-w-3xl mx-auto mb-16">

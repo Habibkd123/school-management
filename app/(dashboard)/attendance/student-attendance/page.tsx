@@ -213,7 +213,7 @@ export default function StudentAttendancePage() {
 
       {/* Summary stats */}
       {classStudents.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-5 gap-3">
           {STATUS_OPTIONS.map((opt) => (
             <div key={opt.value} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm text-center">
               <div className={`w-2.5 h-2.5 rounded-full ${statusDot[opt.value]} mx-auto mb-2`} />
@@ -311,7 +311,7 @@ export default function StudentAttendancePage() {
               placeholder="Search name, roll no, admission no…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[280px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
+              className="pl-9 pr-4 py-2 w-full sm:w-[280px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function StudentAttendancePage() {
                 {!isReportMode ? (
                   <>
                     <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Attendance</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 min-w-[200px]">Notes</th>
+                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 min-w-full sm:w-[200px]">Notes</th>
                   </>
                 ) : (
                   <>

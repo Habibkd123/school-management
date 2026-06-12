@@ -323,7 +323,7 @@ export default function GuardiansPage() {
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsDateRangeOpen(!isDateRangeOpen)} className={triggerCls(isDateRangeOpen)}>
                 <Calendar className="w-4 h-4" />
-                <span className="max-w-[120px] truncate">{dateRangeLabel}</span>
+                <span className="max-w-full sm:w-[120px] truncate">{dateRangeLabel}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDateRangeOpen ? "rotate-180" : ""}`} />
               </button>
               {isDateRangeOpen && (
@@ -374,11 +374,11 @@ export default function GuardiansPage() {
               {isFilterOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-full sm:w-[380px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-border z-50 overflow-hidden">
                     <div className="p-4 border-b border-border">
                       <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">Filter</h3>
                     </div>
-                    <div className="p-5 grid grid-cols-2 gap-4">
+                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5 text-left">
                         <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">Parent Name</label>
                         <input value={filterParent} onChange={e => setFilterParent(e.target.value)} placeholder="Search..."
@@ -467,7 +467,7 @@ export default function GuardiansPage() {
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-[250px] pl-9 pr-4 py-2 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-[#F59E0B]/50 transition-all"
+              className="w-full sm:w-[250px] pl-9 pr-4 py-2 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-[#F59E0B]/50 transition-all"
             />
           </div>
         </div>
@@ -550,7 +550,7 @@ export default function GuardiansPage() {
                       </td>
 
                       <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{parent.phone || "—"}</td>
-                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate">{parent.email || "—"}</td>
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 max-w-full sm:w-[180px] truncate">{parent.email || "—"}</td>
 
                       {/* Action */}
                       <td className="px-4 py-4">
@@ -652,7 +652,7 @@ export default function GuardiansPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 gap-2 mb-5 border-t border-b border-slate-100 dark:border-slate-700/50 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-5 border-t border-b border-slate-100 dark:border-slate-700/50 py-4">
                       <div>
                         <p className="text-[11px] text-slate-500 mb-1">Children</p>
                         <p className="text-[12px] font-bold text-slate-900 dark:text-white">{parent.children?.length || 0}</p>

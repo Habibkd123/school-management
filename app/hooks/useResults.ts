@@ -37,7 +37,7 @@ export function useResults(options?: { skip?: boolean }) {
   const [error, setError] = useState<string | null>(null);
 
   // ─── Fetch results ──────────────────────────────────────────────
-  const fetchResults = useCallback(async (params?: { exam_id?: string; student_id?: string }) => {
+  const fetchResults = useCallback(async (params?: { exam_id?: string; student_id?: string; class_id?: string }) => {
     setIsLoading(true);
     setResults([]);
     setError(null);
@@ -45,6 +45,7 @@ export function useResults(options?: { skip?: boolean }) {
       const query = new URLSearchParams();
       if (params?.exam_id) query.set("exam_id", params.exam_id);
       if (params?.student_id) query.set("student_id", params.student_id);
+      if (params?.class_id) query.set("class_id", params.class_id);
 
       const res = await fetch(`/api/results?${query.toString()}`, {
         headers: getAuthHeaders(),

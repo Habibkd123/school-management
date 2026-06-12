@@ -255,7 +255,7 @@ export default function NoticesPage() {
             {isFilterOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 w-[320px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] z-50 flex flex-col text-left">
+                <div className="absolute right-0 top-full mt-2 w-full sm:w-[320px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] z-50 flex flex-col text-left">
                   <div className="p-4 border-b border-border">
                     <h3 className="font-bold text-[#0F172A] dark:text-slate-100 text-[16px]">Filter</h3>
                   </div>
@@ -353,7 +353,7 @@ export default function NoticesPage() {
       {deleteConfirmId && (
         <>
           <div className="fixed inset-0 bg-slate-900/50 z-[60] backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden p-8 text-center">
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-full sm:w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[70] overflow-hidden p-8 text-center">
             <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8 text-rose-500" />
             </div>
@@ -420,7 +420,7 @@ export default function NoticesPage() {
 
           <div className="space-y-3">
             <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Message To</label>
-            <div className="grid grid-cols-2 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3">
               {["Student", "Accountant", "Parent", "Librarian", "Admin", "Receptionist", "Teacher", "Super Admin"].map(role => (
                 <label key={role} className="flex items-center gap-2 cursor-pointer">
                   <input 
@@ -509,7 +509,7 @@ export default function NoticesPage() {
 
           <div className="space-y-3">
             <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Message To</label>
-            <div className="grid grid-cols-2 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3">
               {["Student", "Accountant", "Parent", "Librarian", "Admin", "Receptionist", "Teacher", "Super Admin"].map(role => (
                 <label key={role} className="flex items-center gap-2 cursor-pointer">
                   <input 

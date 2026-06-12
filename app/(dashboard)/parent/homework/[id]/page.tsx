@@ -77,7 +77,7 @@ export default function ParentHomeworkDetailPage() {
   };
 
   return (
-    <div className="max-w-[860px] mx-auto space-y-6">
+    <div className="max-w-full sm:w-[860px] mx-auto space-y-6">
       {/* Back nav */}
       <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
         <Link href="/parent/homework" className="flex items-center gap-1 hover:text-primary transition-colors font-medium">
@@ -128,7 +128,7 @@ export default function ParentHomeworkDetailPage() {
           </div>
 
           {/* Date box */}
-          <div className="flex flex-col gap-2 text-right min-w-[160px]">
+          <div className="flex flex-col gap-2 text-right min-w-full sm:w-[160px]">
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-left">
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> Assigned

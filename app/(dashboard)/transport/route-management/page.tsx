@@ -161,7 +161,7 @@ export default function RouteManagementPage() {
       <TransportTabs />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Routes", value: routes.length, color: "bg-amber-50 dark:bg-amber-900/20 text-[#F59E0B]", icon: Map },
           { label: "Active Routes", value: routes.filter(r => r.status === "Active").length, color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600", icon: Navigation },
@@ -251,7 +251,7 @@ export default function RouteManagementPage() {
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Search route..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 transition-all" />
           </div>
         </div>
 
@@ -381,7 +381,7 @@ export default function RouteManagementPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-[13px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
               <div>
                 <p className="text-[11px] text-slate-400 font-semibold uppercase mb-1">Assigned Bus</p>
                 <p className="font-semibold text-slate-800 dark:text-slate-100">{viewRoute.assignedBus}</p>
@@ -439,7 +439,7 @@ export default function RouteManagementPage() {
       {(isAddOpen || !!editRoute) && (
         <Modal isOpen={isAddOpen || !!editRoute} onClose={() => { setIsAddOpen(false); setEditRoute(null); }} title={editRoute ? "Edit Route" : "Add Route"} size="md">
           <form onSubmit={e => { e.preventDefault(); editRoute ? handleEdit() : handleAdd(); }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-2 flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Route Name</label>
                 <input required value={form.routeName} onChange={e => setField("routeName", e.target.value)} placeholder="e.g. Route A – North"

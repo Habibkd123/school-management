@@ -269,7 +269,7 @@ export default function ApproveLeaveRequestPage() {
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setIsDateRangeOpen(!isDateRangeOpen)} className={triggerCls(isDateRangeOpen)}>
                 <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span className="max-w-[120px] truncate">{dateRangeLabel}</span>
+                <span className="max-w-full sm:w-[120px] truncate">{dateRangeLabel}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDateRangeOpen ? "rotate-180" : ""}`} />
               </button>
               {isDateRangeOpen && (
@@ -421,7 +421,7 @@ export default function ApproveLeaveRequestPage() {
               placeholder="Search..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B] transition-colors"
             />
           </div>
         </div>
@@ -526,7 +526,7 @@ export default function ApproveLeaveRequestPage() {
         {selectedRequest && (
           <form onSubmit={handleSubmit} className="space-y-6 text-left">
             
-            <div className="bg-[#F8FAFC] dark:bg-[#0F172A] rounded-xl p-5 grid grid-cols-3 gap-x-4 gap-y-6">
+            <div className="bg-[#F8FAFC] dark:bg-[#0F172A] rounded-xl p-5 grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
               <div className="space-y-1">
                 <p className="text-[13px] text-slate-500 dark:text-slate-400">Submitted By</p>
                 <p className="text-[14px] font-semibold text-[#0F172A] dark:text-slate-100">{getUserName(selectedRequest)}</p>

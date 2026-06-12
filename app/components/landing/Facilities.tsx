@@ -29,7 +29,7 @@ export function Facilities() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-6">
           {facilities.map((fac, idx) => (
             <div key={idx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-sm p-8 flex flex-col items-center justify-center text-center hover:bg-[#F59E0B] transition-colors cursor-pointer group">
               <div className={`w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
