@@ -42,13 +42,30 @@ export async function POST(request: NextRequest) {
       reset_token_expiry: resetTokenExpiry,
     });
 
-    // ─── In production: send email here ──────────────────────────
+    // ─── Send email here ──────────────────────────
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const { sendEmail } = await import("@/lib/email");
+    
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Request - School ERP",
+      html: `
+        <h3>Password Reset Request</h3>
+        <p>Hello ${user.name},</p>
+        <p>You requested a password reset. Click the link below to set a new password:</p>
+        <p><a href="${resetUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background-color:#F59E0B;color:white;text-decoration:none;border-radius:5px;">Reset Password</a></p>
+        <p>If you did not request this, please ignore this email. The link will expire in 1 hour.</p>
+        <br/>
+        <p>Thank you,<br/>School ERP Team</p>
+      `
+    });
+
     // For now, return token in response (dev mode only)
     const isDev = process.env.NODE_ENV !== "production";
 
     return NextResponse.json({
       success: true,
-      message: "Password reset link generated successfully.",
+      message: "Password reset link generated and sent successfully.",
       ...(isDev && {
         dev_token: resetToken, // Only visible in development
         dev_note: "In production, this token is emailed. Use it at /reset-password?token=<token>",

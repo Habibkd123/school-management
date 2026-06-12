@@ -76,6 +76,25 @@ export async function POST(request: NextRequest) {
     });
     await newUser.save();
 
+    // ─── Send Welcome Email ──────────────────────────
+    try {
+      const { sendEmail } = await import("@/lib/email");
+      await sendEmail({
+        to: newUser.email,
+        subject: "Welcome to School ERP!",
+        html: `
+          <h3>Welcome ${newUser.name}!</h3>
+          <p>Your account has been successfully created.</p>
+          <p>You are registered as: <strong>${newUser.role.replace("_", " ").toUpperCase()}</strong></p>
+          <p>You can now log in to the portal using your email and password.</p>
+          <br/>
+          <p>Thank you,<br/>School ERP Team</p>
+        `
+      });
+    } catch (e) {
+      console.error("Failed to send welcome email", e);
+    }
+
     // ─── Generate tokens ──────────────────────────────────────────────────
     const tokenPayload = {
       user_id: newUser._id.toString(),

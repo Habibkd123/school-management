@@ -1,7 +1,43 @@
-import React from "react";
-import { MapPin, Phone, Mail } from "lucide-react";
+"use client";
+
+import React, { useState } from "react";
+import { MapPin, Phone, Mail, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function Contact() {
+  const [formData, setFormData] = useState({ name: "", phone: "", email: "", grade: "Pre-Primary" });
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email) {
+      setStatus("error");
+      setMessage("Name and Email are required.");
+      return;
+    }
+
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus("success");
+        setMessage("Your enquiry has been sent successfully!");
+        setFormData({ name: "", phone: "", email: "", grade: "Pre-Primary" });
+      } else {
+        setStatus("error");
+        setMessage(data.message || "Failed to send enquiry.");
+      }
+    } catch (error) {
+      setStatus("error");
+      setMessage("An unexpected error occurred.");
+    }
+  };
+
   return (
     <section id="contact" className="py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -47,24 +83,38 @@ export function Contact() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#F59E0B] rounded-full blur-[100px] opacity-20 -z-0" />
             <div className="relative z-10">
               <h4 className="text-2xl font-serif font-bold text-white mb-6">Send an Enquiry</h4>
-              <form className="space-y-6">
+              
+              {status === "success" && (
+                <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <p className="text-emerald-400 text-[14px] font-medium">{message}</p>
+                </div>
+              )}
+              {status === "error" && (
+                <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-md flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                  <p className="text-rose-400 text-[14px] font-medium">{message}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Parent's Name</label>
-                    <input type="text" className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="John Doe" />
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="John Doe" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Phone Number</label>
-                    <input type="tel" className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="+91 98765 43210" />
+                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="+91 98765 43210" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Email Address</label>
-                  <input type="email" className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="john@example.com" />
+                  <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors" placeholder="john@example.com" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Grade Applying For</label>
-                  <select className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors appearance-none">
+                  <select value={formData.grade} onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#F59E0B] transition-colors appearance-none">
                     <option className="bg-[#0F172A]">Pre-Primary</option>
                     <option className="bg-[#0F172A]">Primary (I-V)</option>
                     <option className="bg-[#0F172A]">Middle (VI-VIII)</option>
@@ -72,8 +122,8 @@ export function Contact() {
                     <option className="bg-[#0F172A]">Senior Secondary (XI-XII)</option>
                   </select>
                 </div>
-                <button className="w-full py-4 rounded-sm bg-[#F59E0B] text-white font-bold text-[15px] hover:bg-[#D97706] transition-all duration-300 shadow-lg shadow-[#F59E0B]/20 uppercase tracking-wide">
-                  Submit Enquiry
+                <button type="submit" disabled={status === "loading"} className="w-full flex items-center justify-center gap-2 py-4 rounded-sm bg-[#F59E0B] text-white font-bold text-[15px] hover:bg-[#D97706] transition-all duration-300 shadow-lg shadow-[#F59E0B]/20 uppercase tracking-wide disabled:opacity-70 disabled:cursor-not-allowed">
+                  {status === "loading" ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Enquiry"}
                 </button>
               </form>
             </div>

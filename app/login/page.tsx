@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth";
-import { Mail, Eye, EyeOff, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Mail, Eye, EyeOff, ChevronRight, AlertCircle, Loader2, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 
 const newsItems = [
@@ -17,6 +18,12 @@ const newsItems = [
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +58,7 @@ export default function LoginPage() {
         className="hidden lg:flex flex-1 relative flex-col justify-center items-center p-12 bg-cover bg-center"
         style={{ backgroundImage: `url('https://preskool.dreamstechnologies.com/html/assets/img/authentication/authentication-02.jpg')` }}
       >
-        <div className="absolute inset-0 bg-[#5D6BEE]/80 dark:bg-slate-900/80 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-primary/80 dark:bg-slate-900/80 backdrop-blur-[2px]" />
         <div className="relative z-10 w-full max-w-full sm:w-[500px] bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-6 shadow-2xl">
           <h2 className="text-xl font-bold text-white mb-6">What's New on School ERP !!!</h2>
           <div className="space-y-3">
@@ -70,11 +77,22 @@ export default function LoginPage() {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex flex-col relative bg-white dark:bg-slate-900">
+        
+        {/* Theme Toggle */}
+        {mounted && (
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="absolute top-6 right-6 flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-50 shadow-sm"
+          >
+            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        )}
+
         <div className="flex-1 flex flex-col justify-center items-center px-6 sm:px-12 lg:px-16 xl:px-24 pb-20 mt-10">
           <div className="w-full max-w-full sm:w-[420px] bg-white dark:bg-slate-900 border border-border/60 dark:border-slate-800 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
 
             <div className="mb-6">
-              <h1 className="text-[24px] font-bold text-[#202c4b] dark:text-slate-100 mb-1">Welcome Back</h1>
+              <h1 className="text-[24px] font-bold text-slate-900 dark:text-slate-100 mb-1">Welcome Back</h1>
               <p className="text-[13px] text-slate-500 dark:text-slate-400">Sign in to your school account</p>
             </div>
 
@@ -89,7 +107,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4" noValidate>
               {/* Email */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-bold text-[#202c4b] dark:text-slate-100">Email Address</label>
+                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">Email Address</label>
                 <div className="relative">
                   <input
                     id="login-email"
@@ -98,7 +116,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     placeholder="admin@school.com"
-                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-[#5D6BEE] dark:focus:border-[#5D6BEE] transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-primary dark:focus:border-primary transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
@@ -108,7 +126,7 @@ export default function LoginPage() {
 
               {/* Password */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-bold text-[#202c4b] dark:text-slate-100">Password</label>
+                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">Password</label>
                 <div className="relative">
                   <input
                     id="login-password"
@@ -117,7 +135,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(""); }}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-[#5D6BEE] dark:focus:border-[#5D6BEE] transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-primary dark:focus:border-primary transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <button
                     type="button"
@@ -141,7 +159,7 @@ export default function LoginPage() {
                 id="login-submit"
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#5D6BEE] hover:bg-[#4b58ce] text-white rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
               >
                 {isLoading ? (
                   <>
@@ -156,7 +174,7 @@ export default function LoginPage() {
 
             <p className="w-full text-center text-[13px] text-slate-600 dark:text-slate-300 font-medium mt-6">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-[#5D6BEE] hover:text-[#4b58ce] transition-colors font-semibold">
+              <Link href="/register" className="text-primary hover:text-primary/80 transition-colors font-semibold">
                 Create Account
               </Link>
             </p>
