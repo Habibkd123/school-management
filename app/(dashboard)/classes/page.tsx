@@ -10,9 +10,14 @@ import { Modal } from "../../components/ui/modal";
 import { DataTable, ColumnDef } from "@/app/components/ui/data-table";
 import { useClasses, ApiClass } from "@/app/hooks/useClasses";
 import { useTeachers } from "@/app/hooks/useTeachers";
+import { useAuth } from "../../context/auth";
+import { useAppState } from "@/app/context/store";
 
 export default function ClassesPage() {
-  const { classes, isLoading, error, total, totalPages, currentPage, fetchClasses, createClass, updateClass, deleteClass } = useClasses();
+  const { user } = useAuth();
+  const { academicYear } = useAppState();
+  const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
+  const { classes, isLoading, error, total, totalPages, currentPage, fetchClasses, createClass, updateClass, deleteClass } = useClasses({ skip: true });
   const { teachers } = useTeachers();
 
   // ── Modal / action states ──────────────────────────────────────────
@@ -47,16 +52,17 @@ export default function ClassesPage() {
       sort: overrides.sort !== undefined ? overrides.sort : sortOrder,
       page: overrides.p !== undefined ? overrides.p : page,
       limit: PAGE_SIZE,
+      academic_year: academicYear,
     };
     fetchClasses(params);
-  }, [fetchClasses, searchQuery, filterSection, sortOrder, page]);
+  }, [fetchClasses, searchQuery, filterSection, sortOrder, page, academicYear]);
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
     setPage(1);
     clearTimeout(searchRef.current);
     searchRef.current = setTimeout(() => {
-      fetchClasses({ search: val, section: filterSection, sort: sortOrder, page: 1, limit: PAGE_SIZE });
+      fetchClasses({ search: val, section: filterSection, sort: sortOrder, page: 1, limit: PAGE_SIZE, academic_year: academicYear });
     }, 400);
   };
 
@@ -64,7 +70,7 @@ export default function ClassesPage() {
     setFilterSection(pendingSection);
     setPage(1);
     setIsFilterOpen(false);
-    fetchClasses({ search: searchQuery, section: pendingSection, sort: sortOrder, page: 1, limit: PAGE_SIZE });
+    fetchClasses({ search: searchQuery, section: pendingSection, sort: sortOrder, page: 1, limit: PAGE_SIZE, academic_year: academicYear });
   };
 
   const handleResetFilter = () => {
@@ -72,20 +78,33 @@ export default function ClassesPage() {
     setFilterSection("");
     setPage(1);
     setIsFilterOpen(false);
-    fetchClasses({ search: searchQuery, section: "", sort: sortOrder, page: 1, limit: PAGE_SIZE });
+    fetchClasses({ search: searchQuery, section: "", sort: sortOrder, page: 1, limit: PAGE_SIZE, academic_year: academicYear });
   };
 
   const handleSort = (order: "asc" | "desc") => {
     setSortOrder(order);
     setPage(1);
     setIsSortOpen(false);
-    fetchClasses({ search: searchQuery, section: filterSection, sort: order, page: 1, limit: PAGE_SIZE });
+    fetchClasses({ search: searchQuery, section: filterSection, sort: order, page: 1, limit: PAGE_SIZE, academic_year: academicYear });
   };
 
   const handlePageChange = (p: number) => {
     setPage(p);
-    fetchClasses({ search: searchQuery, section: filterSection, sort: sortOrder, page: p, limit: PAGE_SIZE });
+    fetchClasses({ search: searchQuery, section: filterSection, sort: sortOrder, page: p, limit: PAGE_SIZE, academic_year: academicYear });
   };
+
+  // Re-fetch classes when academic year changes
+  React.useEffect(() => {
+    setPage(1);
+    fetchClasses({
+      search: searchQuery,
+      section: filterSection,
+      sort: sortOrder,
+      page: 1,
+      limit: PAGE_SIZE,
+      academic_year: academicYear,
+    });
+  }, [fetchClasses, academicYear]);
 
   // ── Form states ────────────────────────────────────────────────────
   const [formName, setFormName] = useState("");
@@ -179,7 +198,7 @@ export default function ClassesPage() {
     doFetch();
   };
 
-  const columns: ColumnDef<ApiClass>[] = [
+  const baseColumns: ColumnDef<ApiClass>[] = [
     {
       header: "Class",
       accessorKey: "name",
@@ -197,40 +216,46 @@ export default function ClassesPage() {
       ),
     },
     { header: "Capacity", accessorKey: "capacity" },
-    {
-      header: "Action",
-      sortable: false,
-      render: (c) => (
-        <div className="relative">
-          <button
-            onClick={() => setActionMenuId(actionMenuId === c._id ? null : c._id)}
-            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
-          {actionMenuId === c._id && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setActionMenuId(null)} />
-              <div className="absolute right-8 top-0 w-32 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1.5">
-                <button
-                  onClick={() => openEdit(c)}
-                  className="w-full px-4 py-2 text-[13px] font-semibold text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 transition-colors text-left"
-                >
-                  <Edit className="w-3.5 h-3.5" /> Edit
-                </button>
-                <button
-                  onClick={() => openDelete(c)}
-                  className="w-full px-4 py-2 text-[13px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors text-left"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      ),
-    },
   ];
+
+  const columns: ColumnDef<ApiClass>[] = isAdmin
+    ? [
+        ...baseColumns,
+        {
+          header: "Action",
+          sortable: false,
+          render: (c) => (
+            <div className="relative">
+              <button
+                onClick={() => setActionMenuId(actionMenuId === c._id ? null : c._id)}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {actionMenuId === c._id && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setActionMenuId(null)} />
+                  <div className="absolute right-8 top-0 w-32 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1.5">
+                    <button
+                      onClick={() => openEdit(c)}
+                      className="w-full px-4 py-2 text-[13px] font-semibold text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 transition-colors text-left"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => openDelete(c)}
+                      className="w-full px-4 py-2 text-[13px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors text-left"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ),
+        },
+      ]
+    : baseColumns;
 
   return (
     <div className="space-y-6">
@@ -280,13 +305,15 @@ export default function ClassesPage() {
               </>
             )}
           </div>
-          <button
-            onClick={() => { resetForm(); setIsAddClassOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Class</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { resetForm(); setIsAddClassOpen(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Class</span>
+            </button>
+          )}
         </div>
       </div>
 

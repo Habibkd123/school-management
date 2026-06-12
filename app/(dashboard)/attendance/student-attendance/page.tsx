@@ -9,6 +9,7 @@ import { useStudents } from "../../../hooks/useStudents";
 import { useClasses } from "../../../hooks/useClasses";
 import { useAttendance } from "../../../hooks/useAttendance";
 import { useAttendanceSummary } from "../../../hooks/useAttendanceSummary";
+import { useAuth } from "../../../context/auth";
 
 type AttendanceStatus = "present" | "late" | "absent" | "holiday" | "half_day";
 
@@ -35,6 +36,9 @@ const statusDot: Record<AttendanceStatus, string> = {
 };
 
 export default function StudentAttendancePage() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher";
+
   const { students, isLoading: studentsLoading } = useStudents();
   const { classes } = useClasses();
   const { saveAttendance, isLoading: saving } = useAttendance();
@@ -53,6 +57,13 @@ export default function StudentAttendancePage() {
   const [summaryData, setSummaryData] = useState<Record<string, any>>({});
 
   const isReportMode = !["Today", "Yesterday"].includes(selectedDateRange);
+
+  // Set default class for teachers
+  React.useEffect(() => {
+    if (isTeacher && classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0]._id);
+    }
+  }, [isTeacher, classes, selectedClassId]);
 
   React.useEffect(() => {
     if (isReportMode && selectedClassId) {
@@ -73,13 +84,15 @@ export default function StudentAttendancePage() {
 
   // Students filtered by class
   const classStudents = useMemo(() => {
-    if (!selectedClassId) return students;
+    if (!selectedClassId) {
+      return isTeacher ? [] : students;
+    }
     return students.filter(
       (s) =>
         (typeof s.class_id === "object" && s.class_id?._id === selectedClassId) ||
         s.class_id === selectedClassId
     );
-  }, [students, selectedClassId]);
+  }, [students, selectedClassId, isTeacher]);
 
   const filteredData = classStudents.filter(
     (s) =>
@@ -225,7 +238,7 @@ export default function StudentAttendancePage() {
                 onChange={(e) => { setSelectedClassId(e.target.value); setLocalRecords({}); }}
                 className="pl-3 pr-8 py-2 bg-white dark:bg-slate-900 border border-border text-slate-700 dark:text-slate-200 text-[13px] font-medium rounded-lg outline-none focus:border-[#F59E0B] transition-colors appearance-none shadow-sm cursor-pointer"
               >
-                <option value="">All Classes</option>
+                {!isTeacher && <option value="">All Classes</option>}
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>{c.name} — {c.section}</option>
                 ))}
@@ -264,7 +277,7 @@ export default function StudentAttendancePage() {
             </div>
 
             {/* Sort */}
-            <div className="relative">
+            {/* <div className="relative">
               <button onClick={() => setIsSortOpen(!isSortOpen)} className="px-3 py-2 bg-white dark:bg-slate-900 border border-border text-slate-700 dark:text-slate-200 text-[13px] font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center gap-2 shadow-sm cursor-pointer">
                 <List className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Sort <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500" />
               </button>
@@ -280,7 +293,7 @@ export default function StudentAttendancePage() {
                   </div>
                 </>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
 

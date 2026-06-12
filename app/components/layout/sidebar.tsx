@@ -138,9 +138,10 @@ export function Sidebar() {
       ]
     },
     {
-      name: "Leave", icon: <Calendar className="w-4 h-4" />, subItems: [
-        { name: "Apply Leave", href: "/leave/apply" }
-      ]
+      name: "Leave", href: "/leave/apply", icon: <Calendar className="w-4 h-4" />,
+      // subItems: [
+      //   { name: "Apply Leave", href: "/leave/apply" }
+      // ]
     },
     { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
   ];
@@ -166,25 +167,29 @@ export function Sidebar() {
       ]
     },
     {
-      name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
-        { name: "My Attendance", href: "/attendance/my-attendance" }
-      ]
-    },
-    {
-      name: "Leave", icon: <Calendar className="w-4 h-4" />, subItems: [
-        { name: "Apply Leave", href: "/leave/apply" }
-      ]
-    },
-    {
-      name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
+      name: "Examination", href: "/examination/exam-schedule", icon: <ClipboardList className="w-4 h-4" />, subItems: [
         { name: "Exam Schedule", href: "/examination/exam-schedule" },
         { name: "My Grades", href: "/examination/exam-results" }
       ]
     },
     {
-      name: "Fees", icon: <DollarSign className="w-4 h-4" />, subItems: [
-        { name: "My Fees", href: "/fees" }
-      ]
+      name: "Attendance", href: "/attendance/my-attendance", icon: <Clock className="w-4 h-4" />,
+      // subItems: [
+      // { name: "My Attendance",  }
+      // ]
+    },
+    {
+      name: "Leave", href: "/leave/apply", icon: <Calendar className="w-4 h-4" />,
+      // subItems: [
+      //   { name: "Apply Leave", href: "/leave/apply" }
+      // ]
+    },
+
+    {
+      name: "Fees", href: "/fees", icon: <DollarSign className="w-4 h-4" />,
+      // subItems: [
+      // { name: "My Fees", href: "/fees" }
+      // ]
     },
     { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
   ];

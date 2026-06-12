@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("class_id");
     const search = searchParams.get("search");
+    const academic_year = searchParams.get("academic_year");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
@@ -24,7 +25,15 @@ export async function GET(request: NextRequest) {
     // Build filter
     const filter: Record<string, any> = { school_id: schoolId };
     const parentId = searchParams.get("parent_id");
-    if (classId && classId !== "all") filter.class_id = classId;
+    
+    if (classId && classId !== "all") {
+      filter.class_id = classId;
+    } else if (academic_year) {
+      const classes = await Class.find({ academic_year, school_id: schoolId }).select("_id").lean();
+      const classIds = classes.map(c => c._id);
+      filter.class_id = { $in: classIds };
+    }
+
     if (parentId) filter.parent_id = parentId;
     
     const gender = searchParams.get("gender");
@@ -127,7 +136,7 @@ export async function POST(request: NextRequest) {
     const {
       name, email, class_id, roll_no, gender, dob, blood_group,
       address, phone, guardian_name, guardian_phone,
-      guardian_relation, guardian_email, admission_no,
+      guardian_relation, guardian_email, admission_no, admission_date,
       academic_year, photo_url, guardian_photo,
       religion, caste, category, mother_tongue, languages,
       prev_school_name, prev_school_address, bank_name, bank_branch,
@@ -148,6 +157,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Roll number class-level uniqueness check
+    if (roll_no && roll_no.trim()) {
+      const existingRollNo = await Student.findOne({
+        school_id: schoolId,
+        class_id,
+        roll_no: roll_no.trim()
+      });
+      if (existingRollNo) {
+        return NextResponse.json(
+          { success: false, message: "Roll number already exists in this class" },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Auto-generate admission number if not provided
+    let finalAdmissionNo = admission_no;
+    if (!finalAdmissionNo || !finalAdmissionNo.trim()) {
+      const studentsWithAdm = await Student.find({ school_id: schoolId, admission_no: { $exists: true, $ne: "" } })
+        .select("admission_no")
+        .lean();
+      
+      let maxNum = 0;
+      for (const s of studentsWithAdm) {
+        if (s.admission_no) {
+          const numPart = s.admission_no.replace(/\D/g, "");
+          if (numPart) {
+            const parsed = parseInt(numPart, 10);
+            if (parsed > maxNum) {
+              maxNum = parsed;
+            }
+          }
+        }
+      }
+      finalAdmissionNo = `ADM${String(maxNum + 1).padStart(4, "0")}`;
+    }
+
     // Check if email already exists in User table
     let userId = undefined;
     if (email) {
@@ -156,12 +202,24 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: "Email already exists" }, { status: 400 });
       }
 
+      // Generate default password based on DOB
+      let studentPassword = "student123";
+      if (dob) {
+        const dateObj = new Date(dob);
+        if (!isNaN(dateObj.getTime())) {
+          const day = String(dateObj.getDate()).padStart(2, "0");
+          const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+          const year = dateObj.getFullYear().toString();
+          studentPassword = `${day}${month}${year}`;
+        }
+      }
+
       // Create user
       const user = await User.create({
         school_id: schoolId as string,
         name: name.trim(),
         email: email.trim(),
-        password_hash: "password123", // default password
+        password_hash: studentPassword, // dob-based default password
         role: "student",
         is_active: true,
       });
@@ -240,10 +298,10 @@ export async function POST(request: NextRequest) {
       guardian_phone,
       guardian_relation,
       guardian_email,
-      admission_no,
+      admission_no: finalAdmissionNo,
       academic_year,
       photo_url,
-      admission_date: new Date(),
+      admission_date: admission_date ? new Date(admission_date) : new Date(),
       is_active: true,
       religion,
       caste,

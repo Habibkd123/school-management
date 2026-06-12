@@ -3,13 +3,15 @@
 import React, { useState } from "react";
 import { useStudents, ApiStudent } from "../../hooks/useStudents";
 import { useClasses } from "../../hooks/useClasses";
+import { useAppState } from "../../context/store";
 import { Modal } from "../../components/ui/modal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CollectFeesModal } from "../../components/modals/CollectFeesModal";
 import { LoginDetailsModal } from "../../components/modals/LoginDetailsModal";
+import { ResetPasswordModal } from "../../components/modals/ResetPasswordModal";
 import { ConfirmModal } from "../../components/modals/ConfirmModal";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Lock } from "lucide-react";
 import {
   Search,
   Plus,
@@ -39,6 +41,7 @@ import { DataTable, ColumnDef } from "@/app/components/ui/data-table";
 import { PaginationBar } from "@/app/components/ui/pagination-bar";
 
 export default function StudentsPage() {
+  const { academicYear } = useAppState();
   const { students, total, isLoading, error, createStudent, updateStudent: updateStudentApi, deleteStudent: deleteStudentApi, fetchStudents } = useStudents({ skip: true });
   const { classes } = useClasses();
 
@@ -50,7 +53,7 @@ export default function StudentsPage() {
   const [classFilter, setClassFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+
   const [selectedStudent, setSelectedStudent] = useState<ApiStudent | null>(null);
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +62,9 @@ export default function StudentsPage() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isCollectFeesOpen, setIsCollectFeesOpen] = useState(false);
   const [isLoginDetailsOpen, setIsLoginDetailsOpen] = useState(false);
+  const [loginModalTarget, setLoginModalTarget] = useState<"student" | "parent">("student");
+  const [isResetPassModalOpen, setIsResetPassModalOpen] = useState(false);
+  const [resetPassTarget, setResetPassTarget] = useState<{ userId: string | undefined; name: string; email: string } | null>(null);
   const [isDisableOpen, setIsDisableOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "academics" | "billing">("profile");
@@ -93,8 +99,9 @@ export default function StudentsPage() {
       sort: selectedSort,
       page,
       limit: 10,
+      academic_year: academicYear,
     });
-  }, [fetchStudents, debouncedSearch, classFilter, genderFilter, statusFilter, selectedDateRange, selectedSort, page]);
+  }, [fetchStudents, debouncedSearch, classFilter, genderFilter, statusFilter, selectedDateRange, selectedSort, page, academicYear]);
 
   const handleClassFilterChange = (val: string) => {
     setClassFilter(val);
@@ -141,7 +148,7 @@ export default function StudentsPage() {
       s.dobStr
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + [headers.join(","), ...rows.map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(","))].join("\n");
 
     const encodedUri = encodeURI(csvContent);
@@ -251,7 +258,7 @@ export default function StudentsPage() {
       ...student,
       id: student._id,
       displayId: student.admission_no || `AD${student._id?.slice(-6).toUpperCase()}`,
-      avatar: getAvatar(student.name),
+      avatar: student.photo_url || getAvatar(student.name),
       classNameStr: getClassName(student),
       section: typeof student.class_id === "object" ? student.class_id?.section : "A",
       gender: student.gender || getGender(student.name),
@@ -317,13 +324,23 @@ export default function StudentsPage() {
                 <button onClick={() => { router.push(`/students/add?edit=${s.id}`); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                   <Edit className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Edit
                 </button>
-                <button onClick={() => { setSelectedStudent(s as ApiStudent); setIsLoginDetailsOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                <button onClick={() => { setSelectedStudent(s as ApiStudent); setLoginModalTarget("student"); setIsLoginDetailsOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                   <User className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Login Details
+                </button>
+                <button onClick={() => {
+                  const studentUser = s.user_id;
+                  const sUid = studentUser && typeof studentUser === "object" ? studentUser._id : undefined;
+                  const sEmail = studentUser && typeof studentUser === "object" ? studentUser.email : s.email || "";
+                  setResetPassTarget({ userId: sUid, name: s.name, email: sEmail });
+                  setIsResetPassModalOpen(true);
+                  setActiveDropdown(null);
+                }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                  <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Reset Password
                 </button>
                 <button onClick={() => { setSelectedStudent(s as ApiStudent); setIsDisableOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                   <XCircle className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Disable
                 </button>
-                <button onClick={() => { router.push('/dashboard/students/student-promotion'); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                <button onClick={() => { router.push(`/students/student-promotion?studentId=${s._id}`); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                   <GraduationCap className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Promote Student
                 </button>
                 <button onClick={() => { setSelectedStudent(s as ApiStudent); setIsDeleteOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-rose-600 hover:bg-rose-50 flex items-center gap-3">
@@ -658,13 +675,23 @@ export default function StudentsPage() {
                               <button onClick={() => { router.push(`/students/add?edit=${student._id}`); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                                 <Edit className="w-4 h-4 text-slate-400" /> Edit
                               </button>
-                              <button onClick={() => { setSelectedStudent(student); setIsLoginDetailsOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                              <button onClick={() => { setSelectedStudent(student); setLoginModalTarget("student"); setIsLoginDetailsOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                                 <User className="w-4 h-4 text-slate-400" /> Login Details
+                              </button>
+                              <button onClick={() => {
+                                const studentUser = student.user_id;
+                                const sUid = studentUser && typeof studentUser === "object" ? studentUser._id : undefined;
+                                const sEmail = studentUser && typeof studentUser === "object" ? studentUser.email : student.email || "";
+                                setResetPassTarget({ userId: sUid, name: student.name, email: sEmail });
+                                setIsResetPassModalOpen(true);
+                                setActiveDropdown(null);
+                              }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                                <Lock className="w-4 h-4 text-slate-400" /> Reset Password
                               </button>
                               <button onClick={() => { setSelectedStudent(student); setIsDisableOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                                 <XCircle className="w-4 h-4 text-slate-400" /> Disable
                               </button>
-                              <button onClick={() => { router.push('/dashboard/students/student-promotion'); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
+                              <button onClick={() => { router.push(`/students/student-promotion?studentId=${student._id}`); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3">
                                 <GraduationCap className="w-4 h-4 text-slate-400" /> Promote Student
                               </button>
                               <button onClick={() => { setSelectedStudent(student); setIsDeleteOpen(true); setActiveDropdown(null); }} className="w-full px-4 py-2 text-left text-[13px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-3">
@@ -678,7 +705,7 @@ export default function StudentsPage() {
 
                     {/* Profile info */}
                     <div className="flex items-center gap-4 mb-5 cursor-pointer" onClick={() => router.push(`/students/${student._id}`)}>
-                      <img src={getAvatar(student.name)} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-border" />
+                      <img src={student.photo_url || getAvatar(student.name)} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-border" />
                       <div>
                         <h3 className="text-[15px] font-bold text-slate-900 dark:text-white group-hover:text-[#F59E0B] transition-colors">{student.name}</h3>
                         <p className="text-[12px] font-medium text-slate-500">{getClassName(student)}</p>
@@ -955,8 +982,8 @@ export default function StudentsPage() {
               <button
                 onClick={() => setActiveTab("profile")}
                 className={`px-4 py-3 text-[13px] font-bold border-b-2 -mb-px transition-all cursor-pointer ${activeTab === "profile"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
                   }`}
               >
                 Profile Details
@@ -964,8 +991,8 @@ export default function StudentsPage() {
               <button
                 onClick={() => setActiveTab("academics")}
                 className={`px-4 py-3 text-[13px] font-bold border-b-2 -mb-px transition-all cursor-pointer ${activeTab === "academics"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
                   }`}
               >
                 Academics & Grades
@@ -973,8 +1000,8 @@ export default function StudentsPage() {
               <button
                 onClick={() => setActiveTab("billing")}
                 className={`px-4 py-3 text-[13px] font-bold border-b-2 -mb-px transition-all cursor-pointer ${activeTab === "billing"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
                   }`}
               >
                 Invoices & Billing
@@ -1129,6 +1156,15 @@ export default function StudentsPage() {
         isOpen={isLoginDetailsOpen}
         onClose={() => setIsLoginDetailsOpen(false)}
         student={selectedStudent}
+        target={loginModalTarget}
+      />
+
+      <ResetPasswordModal
+        isOpen={isResetPassModalOpen}
+        onClose={() => setIsResetPassModalOpen(false)}
+        userId={resetPassTarget?.userId}
+        userName={resetPassTarget?.name || ""}
+        userEmail={resetPassTarget?.email || ""}
       />
 
       <ConfirmModal

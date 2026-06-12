@@ -8,10 +8,10 @@ import { Modal } from "@/app/components/ui/modal";
 
 export default function ApplyLeavePage() {
   const { leaveRequests, loading, submitLeave } = useLeave();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   // Form State
   const [leaveType, setLeaveType] = useState("sick");
   const [fromDate, setFromDate] = useState("");
@@ -40,7 +40,7 @@ export default function ApplyLeavePage() {
       to_date: toDate,
       reason,
     });
-    
+
     setSaving(false);
     if (res.success) {
       setIsModalOpen(false);
@@ -107,9 +107,9 @@ export default function ApplyLeavePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-[#5D6BEE] text-white text-[13px] font-semibold rounded-lg hover:bg-[#4b58ce] transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+            className="px-4 py-2 bg-primary text-white text-[13px] font-semibold rounded-lg hover:bg-[#4b58ce] transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Apply Leave
           </button>
@@ -192,10 +192,10 @@ export default function ApplyLeavePage() {
               {error}
             </div>
           )}
-          
+
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Leave Type *</label>
-            <select 
+            <select
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-medium"
@@ -211,8 +211,8 @@ export default function ApplyLeavePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">From Date *</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
@@ -221,8 +221,8 @@ export default function ApplyLeavePage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">To Date *</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
                 min={fromDate}
@@ -234,7 +234,7 @@ export default function ApplyLeavePage() {
 
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Reason</label>
-            <textarea 
+            <textarea
               placeholder="Why are you taking leave?"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -243,15 +243,15 @@ export default function ApplyLeavePage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
               className="px-6 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[13px] font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={saving}
               className="px-6 py-2.5 bg-[#5D6BEE] text-white text-[13px] font-bold rounded-lg hover:bg-[#4b58ce] transition-colors shadow-sm disabled:opacity-60 flex items-center gap-2"
             >

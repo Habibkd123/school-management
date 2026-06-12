@@ -10,11 +10,11 @@ import { Search, Bell, Sun, Moon, Calendar, BarChart2, ChevronDown, LogOut, User
 export function Header() {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { academicYear, setAcademicYear } = useAppState();
   const [scrolled, setScrolled] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isAcademicYearOpen, setIsAcademicYearOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState("2024 / 2025");
 
   // Scroll detection for sticky header styles
   useEffect(() => {
@@ -27,11 +27,10 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-40 h-[72px] w-full px-6 flex items-center justify-between transition-all duration-200 ${
-        scrolled
+      className={`sticky top-0 z-40 h-[72px] w-full px-6 flex items-center justify-between transition-all duration-200 ${scrolled
           ? "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-border shadow-sm"
           : "bg-white dark:bg-slate-900 border-b border-border"
-      }`}
+        }`}
     >
       {/* Search Input Bar */}
       <div className="flex-1 max-w-md">
@@ -51,26 +50,26 @@ export function Header() {
       <div className="flex items-center gap-3">
         {/* Academic Year */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsAcademicYearOpen(!isAcademicYearOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             <Calendar className="w-4 h-4" />
-            <span>Academic Year : {selectedAcademicYear}</span>
+            <span>Academic Year : {academicYear.replace("-", " / ")}</span>
             <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
           </button>
-          
+
           {isAcademicYearOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsAcademicYearOpen(false)} />
               <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1">
-                {["2023 / 2024", "2024 / 2025", "2025 / 2026"].map((year) => (
-                  <button 
+                {["2023-2024", "2024-2025", "2025-2026"].map((year) => (
+                  <button
                     key={year}
-                    onClick={() => { setSelectedAcademicYear(year); setIsAcademicYearOpen(false); }}
-                    className={`w-full px-4 py-2 text-left text-[13px] transition-colors cursor-pointer ${year === selectedAcademicYear ? "bg-[#F59E0B] text-white font-medium" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"}`}
+                    onClick={() => { setAcademicYear(year); setIsAcademicYearOpen(false); }}
+                    className={`w-full px-4 py-2 text-left text-[13px] transition-colors cursor-pointer ${year === academicYear ? "bg-[#F59E0B] text-white font-medium" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"}`}
                   >
-                    {year}
+                    {year.replace("-", " / ")}
                   </button>
                 ))}
               </div>
@@ -93,14 +92,14 @@ export function Header() {
 
         {/* Notifications */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
             className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors"
           >
             <Bell className="w-4.5 h-4.5" />
             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-danger rounded-full ring-2 ring-[#F1F5F9] dark:ring-slate-800" />
           </button>
-          
+
           {isNotifOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
@@ -117,7 +116,7 @@ export function Header() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Body */}
                 <div className="max-h-[360px] overflow-y-auto">
                   {/* Item 1 */}
@@ -130,7 +129,7 @@ export function Header() {
                       <span className="text-[13px] text-slate-500 mt-1 block">Just Now</span>
                     </div>
                   </div>
-                  
+
                   {/* Item 2 */}
                   <div className="p-4 border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3">
                     <img src="https://preskool.dreamstechnologies.com/html/assets/img/profiles/avatar-03.jpg" className="w-10 h-10 rounded-lg object-cover" />
@@ -145,7 +144,7 @@ export function Header() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Item 3 */}
                   <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3">
                     <img src="https://preskool.dreamstechnologies.com/html/assets/img/profiles/avatar-04.jpg" className="w-10 h-10 rounded-lg object-cover" />
@@ -157,7 +156,7 @@ export function Header() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Footer */}
                 <div className="p-3 border-t border-border flex gap-3">
                   <button onClick={() => setIsNotifOpen(false)} className="flex-1 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-[14px] font-medium text-slate-700 dark:text-slate-300 rounded hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors">Cancel</button>
@@ -169,9 +168,9 @@ export function Header() {
         </div>
 
         {/* Chart/Analytics */}
-        <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors">
+        {/* <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors">
           <BarChart2 className="w-4.5 h-4.5" />
-        </button>
+        </button> */}
 
         {/* User Avatar + Dropdown */}
         <div className="relative ml-1">

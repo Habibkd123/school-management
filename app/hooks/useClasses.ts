@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 // ─── Types ────────────────────────────────────────────────────────
 export interface ApiClass {
@@ -33,7 +34,7 @@ export interface FetchClassesParams {
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────
-export function useClasses() {
+export function useClasses(options?: { skip?: boolean }) {
   const [classes, setClasses] = useState<ApiClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +72,12 @@ export function useClasses() {
     }
   }, []);
 
+  const { academicYear } = useAppState();
+
   useEffect(() => {
-    fetchClasses({ limit: 1000 });
-  }, [fetchClasses]);
+    if (options?.skip) return;
+    fetchClasses({ academic_year: academicYear, limit: 1000 });
+  }, [fetchClasses, academicYear, options?.skip]);
 
   // ─── Create class ───────────────────────────────────────────────
   const createClass = async (

@@ -11,8 +11,10 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     const url = new URL(req.url);
     const classId = url.searchParams.get("class_id");
+    const academic_year = url.searchParams.get("academic_year");
     const query: any = { school_id: schoolId };
     if (classId) query.class_id = classId;
+    if (academic_year) query.academic_year = academic_year;
 
     const exams = await Exam.find(query)
       .sort({ createdAt: -1 })

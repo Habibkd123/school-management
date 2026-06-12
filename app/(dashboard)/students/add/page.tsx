@@ -386,6 +386,26 @@ function AddStudentContent() {
     loadData();
   }, [editId]);
 
+  // Pre-populate admission date on create mode
+  useEffect(() => {
+    if (!editId) {
+      const today = new Date().toISOString().split("T")[0];
+      setAdmissionDate(today);
+    }
+  }, [editId]);
+
+  // Sync section state automatically when classId or apiClasses changes
+  useEffect(() => {
+    if (classId && apiClasses.length > 0) {
+      const cls = apiClasses.find(c => c._id === classId);
+      if (cls && cls.section) {
+        setSection(cls.section);
+      }
+    } else if (!classId) {
+      setSection("Select");
+    }
+  }, [classId, apiClasses]);
+
   // ── Upload handlers ────────────────────────────────────────────
   const handlePhotoUpload = useCallback(async (file: File) => {
     setUploadingStudentPhoto(true);
@@ -479,6 +499,8 @@ function AddStudentContent() {
       // Only navigate away on success
       if (result?.success !== false) {
         router.push("/students");
+      } else {
+        alert(result.message || "Failed to save student");
       }
     } finally {
       // Always reset flags so the user can try again on error
@@ -523,7 +545,7 @@ function AddStudentContent() {
               {/* Form Grid */}
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 text-left">
                 <InputGroup label="Academic Year" type="select" value={academicYear} onChange={e => setAcademicYear(e.target.value)} options={["June 2023 - 2024", "June 2024 - 2025", "June 2025 - 2026"]} />
-                <InputGroup label="Admission Number" placeholder="e.g. ADM001" value={admissionNo} onChange={e => setAdmissionNo(e.target.value)} />
+                <InputGroup label="Admission Number" placeholder="Auto-generated" value={admissionNo} onChange={e => setAdmissionNo(e.target.value)} />
                 <InputGroup label="Admission Date" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} />
                 <InputGroup label="Roll Number" value={rollNo} onChange={e => setRollNo(e.target.value)} />
 

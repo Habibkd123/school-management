@@ -105,10 +105,12 @@ interface AppState {
   grades: Grade[];
   fees: FeeInvoice[];
   notices: Notice[];
+  academicYear: string;
 }
 
 interface AppContextType extends AppState {
   setRole: (role: Role) => void;
+  setAcademicYear: (year: string) => void;
   // Students
   addStudent: (student: Omit<Student, "id" | "joinedDate">) => void;
   updateStudent: (student: Student) => void;
@@ -232,6 +234,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeRole, setActiveRole] = useState<Role>("admin");
+  const [academicYear, setAcademicYearState] = useState<string>("2024-2025");
   const [students, setStudents] = useState<Student[]>(defaultStudents);
   const [teachers, setTeachers] = useState<Teacher[]>(defaultTeachers);
   const [classes, setClasses] = useState<SchoolClass[]>(defaultClasses);
@@ -246,6 +249,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const storedRole = localStorage.getItem("sm_role");
+      const storedYear = localStorage.getItem("sm_academic_year");
       const storedStudents = localStorage.getItem("sm_students");
       const storedTeachers = localStorage.getItem("sm_teachers");
       const storedClasses = localStorage.getItem("sm_classes");
@@ -256,6 +260,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const storedNotices = localStorage.getItem("sm_notices");
 
       if (storedRole) setActiveRole(storedRole as Role);
+      if (storedYear) setAcademicYearState(storedYear);
       if (storedStudents) setStudents(JSON.parse(storedStudents));
       if (storedTeachers) setTeachers(JSON.parse(storedTeachers));
       if (storedClasses) setClasses(JSON.parse(storedClasses));
@@ -300,6 +305,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!isLoaded) return;
     localStorage.setItem("sm_role", activeRole);
   }, [activeRole, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem("sm_academic_year", academicYear);
+  }, [academicYear, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -483,6 +493,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         activeRole,
+        academicYear,
         students,
         teachers,
         classes,
@@ -492,6 +503,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fees,
         notices,
         setRole,
+        setAcademicYear: setAcademicYearState,
         addStudent,
         updateStudent,
         deleteStudent,

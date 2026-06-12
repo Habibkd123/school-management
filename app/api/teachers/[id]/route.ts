@@ -12,32 +12,43 @@ export async function GET(
   req: NextRequest,
   { params }: RouteParams
 ) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
-  if (error) return error;
+  const { schoolId, role, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
+  if (error) {
+    console.log("[GET /api/teachers/[id]] auth error:", error);
+    return error;
+  }
 
   const { id } = await params;
+  console.log("[GET /api/teachers/[id]] id:", id, "schoolId:", schoolId, "role:", role);
 
   try {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log("[GET /api/teachers/[id]] invalid ID:", id);
       return NextResponse.json({ success: false, message: "Invalid teacher ID" }, { status: 400 });
     }
 
     await connectToDatabase();
     
-    const teacher = await Teacher.findOne({
-      _id: id,
-      school_id: schoolId as string,
-    })
+    const query: any = { _id: id };
+    if (role !== "super_admin") {
+      query.school_id = schoolId;
+    }
+
+    const teacher = await Teacher.findOne(query)
       .populate("user_id", "name email role is_active")
       .populate("class_id", "name section");
 
+    console.log("[GET /api/teachers/[id]] query result:", teacher);
+
     if (!teacher) {
+      console.log("[GET /api/teachers/[id]] teacher not found in DB for id:", id, "schoolId:", schoolId);
       return NextResponse.json({ success: false, message: "Teacher not found" }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, data: teacher });
   } catch (error: any) {
+    console.error("[GET /api/teachers/[id]] handler caught error:", error);
     return NextResponse.json(
       { success: false, message: error.message || "Internal server error" },
       { status: 500 }
@@ -50,7 +61,7 @@ export async function PUT(
   req: NextRequest,
   { params }: RouteParams
 ) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "super_admin"]);
+  const { schoolId, role, error } = requireAuth(req, ["school_admin", "super_admin"]);
   if (error) return error;
 
   const { id } = await params;
@@ -81,7 +92,11 @@ export async function PUT(
         }, { status: 400 });
       }
 
-      const teacher = await Teacher.findOne({ _id: id, school_id: schoolId as string });
+      const query: any = { _id: id };
+      if (role !== "super_admin") {
+        query.school_id = schoolId;
+      }
+      const teacher = await Teacher.findOne(query);
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher not found" }, { status: 404 });
       }
@@ -95,8 +110,13 @@ export async function PUT(
       }
     }
 
+    const query: any = { _id: id };
+    if (role !== "super_admin") {
+      query.school_id = schoolId;
+    }
+
     const teacher = await Teacher.findOneAndUpdate(
-      { _id: id, school_id: schoolId as string },
+      query,
       { $set: body },
       { new: true, runValidators: true }
     ).populate("class_id", "name section");
@@ -108,7 +128,7 @@ export async function PUT(
     // If class_id is updated, optionally set this teacher as the class teacher of that class
     if (body.class_id) {
       await mongoose.model("Class").findOneAndUpdate(
-        { _id: body.class_id, school_id: schoolId },
+        { _id: body.class_id, school_id: teacher.school_id },
         { class_teacher_id: teacher._id }
       );
     }
@@ -133,7 +153,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: RouteParams
 ) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "super_admin"]);
+  const { schoolId, role, error } = requireAuth(req, ["school_admin", "super_admin"]);
   if (error) return error;
 
   const { id } = await params;
@@ -146,10 +166,12 @@ export async function DELETE(
 
     await connectToDatabase();
 
-    const teacher = await Teacher.findOneAndDelete({
-      _id: id,
-      school_id: schoolId as string,
-    });
+    const query: any = { _id: id };
+    if (role !== "super_admin") {
+      query.school_id = schoolId;
+    }
+
+    const teacher = await Teacher.findOneAndDelete(query);
 
     if (!teacher) {
       return NextResponse.json({ success: false, message: "Teacher not found" }, { status: 404 });

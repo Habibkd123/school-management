@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
-import { Attendance } from "@/lib/models/index";
+import { Attendance, Timetable } from "@/lib/models/index";
+import Class from "@/lib/models/Class";
+import Teacher from "@/lib/models/Teacher";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
+  const { schoolId, role, userId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
   if (error) return error;
 
   try {
@@ -29,6 +31,27 @@ export async function GET(req: NextRequest) {
         { success: false, message: "classId is required for student summary" },
         { status: 400 }
       );
+    }
+
+    // Verify teacher assignment for student attendance summary
+    if (type === "student" && role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      if (!teacher) {
+        return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
+      }
+      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+      const teacherClassIds = await Class.find({
+        school_id: schoolId,
+        $or: [
+          { class_teacher_id: teacher._id },
+          { _id: { $in: classIdsFromTimetable } }
+        ]
+      }).distinct("_id");
+
+      const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId!);
+      if (!hasAccess) {
+        return NextResponse.json({ success: false, message: "You are not assigned to this class" }, { status: 403 });
+      }
     }
 
     const startDate = new Date(startDateParam);

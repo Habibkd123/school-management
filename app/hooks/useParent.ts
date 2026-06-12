@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
 
+import { useAuth } from "@/app/context/auth";
+
 export interface ApiChild {
   _id: string;
   name: string;
@@ -15,14 +17,19 @@ export interface ApiChild {
 }
 
 export function useParent() {
+  const { user } = useAuth();
   const [children, setChildren] = useState<ApiChild[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchChildren();
-  }, []);
+    if (user?.role === "parent") {
+      fetchChildren();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const fetchChildren = async () => {
     setIsLoading(true);

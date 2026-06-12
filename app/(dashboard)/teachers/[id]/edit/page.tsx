@@ -6,6 +6,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useTeachers } from "../../../../hooks/useTeachers";
 import { useClasses } from "../../../../hooks/useClasses";
 import { useUpload } from "../../../../hooks/useUpload";
+import { LoginDetailsModal } from "../../../../components/modals/LoginDetailsModal";
+import { ResetPasswordModal } from "../../../../components/modals/ResetPasswordModal";
 import {
   User, Briefcase, Calendar, CreditCard, Bus, Building2, Share2, FileText, Lock, XCircle, Upload, Loader2, X
 } from "lucide-react";
@@ -157,6 +159,10 @@ export default function EditTeacherPage() {
   const { uploadFile } = useUpload();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [teacherObj, setTeacherObj] = useState<any>(null);
+  const [isLoginDetailsOpen, setIsLoginDetailsOpen] = useState(false);
+  const [isResetPassModalOpen, setIsResetPassModalOpen] = useState(false);
+  const [resetPassTarget, setResetPassTarget] = useState<{ userId: string | undefined; name: string; email: string } | null>(null);
 
   // States matching Schema
   const [employeeId, setEmployeeId] = useState("");
@@ -240,6 +246,7 @@ export default function EditTeacherPage() {
     if (!editId) return;
     getTeacher(editId).then((teacher) => {
       if (teacher) {
+        setTeacherObj(teacher);
         const name = typeof teacher.name === "string" ? teacher.name : "";
         const [first, ...last] = name.split(" ");
         setFirstName(first || "");
@@ -447,12 +454,37 @@ export default function EditTeacherPage() {
             <span className="text-slate-900 dark:text-white font-medium">{editId ? "Edit Teacher" : "Add Teacher"}</span>
           </div>
         </div>
+
+        {editId && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsLoginDetailsOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[12px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Login Details</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const tUid = teacherObj?.user_id && typeof teacherObj.user_id === "object" ? teacherObj.user_id._id : teacherObj?.user_id;
+                setResetPassTarget({ userId: tUid, name: `${firstName} ${lastName}`.trim(), email: email });
+                setIsResetPassModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-bold rounded-lg shadow-sm transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Reset Password</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Personal Information */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2">
             <User className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Personal Information</h2>
           </div>
@@ -530,7 +562,7 @@ export default function EditTeacherPage() {
 
         {/* 2. Payroll */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Briefcase className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Payroll</h2>
           </div>
@@ -546,7 +578,7 @@ export default function EditTeacherPage() {
 
         {/* 3. Leaves */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Leaves Entitlement</h2>
           </div>
@@ -560,7 +592,7 @@ export default function EditTeacherPage() {
 
         {/* 4. Bank Account Detail */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <CreditCard className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Bank Account Detail</h2>
           </div>
@@ -575,7 +607,7 @@ export default function EditTeacherPage() {
 
         {/* 5. Transport Information */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Bus className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Transport Information</h2>
           </div>
@@ -588,7 +620,7 @@ export default function EditTeacherPage() {
 
         {/* 6. Hostel Information */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Hostel Information</h2>
           </div>
@@ -600,7 +632,7 @@ export default function EditTeacherPage() {
 
         {/* 7. Social Media Links */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Share2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Social Media Links</h2>
           </div>
@@ -615,7 +647,7 @@ export default function EditTeacherPage() {
 
         {/* 8. Documents */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Documents</h2>
           </div>
@@ -627,7 +659,7 @@ export default function EditTeacherPage() {
 
         {/* 9. Password Option */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
             <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Change Password</h2>
           </div>
@@ -653,6 +685,22 @@ export default function EditTeacherPage() {
         </div>
 
       </form>
+
+      {/* Reusable Login Details Modal */}
+      <LoginDetailsModal
+        isOpen={isLoginDetailsOpen}
+        onClose={() => setIsLoginDetailsOpen(false)}
+        teacher={teacherObj}
+        target="teacher"
+      />
+
+      <ResetPasswordModal
+        isOpen={isResetPassModalOpen}
+        onClose={() => setIsResetPassModalOpen(false)}
+        userId={resetPassTarget?.userId}
+        userName={resetPassTarget?.name || ""}
+        userEmail={resetPassTarget?.email || ""}
+      />
     </div>
   );
 }

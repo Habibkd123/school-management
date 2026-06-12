@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 export interface ApiExam {
   _id: string;
@@ -34,11 +35,15 @@ export function useExams(classId?: string) {
   const [exams, setExams] = useState<ApiExam[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { academicYear } = useAppState();
+
   const fetchExams = useCallback(async () => {
     setLoading(true);
     try {
-      const params = classId ? `?class_id=${classId}` : "";
-      const res = await fetch(`/api/exams${params}`, { headers: getAuthHeaders() });
+      const params = new URLSearchParams();
+      if (classId) params.set("class_id", classId);
+      params.set("academic_year", academicYear);
+      const res = await fetch(`/api/exams?${params.toString()}`, { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) setExams(data.data.exams);
     } catch (e) {
@@ -46,7 +51,7 @@ export function useExams(classId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [classId, academicYear]);
 
   useEffect(() => { fetchExams(); }, [fetchExams]);
 
@@ -90,6 +95,8 @@ export function useResults(examId?: string, studentId?: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
+  const { academicYear } = useAppState();
+
   const fetchResults = useCallback(async () => {
     setIsLoading(true);
     setLoading(true);
@@ -97,6 +104,7 @@ export function useResults(examId?: string, studentId?: string) {
       const params = new URLSearchParams();
       if (examId) params.set("exam_id", examId);
       if (studentId) params.set("student_id", studentId);
+      if (academicYear) params.set("academic_year", academicYear);
       const res = await fetch(`/api/results?${params.toString()}`, { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) setResults(data.data.results);
@@ -106,7 +114,7 @@ export function useResults(examId?: string, studentId?: string) {
       setIsLoading(false);
       setLoading(false);
     }
-  }, [examId, studentId]);
+  }, [examId, studentId, academicYear]);
 
   useEffect(() => { fetchResults(); }, [fetchResults]);
 

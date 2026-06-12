@@ -130,6 +130,33 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Roll number class-level uniqueness check on update
+    const existingStudent = await Student.findOne({ _id: id, school_id: schoolId });
+    if (!existingStudent) {
+      return NextResponse.json(
+        { success: false, message: "Student not found" },
+        { status: 404 }
+      );
+    }
+
+    const targetClassId = updateData.class_id || existingStudent.class_id;
+    const targetRollNo = updateData.roll_no !== undefined ? (updateData.roll_no as string) : existingStudent.roll_no;
+
+    if (targetRollNo && (targetRollNo as string).trim()) {
+      const duplicateRollNo = await Student.findOne({
+        school_id: schoolId,
+        class_id: targetClassId,
+        roll_no: (targetRollNo as string).trim(),
+        _id: { $ne: id }
+      });
+      if (duplicateRollNo) {
+        return NextResponse.json(
+          { success: false, message: "Roll number already exists in this class" },
+          { status: 409 }
+        );
+      }
+    }
+
     const student = await Student.findOneAndUpdate(
       { _id: id, school_id: schoolId },
       { $set: updateData },

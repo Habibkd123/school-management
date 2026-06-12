@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 export interface ApiSubject {
   _id: string;
@@ -17,11 +18,17 @@ export function useSubjects(classId?: string) {
   const [subjects, setSubjects] = useState<ApiSubject[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { academicYear } = useAppState();
+
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const params = classId ? `?class_id=${classId}` : "";
-      const res = await fetch(`/api/subjects${params}`, { headers: getAuthHeaders() });
+      const params = new URLSearchParams();
+      if (classId) params.set("class_id", classId);
+      // Only apply academic_year filter when not fetching by specific classId
+      // (classId-scoped subjects are already year-scoped via their class)
+      if (!classId && academicYear) params.set("academic_year", academicYear);
+      const res = await fetch(`/api/subjects?${params.toString()}`, { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) setSubjects(data.data.subjects);
     } catch (e) {
@@ -29,7 +36,7 @@ export function useSubjects(classId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [classId, academicYear]);
 
   useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
 

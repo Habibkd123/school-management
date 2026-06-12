@@ -6,6 +6,7 @@ import { useSchedules } from "../../../hooks/useSchedules";
 import { useClasses } from "../../../hooks/useClasses";
 import { useTeachers } from "../../../hooks/useTeachers";
 import { useSubjects } from "../../../hooks/useSubjects";
+import { useAuth } from "../../../context/auth";
 import { 
   Plus, Search, List, Grid, MoreVertical, Edit, Trash2,
   Calendar, Filter, ChevronDown, RefreshCw, Printer, Download, ToggleRight, Loader2
@@ -13,6 +14,8 @@ import {
 import { Modal } from "../../../components/ui/modal";
 
 export default function SchedulePage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
   const { classes, isLoading: classesLoading } = useClasses();
   const { teachers, isLoading: teachersLoading } = useTeachers();
   const { schedules, isLoading: schedulesLoading, fetchSchedules, createSchedule, updateSchedule, deleteSchedule } = useSchedules();
@@ -181,12 +184,14 @@ export default function SchedulePage() {
           <button onClick={() => fetchSchedules()} className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#F59E0B] hover:bg-indigo-50 transition-colors shadow-sm cursor-pointer">
             <RefreshCw className="w-4 h-4" />
           </button>
-          <button 
-            onClick={openAddModal}
-            className="px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Add Schedule
-          </button>
+          {isAdmin && (
+            <button 
+              onClick={openAddModal}
+              className="px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Add Schedule
+            </button>
+          )}
         </div>
       </div>
 
@@ -226,13 +231,13 @@ export default function SchedulePage() {
                   <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Start Time</th>
                   <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">End Time</th>
                   <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Room</th>
-                  <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 w-20">Action</th>
+                  {isAdmin && <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 w-20">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredSchedules.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={isAdmin ? 9 : 8} className="px-6 py-12 text-center text-slate-500">
                       No schedule items mapped yet.
                     </td>
                   </tr>
@@ -247,27 +252,29 @@ export default function SchedulePage() {
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono font-semibold">{schedule.start_time}</td>
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono font-semibold">{schedule.end_time}</td>
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono">{schedule.room || "N/A"}</td>
-                      <td className="px-6 py-4 text-center relative" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          onClick={() => setActionMenuId(actionMenuId === schedule._id ? null : schedule._id)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === schedule._id ? "bg-[#F59E0B] text-white" : "hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        {actionMenuId === schedule._id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
-                            <div className="absolute right-10 top-10 w-36 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
-                              <button onClick={() => openEditModal(schedule)} className="w-full px-4 py-2 text-[13px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                <Edit className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Edit
-                              </button>
-                              <button onClick={() => handleDelete(schedule._id)} className="w-full px-4 py-2 text-[13px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                <Trash2 className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-center relative" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => setActionMenuId(actionMenuId === schedule._id ? null : schedule._id)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === schedule._id ? "bg-[#F59E0B] text-white" : "hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {actionMenuId === schedule._id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
+                              <div className="absolute right-10 top-10 w-36 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
+                                <button onClick={() => openEditModal(schedule)} className="w-full px-4 py-2 text-[13px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
+                                  <Edit className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Edit
+                                </button>
+                                <button onClick={() => handleDelete(schedule._id)} className="w-full px-4 py-2 text-[13px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
+                                  <Trash2 className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

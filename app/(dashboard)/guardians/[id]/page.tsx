@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { getAuthHeaders } from "@/lib/utils/session";
 import { useUpload } from "../../../hooks/useUpload";
 import { Modal } from "../../../components/ui/modal";
+import { LoginDetailsModal } from "@/app/components/modals/LoginDetailsModal";
+import { ResetPasswordModal } from "@/app/components/modals/ResetPasswordModal";
 import {
   User, Phone, Mail, FileText, Calendar, Users, MapPin, Bus, Lock, Edit, ChevronDown, CheckCircle, RefreshCw, X, Loader2, ImageIcon
 } from "lucide-react";
@@ -68,6 +70,8 @@ export default function ParentDetailPage() {
   const [parent, setParent] = useState<ApiParent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isResetPassModalOpen, setIsResetPassModalOpen] = useState(false);
+  const [resetPassTarget, setResetPassTarget] = useState<{ userId: string | undefined; name: string; email: string } | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Form states for edit
@@ -210,6 +214,19 @@ export default function ParentDetailPage() {
           <button onClick={() => setIsLoginModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[12px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm transition-colors cursor-pointer">
             <Lock className="w-3.5 h-3.5" />
             <span>Login Details</span>
+          </button>
+          <button 
+            onClick={() => {
+              const pUser = parent?.user_id;
+              const pUid = pUser && typeof pUser === "object" ? pUser._id : undefined;
+              const pEmail = pUser && typeof pUser === "object" ? pUser.email : parent.email || "";
+              setResetPassTarget({ userId: pUid, name: parent.name, email: pEmail });
+              setIsResetPassModalOpen(true);
+            }} 
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Reset Password</span>
           </button>
           <button
             onClick={() => setIsEditOpen(true)}
@@ -378,67 +395,20 @@ export default function ParentDetailPage() {
       </div>
 
       {/* ── Login Details Modal ── */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-[90%] max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <h2 className="text-[16px] font-bold text-slate-900 dark:text-white">Login Details</h2>
-              <button onClick={() => setIsLoginModalOpen(false)} className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-colors cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-6 text-left">
-              {/* Info banner */}
-              <div className="mb-5 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl flex items-start gap-3">
-                <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
-                <div>
-                  <p className="text-[12px] font-bold text-amber-800 dark:text-amber-300 mb-0.5">Default Credentials — Share with caution</p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">Advise the parent to update their password upon first login to secure their account.</p>
-                </div>
-              </div>
+      <LoginDetailsModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        parent={parent}
+        target="parent"
+      />
 
-              <div className="flex flex-col items-center justify-center mb-5">
-                <img src={getAvatar(parent.name, parent.photo_url)} className="w-14 h-14 rounded-xl object-cover mb-2 border border-slate-200 dark:border-slate-800 shadow-sm" alt="Avatar" />
-                <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">{parent.name}</h3>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold mt-1.5">
-                  👨‍👩‍👧 Parent
-                </span>
-              </div>
-
-              <div className="border border-border rounded-xl overflow-hidden shadow-sm mb-6">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="bg-[#F8FAFC] dark:bg-[#0F172A] text-slate-700 dark:text-slate-200 font-bold border-b border-border">
-                    <tr>
-                      <th className="px-5 py-3">Username (Email)</th>
-                      <th className="px-5 py-3">Default Password</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-medium text-slate-600 dark:text-slate-300">
-                    <tr>
-                      <td className="px-5 py-4">
-                        {parent.email || <span className="text-slate-400 italic">No email linked</span>}
-                      </td>
-                      <td className="px-5 py-4">
-                        {parent.email ? (
-                          <code className="px-2 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 rounded text-[12px] font-mono font-bold">parent123</code>
-                        ) : (
-                          <span className="text-slate-400 italic">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end border-t border-border pt-4">
-                <button onClick={() => setIsLoginModalOpen(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[12px] font-bold rounded-lg hover:bg-slate-200 transition-colors cursor-pointer">
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ResetPasswordModal
+        isOpen={isResetPassModalOpen}
+        onClose={() => setIsResetPassModalOpen(false)}
+        userId={resetPassTarget?.userId}
+        userName={resetPassTarget?.name || ""}
+        userEmail={resetPassTarget?.email || ""}
+      />
 
       {/* ── Edit Parent Modal ── */}
       {isEditOpen && (

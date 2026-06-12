@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import Class from "@/lib/models/Class";
+import Teacher from "@/lib/models/Teacher";
+import { Timetable } from "@/lib/models/index";
 import { requireAuth } from "@/lib/utils/auth";
 
 // GET: Fetch all classes for the school (with pagination, search, filter, sort)
 export async function GET(req: NextRequest) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
-  if (error) return error;
+  const authResult = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
+  if (authResult.error) return authResult.error;
+  const { schoolId, user } = authResult;
 
   try {
     await connectToDatabase();
@@ -19,16 +22,39 @@ export async function GET(req: NextRequest) {
     const page         = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
     const limit        = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "10")));
 
-    const query: Record<string, unknown> = { school_id: schoolId as string };
+    const query: Record<string, any> = { school_id: schoolId as string };
+    const andFilters: any[] = [];
+
+    if (user.role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId });
+      if (teacher) {
+        const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+        andFilters.push({
+          $or: [
+            { class_teacher_id: teacher._id },
+            { _id: { $in: classIdsFromTimetable } }
+          ]
+        });
+      } else {
+        andFilters.push({ _id: null });
+      }
+    }
 
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { section: { $regex: search, $options: "i" } },
-      ];
+      andFilters.push({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { section: { $regex: search, $options: "i" } },
+        ]
+      });
     }
+
     if (academic_year) query.academic_year = academic_year;
     if (section) query.section = section;
+
+    if (andFilters.length > 0) {
+      query.$and = andFilters;
+    }
 
     const [classes, total] = await Promise.all([
       Class.find(query)

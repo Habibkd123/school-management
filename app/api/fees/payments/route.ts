@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { FeePayment, FeeMaster } from "@/lib/models";
+import Student from "@/lib/models/Student";
+import Parent from "@/lib/models/Parent";
 import { requireAuth } from "@/lib/utils/auth";
 
 // Generate a random unique receipt number
@@ -10,16 +12,41 @@ function generateReceiptNumber() {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId, error } = requireAuth(req);
+    const { schoolId, role, userId, error } = requireAuth(req);
     if (error) return error;
 
     const url = new URL(req.url);
     const student_id = url.searchParams.get("student_id");
 
     const query: any = { school_id: schoolId };
-    if (student_id) query.student_id = student_id;
 
     await connectDB();
+
+    if (role === "student") {
+      const studentProfile = await Student.findOne({ school_id: schoolId, user_id: userId }).select("_id").lean();
+      if (!studentProfile) {
+        return NextResponse.json({ success: true, data: { payments: [] } });
+      }
+      query.student_id = studentProfile._id;
+    } else if (role === "parent") {
+      const parent = await Parent.findOne({ user_id: userId, school_id: schoolId }).select("_id").lean();
+      if (!parent) {
+        return NextResponse.json({ success: true, data: { payments: [] } });
+      }
+      const children = await Student.find({ school_id: schoolId, parent_id: parent._id }).select("_id").lean();
+      const childIds = children.map((c: any) => c._id.toString());
+      if (student_id) {
+        if (!childIds.includes(student_id)) {
+          return NextResponse.json({ success: false, message: "Access denied to student record" }, { status: 403 });
+        }
+        query.student_id = student_id;
+      } else {
+        query.student_id = { $in: childIds };
+      }
+    } else {
+      if (student_id) query.student_id = student_id;
+    }
+
     const payments = await FeePayment.find(query)
       .populate("student_id", "name admission_no roll_no")
       .populate({

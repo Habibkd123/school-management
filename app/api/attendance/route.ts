@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
-import { Attendance } from "@/lib/models/index";
+import { Attendance, Timetable } from "@/lib/models/index";
+import Class from "@/lib/models/Class";
 import Teacher from "@/lib/models/Teacher";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
@@ -36,6 +37,27 @@ export async function GET(req: NextRequest) {
         { success: false, message: "Invalid classId format" },
         { status: 400 }
       );
+    }
+
+    // Verify teacher assignment for student attendance
+    if (type === "student" && role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      if (!teacher) {
+        return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
+      }
+      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+      const teacherClassIds = await Class.find({
+        school_id: schoolId,
+        $or: [
+          { class_teacher_id: teacher._id },
+          { _id: { $in: classIdsFromTimetable } }
+        ]
+      }).distinct("_id");
+
+      const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId!);
+      if (!hasAccess) {
+        return NextResponse.json({ success: false, message: "You are not assigned to this class" }, { status: 403 });
+      }
     }
 
     const startOfDay = new Date(dateParam);
@@ -96,6 +118,27 @@ export async function POST(req: NextRequest) {
         { success: false, message: "Invalid classId format" },
         { status: 400 }
       );
+    }
+
+    // Verify teacher assignment for student attendance
+    if (type === "student" && role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      if (!teacher) {
+        return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
+      }
+      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+      const teacherClassIds = await Class.find({
+        school_id: schoolId,
+        $or: [
+          { class_teacher_id: teacher._id },
+          { _id: { $in: classIdsFromTimetable } }
+        ]
+      }).distinct("_id");
+
+      const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId);
+      if (!hasAccess) {
+        return NextResponse.json({ success: false, message: "You are not assigned to this class" }, { status: 403 });
+      }
     }
 
     const startOfDay = new Date(date);

@@ -45,12 +45,14 @@ export function useAttendanceSummary() {
     startDate: string,
     endDate: string,
     type: "student" | "teacher",
-    recordId: string
+    recordId: string,
+    classId?: string
   ): Promise<Array<{ date: string; status: string; note?: string }> | null> => {
     setIsLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ startDate, endDate, type, detail: "true", recordId });
+      if (classId) params.append("classId", classId);
 
       const res = await fetch(`/api/attendance/summary?${params.toString()}`, {
         headers: getAuthHeaders(),

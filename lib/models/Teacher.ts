@@ -163,6 +163,16 @@ const teacherSchema = new Schema<ITeacher>(
 
 teacherSchema.index({ school_id: 1, employee_id: 1 }, { unique: true, sparse: true });
 
+if (mongoose.models && mongoose.models.Teacher) {
+  const registeredSchema = mongoose.models.Teacher.schema;
+  if (!registeredSchema.paths.class_id) {
+    delete mongoose.models.Teacher;
+    if ((mongoose.connection as any).models && (mongoose.connection as any).models.Teacher) {
+      delete (mongoose.connection as any).models.Teacher;
+    }
+  }
+}
+
 const Teacher: Model<ITeacher> =
   mongoose.models.Teacher || mongoose.model<ITeacher>("Teacher", teacherSchema);
 

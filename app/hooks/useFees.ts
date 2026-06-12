@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 export interface ApiFeeGroup {
   _id: string;
@@ -226,10 +227,15 @@ export function useFees() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { academicYear } = useAppState();
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const structRes = await fetch("/api/fees", { headers: getAuthHeaders() });
+      const params = new URLSearchParams();
+      if (academicYear) params.set("academic_year", academicYear);
+
+      const structRes = await fetch(`/api/fees?${params.toString()}`, { headers: getAuthHeaders() });
       const structData = await structRes.json();
       const fetchedStructures = structData.success ? structData.data.fees : [];
       setFeeStructures(fetchedStructures);
@@ -251,7 +257,7 @@ export function useFees() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [academicYear]);
 
   useEffect(() => {
     fetchAll();

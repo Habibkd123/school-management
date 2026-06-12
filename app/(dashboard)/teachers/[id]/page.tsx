@@ -11,6 +11,8 @@ import { useAttendanceSummary } from "../../../hooks/useAttendanceSummary";
 import { Modal } from "../../../components/ui/modal";
 import { Loader2 } from "lucide-react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { LoginDetailsModal } from "../../../components/modals/LoginDetailsModal";
+import { ResetPasswordModal } from "../../../components/modals/ResetPasswordModal";
 import {
   User, Phone, Mail, FileText, Calendar, Droplet, Users, BookOpen, Clock, Settings, Building2, MapPin, Bus, Lock, Edit, ChevronDown, CheckCircle, RefreshCcw, Check, X, Download, Paperclip, Briefcase, Copy, Plus
 } from "lucide-react";
@@ -33,6 +35,7 @@ export default function TeacherDetailsPage() {
   // Modal states
   const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
   const [isLoginDetailsOpen, setIsLoginDetailsOpen] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
   // Dynamic schedules & leaves
   const { schedules, isLoading: schedulesLoading } = useSchedules(undefined, teacherId);
@@ -59,52 +62,6 @@ export default function TeacherDetailsPage() {
   const [leaveDaysNum, setLeaveDaysNum] = useState("1");
   const [leaveReason, setLeaveReason] = useState("");
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
-
-  // Password reset states
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError("");
-    setPasswordSuccess(false);
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    try {
-      const res = await fetch(`/api/teachers/${teacher?._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ password: newPassword }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setPasswordSuccess(true);
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        if (data.errors && data.errors.length > 0) {
-          setPasswordError(data.errors[0].message);
-        } else {
-          setPasswordError(data.message || "Failed to update password.");
-        }
-      }
-    } catch {
-      setPasswordError("Network error. Failed to update password.");
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
 
   useEffect(() => {
     if (!teacherId) return;
@@ -355,6 +312,13 @@ export default function TeacherDetailsPage() {
           >
             <Lock className="w-3.5 h-3.5" />
             <span>Login Details</span>
+          </button>
+          <button
+            onClick={() => setIsResetPasswordOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-bold rounded-lg shadow-sm transition-colors"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Reset Password</span>
           </button>
           <button
             onClick={() => router.push(`/teachers/${teacher._id}/edit`)}
@@ -777,7 +741,7 @@ export default function TeacherDetailsPage() {
                         </div>
                       </div>
                       <div className="bg-[#E6F4FE] rounded-xl p-4 flex flex-col justify-center">
-                        <span className="inline-block px-2 py-0.5 bg-[#3B82F6] text-white text-[10px] font-bold rounded mb-2 self-start">Evening Break</span>
+                        <span className="inline-block px-2 py-0.5 bg-[#F59E0B] text-white text-[10px] font-bold rounded mb-2 self-start">Evening Break</span>
                         <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-1">
                           <Clock className="w-3.5 h-3.5" /> 03:00 PM to 03:15 PM
                         </div>
@@ -873,9 +837,9 @@ export default function TeacherDetailsPage() {
                                 <td className="px-5 py-3 truncate max-w-[200px]" title={l.reason}>{l.reason || "-"}</td>
                                 <td className="px-5 py-3">
                                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold
-                                    ${l.status === "approved" ? "bg-[#E8F8E8] text-[#1D7F2C]" : l.status === "rejected" ? "bg-[#FFEBEB] text-[#E02424]" : "bg-[#E6F4FE] text-[#3B82F6]"}
+                                    ${l.status === "approved" ? "bg-[#E8F8E8] text-[#1D7F2C]" : l.status === "rejected" ? "bg-[#FFEBEB] text-[#E02424]" : "bg-[#FFF8E6] text-[#F59E0B]"}
                                   `}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${l.status === "approved" ? "bg-[#1DD04A]" : l.status === "rejected" ? "bg-[#E02424]" : "bg-[#3B82F6]"}`} />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${l.status === "approved" ? "bg-[#1DD04A]" : l.status === "rejected" ? "bg-[#E02424]" : "bg-[#F59E0B]"}`} />
                                     {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
                                   </span>
                                 </td>
@@ -913,7 +877,7 @@ export default function TeacherDetailsPage() {
                   {/* Summary Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
                     <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-[#E6F4FE] text-[#3B82F6] flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-[#E8F8E8] text-[#1D7F2C] flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5" />
                       </div>
                       <div>
@@ -964,13 +928,13 @@ export default function TeacherDetailsPage() {
                       <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#FFEBEB] text-[#E02424] border border-[#E02424]/20 text-[11px] font-bold">
                         <X className="w-3.5 h-3.5" /> Absent
                       </div>
-                      <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#E6F4FE] text-[#3B82F6] border border-[#3B82F6]/20 text-[11px] font-bold">
+                      <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#FFF8E6] text-[#F59E0B] border border-[#F59E0B]/20 text-[11px] font-bold">
                         <Clock className="w-3.5 h-3.5" /> Late
                       </div>
                       <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 text-[11px] font-bold">
                         <Calendar className="w-3.5 h-3.5" /> Halfday
                       </div>
-                      <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#E6F4FE] text-[#F59E0B] border border-[#F59E0B]/20 text-[11px] font-bold">
+                      <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#E6F4FE] text-[#3B82F6] border border-[#3B82F6]/20 text-[11px] font-bold">
                         <Calendar className="w-3.5 h-3.5" /> Holiday
                       </div>
                     </div>
@@ -1000,9 +964,9 @@ export default function TeacherDetailsPage() {
                                   <td key={idx} className="px-3 py-3 text-center">
                                     {s === "P" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#1DD04A]" />}
                                     {s === "A" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#E02424]" />}
-                                    {s === "L" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#3B82F6]" />}
+                                    {s === "L" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#F59E0B]" />}
                                     {s === "HD" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-slate-400 dark:bg-slate-600" />}
-                                    {s === "H" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#F59E0B]" />}
+                                    {s === "H" && <span className="inline-block w-2.5 h-4 rounded-[4px] bg-[#3B82F6]" />}
                                   </td>
                                 ))}
                               </tr>
@@ -1026,8 +990,8 @@ export default function TeacherDetailsPage() {
                     <p className="text-[13px] font-bold text-slate-500 dark:text-slate-400 mb-1">Total Net Salary</p>
                     <p className="text-[20px] font-bold text-slate-900 dark:text-white">$5,55,410</p>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-[#E6F4FE] flex items-center justify-center border border-[#3B82F6]/20">
-                    <User className="w-5 h-5 text-[#3B82F6]" />
+                  <div className="w-10 h-10 rounded-full bg-[#FFF8E6] flex items-center justify-center border border-[#F59E0B]/20">
+                    <User className="w-5 h-5 text-[#F59E0B]" />
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center justify-between">
@@ -1192,126 +1156,20 @@ export default function TeacherDetailsPage() {
         </form>
       </Modal>
 
-      {/* ----------------------------------------------------
-          LOGIN DETAILS MODAL
-          ---------------------------------------------------- */}
-      <Modal isOpen={isLoginDetailsOpen} onClose={() => setIsLoginDetailsOpen(false)} title="Login Details">
-        <div className="space-y-6 text-left">
-          <div className="flex justify-center mb-6 mt-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                {teacher.name.charAt(0)}
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-[#0F172A] dark:text-slate-100">{teacher.name}</p>
-                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{getClassName(teacher.classId || teacher.class_id || "")}</p>
-              </div>
-            </div>
-          </div>
+      <LoginDetailsModal
+        isOpen={isLoginDetailsOpen}
+        onClose={() => setIsLoginDetailsOpen(false)}
+        teacher={teacher}
+        target="teacher"
+      />
 
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-left text-[13px]">
-              <thead className="bg-[#F8FAFC] dark:bg-[#0F172A] text-slate-700 dark:text-slate-200 border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">User Type</th>
-                  <th className="px-4 py-3 font-semibold">Username / Email</th>
-                  <th className="px-4 py-3 font-semibold">Password</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-slate-600 dark:text-slate-300 font-medium">
-                {teacher.user_id ? (
-                  <tr>
-                    <td className="px-4 py-4">Teacher</td>
-                    <td className="px-4 py-4">
-                      {typeof teacher.user_id === "object" && teacher.user_id
-                        ? teacher.user_id.email
-                        : (teacher.email || "-")}
-                    </td>
-                    <td className="px-4 py-4 text-slate-400 italic">password123 (default)</td>
-                  </tr>
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-4 text-center text-slate-400 italic">
-                      No linked user credentials.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Change Password Section */}
-          <div className="border-t border-border pt-4 mt-6">
-            <h4 className="text-[14px] font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#F59E0B]" />
-              Change Login Password
-            </h4>
-
-            {passwordSuccess && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[13px] rounded-lg mb-3 border border-emerald-100 dark:border-emerald-900/30 font-medium">
-                Password changed successfully!
-              </div>
-            )}
-
-            {passwordError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-[13px] rounded-lg mb-3 border border-rose-100 dark:border-rose-900/30 font-medium">
-                {passwordError}
-              </div>
-            )}
-
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">New Password</label>
-                  <input
-                    type="password"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 focus:border-[#F59E0B]/50 transition-colors"
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">Confirm Password</label>
-                  <input
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 focus:border-[#F59E0B]/50 transition-colors"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLoginDetailsOpen(false);
-                    setPasswordError("");
-                    setPasswordSuccess(false);
-                    setNewPassword("");
-                    setConfirmPassword("");
-                  }}
-                  className="px-4 py-2 bg-[#F1F5F9] dark:bg-slate-800 hover:bg-[#E2E8F0] dark:hover:bg-slate-700 text-[#0F172A] dark:text-slate-100 text-[13px] font-semibold rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdatingPassword}
-                  className="px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-[13px] font-semibold rounded-lg text-white shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
-                >
-                  {isUpdatingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Change Password</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Modal>
+      <ResetPasswordModal
+        isOpen={isResetPasswordOpen}
+        onClose={() => setIsResetPasswordOpen(false)}
+        userId={teacherUserId}
+        userName={teacher?.name || ""}
+        userEmail={(teacher?.user_id && typeof teacher.user_id === "object" && teacher.user_id.email) ? teacher.user_id.email : (teacher?.email || "")}
+      />
 
     </div>
   );

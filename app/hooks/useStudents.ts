@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 // ─── Types ────────────────────────────────────────────────────────
 export interface ApiStudent {
@@ -104,6 +105,7 @@ export function useStudents(options?: { skip?: boolean }) {
       sort?: string;
       page?: number;
       limit?: number;
+      academic_year?: string;
     },
     arg2?: string
   ) => {
@@ -115,6 +117,7 @@ export function useStudents(options?: { skip?: boolean }) {
     let sort = "";
     let page = 1;
     let limit = 10;
+    let academic_year = "";
 
     const isObject = arg1 && typeof arg1 === "object";
 
@@ -128,6 +131,7 @@ export function useStudents(options?: { skip?: boolean }) {
       sort = p.sort ?? "";
       page = p.page ?? 1;
       limit = p.limit ?? 10;
+      academic_year = p.academic_year ?? "";
     } else {
       search = (arg1 as string) ?? "";
       classId = arg2 ?? "";
@@ -155,6 +159,7 @@ export function useStudents(options?: { skip?: boolean }) {
       if (status && status !== "all" && status !== "Select") params.set("status", status);
       if (dateRange && dateRange !== "All Time") params.set("dateRange", dateRange);
       if (sort) params.set("sort", sort);
+      if (academic_year) params.set("academic_year", academic_year);
       params.set("page", page.toString());
       params.set("limit", limit.toString());
 
@@ -188,10 +193,12 @@ export function useStudents(options?: { skip?: boolean }) {
     }
   }, []);
 
+  const { academicYear } = useAppState();
+
   useEffect(() => {
     if (options?.skip) return;
-    fetchStudents();
-  }, [fetchStudents, options?.skip]);
+    fetchStudents({ academic_year: academicYear });
+  }, [fetchStudents, options?.skip, academicYear]);
 
   // ─── Create student ─────────────────────────────────────────────
   const createStudent = async (input: CreateStudentInput): Promise<{ success: boolean; message: string; data?: ApiStudent }> => {

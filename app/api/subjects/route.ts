@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
-import { Subject } from "@/lib/models/index";
+import { Subject, Timetable } from "@/lib/models/index";
+import Class from "@/lib/models/Class";
+import Teacher from "@/lib/models/Teacher";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
 // GET: Fetch all subjects for the school
 export async function GET(req: NextRequest) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
+  const { schoolId, role, userId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
   if (error) return error;
 
   try {
@@ -14,11 +16,55 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const classId = url.searchParams.get("class_id");
     const search = url.searchParams.get("search");
+    const academic_year = url.searchParams.get("academic_year");
 
     const query: any = { school_id: schoolId };
-    if (classId && mongoose.Types.ObjectId.isValid(classId)) {
-      query.class_id = classId;
+
+    // Resolve class IDs for the selected academic year
+    let yearClassIds: any[] | null = null;
+    if (academic_year) {
+      const yearClasses = await Class.find({ school_id: schoolId, academic_year }).select("_id").lean();
+      yearClassIds = yearClasses.map((c: any) => c._id);
     }
+
+    if (role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      if (teacher) {
+        const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+        let teacherClassIds = await Class.find({
+          school_id: schoolId,
+          $or: [
+            { class_teacher_id: teacher._id },
+            { _id: { $in: classIdsFromTimetable } }
+          ]
+        }).distinct("_id");
+
+        // Intersect with year-filtered class IDs if academic_year was provided
+        if (yearClassIds !== null) {
+          const yearSet = new Set(yearClassIds.map((id: any) => id.toString()));
+          teacherClassIds = teacherClassIds.filter((id: any) => yearSet.has(id.toString()));
+        }
+
+        if (classId) {
+          if (teacherClassIds.map((id: any) => id.toString()).includes(classId)) {
+            query.class_id = classId;
+          } else {
+            query.class_id = null; // No access
+          }
+        } else {
+          query.class_id = { $in: teacherClassIds };
+        }
+      } else {
+        query.class_id = null;
+      }
+    } else {
+      if (classId && mongoose.Types.ObjectId.isValid(classId)) {
+        query.class_id = classId;
+      } else if (yearClassIds !== null) {
+        query.class_id = { $in: yearClassIds };
+      }
+    }
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -35,7 +81,7 @@ export async function GET(req: NextRequest) {
 
 // POST: Create a new subject
 export async function POST(req: NextRequest) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "super_admin"]);
+  const { schoolId, role, userId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
   if (error) return error;
 
   try {
@@ -45,6 +91,26 @@ export async function POST(req: NextRequest) {
 
     if (!name) {
       return NextResponse.json({ success: false, message: "Subject name is required" }, { status: 400 });
+    }
+
+    if (role === "teacher") {
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      if (!teacher) {
+        return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
+      }
+      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
+      const teacherClassIds = await Class.find({
+        school_id: schoolId,
+        $or: [
+          { class_teacher_id: teacher._id },
+          { _id: { $in: classIdsFromTimetable } }
+        ]
+      }).distinct("_id");
+
+      const hasAccess = teacherClassIds.map(id => id.toString()).includes(class_id);
+      if (!hasAccess) {
+        return NextResponse.json({ success: false, message: "You are not assigned to this class" }, { status: 403 });
+      }
     }
 
     // class_id is required by model — if not provided use a placeholder

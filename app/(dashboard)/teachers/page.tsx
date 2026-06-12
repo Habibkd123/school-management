@@ -6,7 +6,8 @@ import { useTeachers, ApiTeacher } from "../../hooks/useTeachers";
 import { DataTable, ColumnDef } from "@/app/components/ui/data-table";
 import { Loader2, AlertCircle } from "lucide-react";
 import { PaginationBar } from "@/app/components/ui/pagination-bar";
-import { TeacherLoginDetailsModal } from "../../components/modals/TeacherLoginDetailsModal";
+import { LoginDetailsModal } from "../../components/modals/LoginDetailsModal";
+import { ResetPasswordModal } from "../../components/modals/ResetPasswordModal";
 import {
   Search,
   Plus,
@@ -51,6 +52,8 @@ export default function TeachersPage() {
   const [selectedTeacher, setSelectedTeacher] = useState<ApiTeacher | null>(null);
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [isLoginDetailsOpen, setIsLoginDetailsOpen] = useState(false);
+  const [isResetPassModalOpen, setIsResetPassModalOpen] = useState(false);
+  const [resetPassTarget, setResetPassTarget] = useState<{ userId: string | undefined; name: string; email: string } | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   // Popover states
@@ -172,7 +175,7 @@ export default function TeachersPage() {
     { header: "ID", accessorKey: "displayId", render: (t) => <span className="font-semibold text-[#F59E0B] cursor-pointer hover:underline">{t.displayId}</span> },
     { header: "Name", accessorKey: "name", render: (t) => (
         <div className="flex items-center gap-3">
-          <img src="/asset 7.webp" className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-800" alt={t.name} />
+          <img src={t.photo_url || "/asset 7.webp"} className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-800" alt={t.name} />
           <span className="font-medium text-slate-900 dark:text-white group-hover:text-[#F59E0B] transition-colors cursor-pointer">{t.name}</span>
         </div>
     ) },
@@ -209,6 +212,16 @@ export default function TeachersPage() {
                 </button>
                 <button onClick={() => { setSelectedTeacher(t as unknown as ApiTeacher); setIsLoginDetailsOpen(true); setActionMenuId(null); }} className="w-full px-4 py-2.5 text-[14px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 font-medium transition-colors">
                   <Lock className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Login Details
+                </button>
+                <button onClick={() => { 
+                  const teacherUser = t.user_id;
+                  const tUid = teacherUser && typeof teacherUser === "object" ? teacherUser._id : undefined;
+                  const tEmail = teacherUser && typeof teacherUser === "object" ? teacherUser.email : t.email || "";
+                  setResetPassTarget({ userId: tUid, name: t.name, email: tEmail }); 
+                  setIsResetPassModalOpen(true); 
+                  setActionMenuId(null); 
+                }} className="w-full px-4 py-2.5 text-[14px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 font-medium transition-colors">
+                  <Lock className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Reset Password
                 </button>
                 <button onClick={() => { handleDelete(t.id); setActionMenuId(null); }} className="w-full px-4 py-2.5 text-[14px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-3 font-medium transition-colors">
                   <Trash2 className="w-4 h-4 text-rose-400" /> Delete
@@ -503,7 +516,7 @@ export default function TeachersPage() {
                             }}
                             className="rounded border-slate-300 w-3.5 h-3.5 accent-[#F59E0B] cursor-pointer"
                           />
-                          <span className="text-[#3B82F6] font-semibold text-[13px] hover:underline cursor-pointer" onClick={() => router.push(`/teachers/${teacher._id}`)}>{displayId}</span>
+                          <span className="text-[#F59E0B] font-semibold text-[13px] hover:underline cursor-pointer" onClick={() => router.push(`/teachers/${teacher._id}`)}>{displayId}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${status === "Active" ? "bg-[#E8F8E8] text-[#1D7F2C]" : "bg-[#FFEBEB] text-[#E02424]"}`}>
@@ -528,6 +541,16 @@ export default function TeachersPage() {
                                   <button onClick={() => { setSelectedTeacher(teacher); setIsLoginDetailsOpen(true); setActionMenuId(null); }} className="w-full px-4 py-2.5 text-[14px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 font-medium transition-colors">
                                     <Lock className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Login Details
                                   </button>
+                                  <button onClick={() => { 
+                                    const teacherUser = teacher.user_id;
+                                    const tUid = teacherUser && typeof teacherUser === "object" ? teacherUser._id : undefined;
+                                    const tEmail = teacherUser && typeof teacherUser === "object" ? teacherUser.email : teacher.email || "";
+                                    setResetPassTarget({ userId: tUid, name: teacher.name, email: tEmail }); 
+                                    setIsResetPassModalOpen(true); 
+                                    setActionMenuId(null); 
+                                  }} className="w-full px-4 py-2.5 text-[14px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 font-medium transition-colors">
+                                    <Lock className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Reset Password
+                                  </button>
                                   <button onClick={() => { handleDelete(teacher._id); setActionMenuId(null); }} className="w-full px-4 py-2.5 text-[14px] text-[#0F172A] dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 font-medium transition-colors">
                                     <Trash2 className="w-4 h-4 text-[#0F172A] dark:text-slate-100" /> Delete
                                   </button>
@@ -540,7 +563,7 @@ export default function TeachersPage() {
 
                       {/* Avatar & Info */}
                       <div className="flex items-center gap-3 mb-5 cursor-pointer" onClick={() => router.push(`/teachers/${teacher._id}`)}>
-                        <img src="/asset 7.webp" className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-800" alt={teacher.name} />
+                        <img src={teacher.photo_url || "/asset 7.webp"} className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-800" alt={teacher.name} />
                         <div>
                           <h3 className="font-bold text-[#0F172A] dark:text-slate-100 text-[14px] group-hover:text-[#F59E0B] transition-colors">{teacher.name}</h3>
                           <p className="text-slate-500 dark:text-slate-400 text-[12px] font-medium">{getClassName(teacher)}</p>
@@ -589,10 +612,19 @@ export default function TeachersPage() {
       </div>
 
       {/* Reusable Login Details Modal */}
-      <TeacherLoginDetailsModal
+      <LoginDetailsModal
         isOpen={isLoginDetailsOpen}
         onClose={() => setIsLoginDetailsOpen(false)}
         teacher={selectedTeacher}
+        target="teacher"
+      />
+
+      <ResetPasswordModal
+        isOpen={isResetPassModalOpen}
+        onClose={() => setIsResetPassModalOpen(false)}
+        userId={resetPassTarget?.userId}
+        userName={resetPassTarget?.name || ""}
+        userEmail={resetPassTarget?.email || ""}
       />
     </div>
   );

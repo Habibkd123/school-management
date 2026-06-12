@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "@/lib/utils/session";
+import { useAppState } from "@/app/context/store";
 
 export interface ApiHomeworkSubmission {
   student_id: {
@@ -43,6 +44,8 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
   const [isLoading, setIsLoading] = useState(options?.skip ? false : true);
   const [error, setError] = useState<string | null>(null);
 
+  const { academicYear } = useAppState();
+
   const fetchHomework = useCallback(async (cId?: string) => {
     setIsLoading(true);
     setHomework([]);
@@ -50,6 +53,7 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
     try {
       const params = new URLSearchParams();
       if (cId) params.set("classId", cId);
+      if (academicYear) params.set("academic_year", academicYear);
 
       const res = await fetch(`/api/homework?${params.toString()}`, {
         headers: getAuthHeaders(),
@@ -62,7 +66,7 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [academicYear]);
 
   useEffect(() => {
     if (options?.skip) return;

@@ -9,6 +9,7 @@ import { useFeePayments } from "../../hooks/useFees";
 import { useNotices } from "../../hooks/useNotices";
 import { useHomework } from "../../hooks/useHomework";
 import { useAuth } from "../../context/auth";
+import { useAppState } from "../../context/store";
 import { useSchedules } from "../../hooks/useSchedules";
 import { useHolidays } from "../../hooks/useHolidays";
 import { useResults } from "../../hooks/useResults";
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const { leaveRequests: leaves } = useLeave();
   const { subjects } = useSubjects();
   const { user } = useAuth();
+  const { academicYear } = useAppState();
   const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent();
 
   const [showAlert, setShowAlert] = useState(true);
@@ -63,6 +65,14 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // ADMIN DASHBOARD CALCULATIONS
   // ----------------------------------------------------
+  const studentIdsInYear = new Set(students.map(s => s._id));
+  const classIdsInYear = new Set(classes.map(c => c._id));
+  
+  const filteredSubjects = subjects.filter(sub => {
+    const classId = typeof (sub.class_id as any) === 'object' ? (sub.class_id as any)?._id : sub.class_id;
+    return classIdsInYear.has(classId);
+  });
+
   const totalStudents = students.length;
   const totalTeachers = teachers.length;
   const totalClasses = classes.length;
@@ -71,6 +81,9 @@ export default function DashboardPage() {
 
   const filteredLeaves = leaves.filter(l => {
     const leaveUser = typeof l.user_id === 'object' ? l.user_id : null;
+    if (leaveUser?.role === 'student') {
+      return studentIdsInYear.has(leaveUser._id);
+    }
     return leaveUser?.role === activeTabRole;
   });
 
@@ -85,7 +98,12 @@ export default function DashboardPage() {
   const totalMockAttendance = totalCountForTab > 0 ? totalCountForTab : (totalPresent + emergencyLeaves + absentLeavesCount);
   const attendanceRateMock = totalMockAttendance > 0 ? ((totalPresent / totalMockAttendance) * 100).toFixed(1) : "0.0";
 
-  const globalPerformers = [...results]
+  const filteredResults = results.filter(r => {
+    const studentId = typeof r.student_id === 'object' ? r.student_id?._id : r.student_id;
+    return studentIdsInYear.has(studentId);
+  });
+
+  const globalPerformers = [...filteredResults]
     .map(r => ({
       ...r,
       percentage: r.total_marks > 0 ? (r.marks_obtained / r.total_marks) * 100 : 0
@@ -95,11 +113,16 @@ export default function DashboardPage() {
   const bestStudent = globalPerformers[0] || null;
   const starStudent = globalPerformers[1] || null;
 
-  const topCount = results.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length;
-  const avgCount = results.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length;
-  const belowAvgCount = results.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) < 0.5).length;
+  const topCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length;
+  const avgCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length;
+  const belowAvgCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) < 0.5).length;
 
-  const totalRevenue = payments
+  const filteredPayments = payments.filter(p => {
+    const studentId = typeof p.student_id === 'object' ? p.student_id?._id : p.student_id;
+    return studentIdsInYear.has(studentId);
+  });
+
+  const totalRevenue = filteredPayments
     .reduce((acc: number, curr) => acc + curr.amount_paid, 0);
 
   // Fee Quarters Calculation for Chart
@@ -114,7 +137,7 @@ export default function DashboardPage() {
     quarterStats.set(key, { label: getQuarter(d), collected: 0, expected: 5000 }); // Default baseline
   }
 
-  payments.forEach(p => {
+  filteredPayments.forEach(p => {
     const pDate = new Date(p.transaction_date);
     const key = getQuarterKey(pDate);
     if (quarterStats.has(key)) {
@@ -154,7 +177,10 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // STUDENT LOGIC
   // ----------------------------------------------------
-  const student = students[0];
+  const student = students.find(s => {
+    const sUserId = typeof s.user_id === 'object' && s.user_id ? s.user_id._id : s.user_id;
+    return sUserId === user?.id;
+  }) || students[0];
   const studentAttendanceRate = 95; // Placeholder
   const pendingHwCount = homework.length; // Placeholder
   const averageGrade = 88; // Placeholder
@@ -363,7 +389,7 @@ export default function DashboardPage() {
           )}
           {activeRole === "student" && (
             <Link
-              href="/homework"
+              href="/academic/class-home-work"
               className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-colors cursor-pointer"
             >
               <span>View Homework</span>
@@ -486,15 +512,15 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <img src="/asset 10.webp" alt="Subjects" className="w-[52px] h-[52px] object-contain" />
                   <div className="text-left">
-                    <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{subjects.length}</h3>
+                    <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{filteredSubjects.length}</h3>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Subjects</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-[12px] pt-4 border-t border-slate-100 dark:border-slate-800/50">
-                <span className="text-slate-500 dark:text-slate-400">Theory : <strong className="text-slate-900 dark:text-white">{subjects.filter(s => s.type === 'theory').length}</strong></span>
+                <span className="text-slate-500 dark:text-slate-400">Theory : <strong className="text-slate-900 dark:text-white">{filteredSubjects.filter(s => s.type === 'theory').length}</strong></span>
                 <span className="text-slate-300">|</span>
-                <span className="text-slate-500 dark:text-slate-400">Practical : <strong className="text-slate-900 dark:text-white">{subjects.filter(s => s.type === 'practical').length}</strong></span>
+                <span className="text-slate-500 dark:text-slate-400">Practical : <strong className="text-slate-900 dark:text-white">{filteredSubjects.filter(s => s.type === 'practical').length}</strong></span>
               </div>
             </div>
           </div>
@@ -1714,7 +1740,7 @@ export default function DashboardPage() {
                         <span className="text-[11px] text-white/60">{today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         <span className="text-[12px] font-bold text-white/90 mt-0.5">{(displayStudent as any)?.gender || 'Student'}</span>
                       </div>
-                      <Link href="/parent/results" className="bg-[#3B82F6] hover:bg-blue-600 transition-colors text-white text-[11px] font-bold px-4 py-1.5 rounded">
+                      <Link href={activeRole === "parent" ? "/parent/results" : "/examination/exam-results"} className="bg-[#3B82F6] hover:bg-blue-600 transition-colors text-white text-[11px] font-bold px-4 py-1.5 rounded">
                         View Results
                       </Link>
                     </div>
@@ -1880,30 +1906,30 @@ export default function DashboardPage() {
 
                   {/* Action Buttons Row */}
                   <div className="grid grid-cols-4 gap-3">
-                    <button className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    <Link href={activeRole === "parent" ? "/parent/fees" : "/fees"} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
                       <div className="w-6 h-6 rounded bg-[#EAEFFF] flex items-center justify-center">
                         <DollarSign className="w-3.5 h-3.5 text-[#F59E0B]" />
                       </div>
                       <span className="text-[12px] font-bold text-slate-700 dark:text-slate-200">Pay Fees</span>
-                    </button>
-                    <button className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    </Link>
+                    <Link href={activeRole === "parent" ? "/parent/results" : "/examination/exam-results"} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
                       <div className="w-6 h-6 rounded bg-[#E8F8E8] flex items-center justify-center">
                         <FileText className="w-3.5 h-3.5 text-[#10B981]" />
                       </div>
                       <span className="text-[12px] font-bold text-slate-700 dark:text-slate-200">Exam Result</span>
-                    </button>
-                    <button className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    </Link>
+                    <Link href="/academic/class-routine" className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
                       <div className="w-6 h-6 rounded bg-[#FFF5E6] flex items-center justify-center">
                         <CalendarIcon className="w-3.5 h-3.5 text-[#F59E0B]" />
                       </div>
                       <span className="text-[12px] font-bold text-slate-700 dark:text-slate-200">Calendar</span>
-                    </button>
-                    <button className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                    </Link>
+                    <Link href={activeRole === "parent" ? "/parent/attendance" : "/attendance/my-attendance"} className="bg-white dark:bg-slate-900 border border-border rounded-xl p-3 flex items-center gap-2 justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
                       <div className="w-6 h-6 rounded bg-[#EAEFFF] flex items-center justify-center">
                         <Users className="w-3.5 h-3.5 text-[#0F172A]" />
                       </div>
                       <span className="text-[12px] font-bold text-slate-700 dark:text-slate-200">Attendance</span>
-                    </button>
+                    </Link>
                   </div>
 
                 </div>
@@ -2288,7 +2314,7 @@ export default function DashboardPage() {
                 <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Recent Payments</h3>
-                    <Link href="/fees" className="text-[12px] font-semibold text-[#F59E0B]">View All</Link>
+                    <Link href={activeRole === "parent" ? "/parent/fees" : "/fees"} className="text-[12px] font-semibold text-[#F59E0B]">View All</Link>
                   </div>
 
                   <div className="space-y-3 flex-1">
