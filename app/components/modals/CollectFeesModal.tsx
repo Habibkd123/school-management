@@ -10,11 +10,16 @@ interface CollectFeesModalProps {
 }
 
 export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalProps) {
+  const [isPaid, setIsPaid] = React.useState(false);
+  
   if (!student) return null;
 
   // Derive mock data for the UI
   const getAvatar = (name: string) => name.toLowerCase().match(/^[a-m]/) ? "/asset 12.webp" : "/asset 14.webp";
-  const getSection = (id: string) => id.includes("1") ? "A" : id.includes("2") ? "B" : "C";
+  const getSection = (id?: string) => {
+    if (!id) return "A";
+    return id.includes("1") ? "A" : id.includes("2") ? "B" : "C";
+  };
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
@@ -40,7 +45,7 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
                  <img src={getAvatar(student.name)} className="w-10 h-10 rounded object-cover" alt="Student" />
                  <div>
                    <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">{student.name}</h3>
-                   <p className="text-[12px] text-slate-500">III, {getSection(student.id)}</p>
+                   <p className="text-[12px] text-slate-500">III, {getSection((student as any)._id || student.id)}</p>
                  </div>
               </div>
 
@@ -55,8 +60,8 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
               </div>
 
               <div>
-                 <span className="bg-[#FFEBF0] text-[#EF4444] px-3 py-1 rounded text-[11px] font-bold flex items-center gap-1.5">
-                   <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]"></span> Unpaid
+                 <span className={`px-3 py-1 rounded text-[11px] font-bold flex items-center gap-1.5 ${isPaid ? 'bg-[#E1FDEB] text-[#10B981]' : 'bg-[#FFEBF0] text-[#EF4444]'}`}>
+                   <span className={`w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`}></span> {isPaid ? 'Paid' : 'Unpaid'}
                  </span>
               </div>
            </div>
@@ -84,10 +89,9 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
                <label className="text-[13px] font-bold text-slate-900 dark:text-white">Amount</label>
                <input type="text" placeholder="Enter Amount" className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-700 dark:text-slate-300 outline-none focus:border-primary/50 transition-all" />
              </div>
-             <div className="flex flex-col gap-1.5 relative">
+             <div className="flex flex-col gap-1.5">
                <label className="text-[13px] font-bold text-slate-900 dark:text-white">Collection Date</label>
-               <input type="text" placeholder="Select" className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-700 dark:text-slate-300 outline-none focus:border-primary/50 transition-all pr-10" />
-               <Calendar className="w-4 h-4 text-slate-400 absolute right-3.5 top-[34px]" />
+               <input type="date" className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-700 dark:text-slate-300 outline-none focus:border-primary/50 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
              </div>
 
              <div className="flex flex-col gap-1.5">
@@ -111,9 +115,13 @@ export function CollectFeesModal({ isOpen, onClose, student }: CollectFeesModalP
                <p className="text-[12px] text-slate-500">Change the Status by toggle</p>
              </div>
              {/* Toggle switch */}
-             <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full relative cursor-pointer">
-               <div className="w-4 h-4 bg-white rounded-full absolute left-0.5 top-0.5 shadow-sm"></div>
-             </div>
+             <button 
+               type="button"
+               onClick={() => setIsPaid(!isPaid)}
+               className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors focus:outline-none ${isPaid ? 'bg-[#10B981]' : 'bg-slate-200 dark:bg-slate-700'}`}
+             >
+               <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow-sm transition-transform ${isPaid ? 'left-[22px]' : 'left-0.5'}`}></div>
+             </button>
            </div>
 
            <div className="flex flex-col gap-1.5">

@@ -1,0 +1,287 @@
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Student from "@/lib/models/Student";
+import { Parent } from "@/lib/models";
+import User from "@/lib/models/User";
+import Class from "@/lib/models/Class";
+import { requireAuth } from "@/lib/utils/auth";
+
+// ─── GET /api/students — List all students for the school ──────────
+export async function GET(request: NextRequest) {
+  const { schoolId, error } = requireAuth(request, ["school_admin", "teacher", "super_admin"]);
+  if (error) return error;
+
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get("class_id");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
+
+    // Build filter
+    const filter: Record<string, any> = { school_id: schoolId };
+    const parentId = searchParams.get("parent_id");
+    if (classId && classId !== "all") filter.class_id = classId;
+    if (parentId) filter.parent_id = parentId;
+    
+    const gender = searchParams.get("gender");
+    if (gender && gender !== "all" && gender !== "Select") {
+      filter.gender = gender.toLowerCase();
+    }
+
+    const status = searchParams.get("status");
+    if (status && status !== "all" && status !== "Select") {
+      filter.is_active = status === "Active";
+    }
+
+    // Date Range preset filter
+    const dateRange = searchParams.get("dateRange");
+    if (dateRange && dateRange !== "All Time") {
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      if (dateRange === "Today") {
+        startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRange === "Yesterday") {
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date();
+        endDate.setDate(now.getDate() - 1);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRange === "Last 7 Days") {
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
+      } else if (dateRange === "Last 30 Days") {
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 30);
+        startDate.setHours(0, 0, 0, 0);
+      } else if (dateRange === "This Year") {
+        startDate = new Date(now.getFullYear(), 0, 1);
+      }
+
+      if (startDate) {
+        const dateFilter: Record<string, any> = { $gte: startDate };
+        if (endDate) dateFilter.$lte = endDate;
+        filter.createdAt = dateFilter;
+      }
+    }
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { roll_no: { $regex: search, $options: "i" } },
+        { admission_no: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Sort mapping
+    const sort = searchParams.get("sort") || "Ascending";
+    let sortObj: Record<string, any> = { name: 1 };
+    if (sort === "Descending") {
+      sortObj = { name: -1 };
+    } else if (sort === "Recently Added") {
+      sortObj = { createdAt: -1 };
+    }
+
+    const [students, total] = await Promise.all([
+      Student.find(filter)
+        .populate("class_id", "name section")
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Student.countDocuments(filter),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: { students, total, page, limit },
+    });
+  } catch (err) {
+    console.error("[GET /api/students]", err);
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch students" },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── POST /api/students — Create new student ───────────────────────
+export async function POST(request: NextRequest) {
+  const { schoolId, error } = requireAuth(request, ["school_admin", "super_admin"]);
+  if (error) return error;
+
+  try {
+    await connectDB();
+    const body = await request.json();
+
+    const {
+      name, email, class_id, roll_no, gender, dob, blood_group,
+      address, phone, guardian_name, guardian_phone,
+      guardian_relation, guardian_email, admission_no,
+      academic_year, photo_url, guardian_photo,
+      religion, caste, category, mother_tongue, languages,
+      prev_school_name, prev_school_address, bank_name, bank_branch,
+      bank_ifsc, allergies, medications, medical_notes, house,
+      medical_cert, migration_cert, transfer_cert, birth_cert
+    } = body;
+
+    if (!name?.trim()) {
+      return NextResponse.json(
+        { success: false, message: "Student name is required" },
+        { status: 400 }
+      );
+    }
+    if (!class_id) {
+      return NextResponse.json(
+        { success: false, message: "Class is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if email already exists in User table
+    let userId = undefined;
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase().trim(), school_id: schoolId });
+      if (existingUser) {
+        return NextResponse.json({ success: false, message: "Email already exists" }, { status: 400 });
+      }
+
+      // Create user
+      const user = await User.create({
+        school_id: schoolId as string,
+        name: name.trim(),
+        email: email.trim(),
+        password_hash: "password123", // default password
+        role: "student",
+        is_active: true,
+      });
+      userId = user._id;
+    }
+
+    // Auto-link or create Parent (and their login User account)
+    let parentId = undefined;
+    if (guardian_name?.trim()) {
+      const existingParent = await Parent.findOne({
+        school_id: schoolId,
+        name: guardian_name.trim(),
+        $or: [
+          { phone: guardian_phone?.trim() || "never-match-this" },
+          { email: guardian_email?.trim().toLowerCase() || "never-match-this" }
+        ]
+      });
+
+      if (existingParent) {
+        parentId = existingParent._id;
+        // Update photo if provided and not already set
+        if (guardian_photo && !existingParent.photo_url) {
+          existingParent.photo_url = guardian_photo;
+          await existingParent.save();
+        }
+      } else {
+        // Create a login User account for the parent (if email provided)
+        let parentUserId = undefined;
+        if (guardian_email?.trim()) {
+          const parentEmail = guardian_email.trim().toLowerCase();
+          const existingParentUser = await User.findOne({ email: parentEmail, school_id: schoolId });
+          if (existingParentUser) {
+            // Reuse existing user (e.g. parent has multiple children)
+            parentUserId = existingParentUser._id;
+          } else {
+            const parentUser = await User.create({
+              school_id: schoolId as string,
+              name: guardian_name.trim(),
+              email: parentEmail,
+              password_hash: "parent123", // default — admin should share this
+              role: "parent",
+              is_active: true,
+            });
+            parentUserId = parentUser._id;
+          }
+        }
+
+        const newParent = await Parent.create({
+          school_id: schoolId as string,
+          user_id: parentUserId,          // ← link to User account
+          name: guardian_name.trim(),
+          phone: guardian_phone?.trim(),
+          email: guardian_email?.trim().toLowerCase(),
+          relation: guardian_relation?.trim(),
+          photo_url: guardian_photo,
+          is_active: true,
+        });
+        parentId = newParent._id;
+      }
+    }
+
+    const student = await Student.create({
+      school_id: schoolId as string,
+      user_id: userId,
+      parent_id: parentId,
+      name: name.trim(),
+      email: email?.trim().toLowerCase(),
+      class_id,
+      roll_no: roll_no?.trim() || undefined,
+      gender,
+      dob: dob ? new Date(dob) : undefined,
+      blood_group,
+      address,
+      phone,
+      guardian_name,
+      guardian_phone,
+      guardian_relation,
+      guardian_email,
+      admission_no,
+      academic_year,
+      photo_url,
+      admission_date: new Date(),
+      is_active: true,
+      religion,
+      caste,
+      category,
+      mother_tongue,
+      languages,
+      prev_school_name,
+      prev_school_address,
+      bank_name,
+      bank_branch,
+      bank_ifsc,
+      allergies,
+      medications,
+      medical_notes,
+      house,
+      medical_cert,
+      migration_cert,
+      transfer_cert,
+      birth_cert,
+    });
+
+    const populated = await Student.findById(student._id).populate("class_id", "name section").lean();
+
+    return NextResponse.json(
+      { success: true, message: "Student created successfully", data: populated },
+      { status: 201 }
+    );
+  } catch (err: unknown) {
+    console.error("[POST /api/students]", err);
+    if ((err as { code?: number }).code === 11000) {
+      return NextResponse.json(
+        { success: false, message: "A student with this roll number already exists in this class" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, message: "Failed to create student" },
+      { status: 500 }
+    );
+  }
+}

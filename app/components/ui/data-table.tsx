@@ -99,7 +99,7 @@ export function DataTable<T>({
             sortedData.map((item, i) => (
               <tr 
                 key={i} 
-                className={`hover:bg-slate-50/50 dark:bg-slate-800/50 transition-colors ${onRowClick ? 'cursor-pointer group' : ''}`}
+                className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors ${onRowClick ? 'cursor-pointer group' : ''}`}
                 onClick={() => onRowClick?.(item)}
               >
                 {renderSelection && (

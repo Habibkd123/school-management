@@ -15,12 +15,14 @@ import {
 // ─── Types ────────────────────────────────────────────────────────
 interface AuthContextType {
   user: StoredUser | null;
+  permissions: Record<string, Record<string, string[]>> | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateRolePermissions: (role: string, perms: Record<string, string[]>) => Promise<void>;
 }
 
 interface RegisterData {
@@ -35,7 +37,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<StoredUser | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, Record<string, string[]>> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/permissions", {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPermissions(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch permissions", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchPermissions();
+    } else {
+      setPermissions(null);
+    }
+  }, [user, fetchPermissions]);
 
   // ─── Load user from localStorage on mount ─────────────────────
   useEffect(() => {
@@ -195,16 +220,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateRolePermissions = async (role: string, perms: Record<string, string[]>) => {
+    try {
+      const res = await fetch("/api/settings/permissions", {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role, permissions: perms }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to update permissions");
+      }
+      setPermissions((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          [role]: perms,
+        };
+      });
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        permissions,
         isLoading,
         isAuthenticated: !!user,
         login,
         register,
         logout,
         refreshUser,
+        updateRolePermissions,
       }}
     >
       {children}

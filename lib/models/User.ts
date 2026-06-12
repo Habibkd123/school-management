@@ -1,7 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 
-export type UserRole = "super_admin" | "school_admin" | "teacher" | "student" | "parent";
+export type UserRole = "super_admin" | "school_admin" | "accountant" | "teacher" | "student" | "parent";
 
 export interface IUser extends Document {
   school_id: mongoose.Types.ObjectId | null;
@@ -31,7 +31,7 @@ const userSchema = new Schema<IUser>(
     password_hash: { type: String, required: true, select: false }, // Never returned by default
     role: {
       type: String,
-      enum: ["super_admin", "school_admin", "teacher", "student", "parent"],
+      enum: ["super_admin", "school_admin", "accountant", "teacher", "student", "parent"],
       required: true,
     },
     is_active: { type: Boolean, default: true },
@@ -48,11 +48,15 @@ userSchema.index({ email: 1, school_id: 1 }, { unique: true });
 // ─── Hash password before saving ──────────────────────────────────
 userSchema.pre("save", async function () {
   if (!this.isModified("password_hash")) return;
+  // Don't re-hash already hashed values (bcrypt hashes start with $2)
+  if (this.password_hash?.startsWith("$2")) return;
   this.password_hash = await bcrypt.hash(this.password_hash, 12);
 });
 
 // ─── Method: Compare password ──────────────────────────────────────
 userSchema.methods.comparePassword = async function (plain: string): Promise<boolean> {
+  // Guard: if password_hash wasn't selected, fail gracefully instead of crashing
+  if (!this.password_hash) return false;
   return bcrypt.compare(plain, this.password_hash as string);
 };
 

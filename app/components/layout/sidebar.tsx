@@ -3,158 +3,224 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAppState } from "../../context/store";
+import { useAuth } from "../../context/auth";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, Clock, BookOpen,
   ClipboardList, DollarSign, Megaphone, ChevronDown, ChevronRight, Building2,
-  Sparkles, BarChart, LogOut, User, ChevronUp, Menu
+  BarChart, LogOut, User, ChevronUp, Menu, Bus
 } from "lucide-react";
+
+// Map DB roles → sidebar role key
+function mapRole(role?: string): "admin" | "accountant" | "teacher" | "student" | "parent" {
+  if (role === "school_admin" || role === "super_admin") return "admin";
+  if (role === "teacher") return "teacher";
+  if (role === "accountant") return "accountant";
+  if (role === "parent") return "parent";
+  return "student";
+}
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { activeRole } = useAppState();
+  const { user, logout } = useAuth();
+  const activeRole = mapRole(user?.role);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const adminLinks = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { name: "Students", href: "/dashboard/students", icon: <GraduationCap className="w-4 h-4" /> },
-    { name: "Teachers", href: "/dashboard/teachers", icon: <Users className="w-4 h-4" /> },
+    { name: "Students", href: "/students", icon: <GraduationCap className="w-4 h-4" /> },
+    { name: "Teachers", href: "/teachers", icon: <Users className="w-4 h-4" /> },
+    { name: "Parents", href: "/guardians", icon: <User className="w-4 h-4" /> },
     {
-      name: "Classes & Schedule", icon: <Calendar className="w-4 h-4" />, subItems: [
-        { name: "All Classes", href: "/dashboard/classes" },
-        { name: "Schedule", href: "/dashboard/classes/schedule" }
+      name: "Classes & HRM", icon: <Calendar className="w-4 h-4" />, subItems: [
+        { name: "All Classes", href: "/classes" },
+        { name: "Schedule", href: "/classes/schedule" },
+        { name: "Approve Leave Request", href: "/leave/approve-leave-request" },
+        { name: "Leave Type", href: "/leave/leave-type" },
+        { name: "Holidays", href: "/holidays" }
       ]
     },
     {
       name: "Academic", icon: <Building2 className="w-4 h-4" />, subItems: [
-        { name: "Class Room", href: "/dashboard/academic/class-room" },
-        { name: "Class Routine", href: "/dashboard/academic/class-routine" },
-        { name: "Sections", href: "/dashboard/academic/sections" },
-        { name: "Subjects", href: "/dashboard/academic/subjects" },
-        { name: "Class Syllabus", href: "/dashboard/academic/class-syllabus" },
-        { name: "Time Table", href: "/dashboard/academic/time-table" },
-        { name: "Class Home Work", href: "/dashboard/academic/class-home-work" }
+        { name: "Class Room", href: "/academic/class-room" },
+        { name: "Class Routine", href: "/academic/class-routine" },
+        { name: "Sections", href: "/academic/sections" },
+        { name: "Subjects", href: "/academic/subjects" },
+        { name: "Class Syllabus", href: "/academic/class-syllabus" },
+        { name: "Time Table", href: "/academic/time-table" },
+        { name: "Class Home Work", href: "/academic/class-home-work" },
+        { name: "Progress & Grading", href: "/academic/progress" }
       ]
     },
     {
       name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam", href: "/dashboard/examination/exam" },
-        { name: "Exam Schedule", href: "/dashboard/examination/exam-schedule" },
-        { name: "Grade", href: "/dashboard/examination/grade" },
-        { name: "Exam Attendance", href: "/dashboard/examination/exam-attendance" },
-        { name: "Exam Results", href: "/dashboard/examination/exam-results" }
+        { name: "Exam", href: "/examination/exam" },
+        { name: "Exam Schedule", href: "/examination/exam-schedule" },
+        { name: "Grade", href: "/examination/grade" },
+        { name: "Exam Attendance", href: "/examination/exam-attendance" },
+        { name: "Marks Entry", href: "/examination/marks-entry" },
+        { name: "Exam Results", href: "/examination/exam-results" }
       ]
     },
     {
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
-        { name: "Teacher Attendance List", href: "/dashboard/attendance/teacher-attendance" },
-        { name: "Student Attendance List", href: "/dashboard/attendance/student-attendance" }
+        { name: "Teacher Attendance List", href: "/attendance/teacher-attendance" },
+        { name: "Student Attendance List", href: "/attendance/student-attendance" }
       ]
     },
-    {
-      name: "HRM", icon: <Calendar className="w-4 h-4" />, subItems: [
-        { name: "Approve Leave Request", href: "/dashboard/leave/approve-leave-request" },
-        { name: "Leave Type", href: "/dashboard/leave/leave-type" },
-        { name: "Holidays", href: "/dashboard/holidays" }
-      ]
-    },
+
     {
       name: "Fees Collection", icon: <DollarSign className="w-4 h-4" />, subItems: [
-        { name: "Collect Fees", href: "/dashboard/fees-collection/collect-fees" },
-        { name: "Fees Group", href: "/dashboard/fees-collection/fees-group" },
-        { name: "Fees Type", href: "/dashboard/fees-collection/fees-type" },
-        { name: "Fees Master", href: "/dashboard/fees-collection/fees-master" },
-        { name: "Assign Fees", href: "/dashboard/fees-collection/assign-fees" }
+        { name: "Collect Fees", href: "/fees-collection/collect-fees" },
+        { name: "Fees Group", href: "/fees-collection/fees-group" },
+        { name: "Fees Type", href: "/fees-collection/fees-type" },
+        { name: "Fees Master", href: "/fees-collection/fees-master" },
+        { name: "Assign Fees", href: "/fees-collection/assign-fees" }
       ]
+    },
+    {
+      name: "Transport", href: "/transport/bus-details", icon: <Bus className="w-4 h-4" />,
+      // subItems: [
+      //   { name: "Bus Details", href: "/transport/bus-details" },
+      //   { name: "Route Management", href: "/transport/route-management" },
+      //   { name: "Student Allocation", href: "/transport/allocation" }
+      // ]
     },
     {
       name: "Reports", icon: <BarChart className="w-4 h-4" />, subItems: [
-        { name: "Fees Report", href: "/dashboard/reports/fees-report" },
-        { name: "Leave Report", href: "/dashboard/reports/leave-report" },
-        { name: "Grade Report", href: "/dashboard/reports/grade-report" },
-        { name: "Student Report", href: "/dashboard/reports/student-report" },
-        { name: "Class Report", href: "/dashboard/reports/class-report" },
-        { name: "Attendance Report", href: "/dashboard/reports/attendance-report" }
+        { name: "Daily Attendance Report", href: "/reports/daily-attendance" },
+        { name: "Monthly Attendance Report", href: "/reports/attendance-report" },
+        { name: "Fees Report", href: "/reports/fees-report" },
+        { name: "Examination Reports", href: "/reports/examination-reports" },
+        { name: "Merit List", href: "/reports/merit-list" },
+        { name: "Student Report", href: "/reports/student-report" },
+        { name: "Class Report", href: "/reports/class-report" },
+        { name: "Grade Report", href: "/reports/grade-report" },
+        { name: "Leave Report", href: "/reports/leave-report" }
       ]
     },
-    { name: "Notice Board", href: "/dashboard/notices", icon: <Megaphone className="w-4 h-4" /> }
+    { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> },
+    {
+      name: "Settings", icon: <User className="w-4 h-4" />, subItems: [
+        { name: "Profile", href: "/settings/profile" },
+        { name: "Roles & Permissions", href: "/settings/roles" }
+      ]
+    }
   ];
 
   const teacherLinks = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     {
       name: "Classes & Schedule", icon: <Calendar className="w-4 h-4" />, subItems: [
-        { name: "All Classes", href: "/dashboard/classes" },
-        { name: "Schedule", href: "/dashboard/classes/schedule" }
+        { name: "My Classes", href: "/classes" },
+        { name: "Schedule", href: "/classes/schedule" }
       ]
     },
     {
       name: "Academic", icon: <Building2 className="w-4 h-4" />, subItems: [
-        { name: "Class Room", href: "/dashboard/academic/class-room" },
-        { name: "Class Routine", href: "/dashboard/academic/class-routine" },
-        { name: "Subjects", href: "/dashboard/academic/subjects" },
-        { name: "Class Syllabus", href: "/dashboard/academic/class-syllabus" },
-        { name: "Class Home Work", href: "/dashboard/academic/class-home-work" }
+        { name: "Class Syllabus", href: "/academic/class-syllabus" },
+        { name: "Home Work", href: "/academic/class-home-work" },
+        { name: "Progress & Grading", href: "/academic/progress" }
       ]
     },
     {
       name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam Schedule", href: "/dashboard/examination/exam-schedule" },
-        { name: "Grade", href: "/dashboard/examination/grade" },
-        { name: "Exam Attendance", href: "/dashboard/examination/exam-attendance" },
-        { name: "Exam Results", href: "/dashboard/examination/exam-results" }
+        { name: "Exam Schedule", href: "/examination/exam-schedule" },
+        { name: "Grades", href: "/examination/grade" },
+        { name: "Exam Attendance", href: "/examination/exam-attendance" },
+        { name: "Marks Entry", href: "/examination/marks-entry" },
+        { name: "Exam Results", href: "/examination/exam-results" }
       ]
     },
     {
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
-        { name: "Teacher Attendance List", href: "/dashboard/attendance/teacher-attendance" },
-        { name: "Student Attendance List", href: "/dashboard/attendance/student-attendance" }
+        { name: "Student Attendance", href: "/attendance/student-attendance" },
+        { name: "My Attendance", href: "/attendance/my-attendance" }
       ]
     },
-    { name: "Notice Board", href: "/dashboard/notices", icon: <Megaphone className="w-4 h-4" /> }
+    {
+      name: "Leave", icon: <Calendar className="w-4 h-4" />, subItems: [
+        { name: "Apply Leave", href: "/leave/apply" }
+      ]
+    },
+    { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
+  ];
+
+  const parentLinks = [
+    { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { name: "Attendance", href: "/parent/attendance", icon: <Clock className="w-4 h-4" /> },
+    { name: "Fees Status", href: "/parent/fees", icon: <DollarSign className="w-4 h-4" /> },
+    { name: "Result View", href: "/parent/results", icon: <ClipboardList className="w-4 h-4" /> },
+    { name: "Homework View", href: "/parent/homework", icon: <BookOpen className="w-4 h-4" /> },
+    { name: "Notifications", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
   ];
 
   const studentLinks = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     {
       name: "Academic", icon: <Building2 className="w-4 h-4" />, subItems: [
-        { name: "My Routine", href: "/dashboard/academic/class-routine" },
-        { name: "My Syllabus", href: "/dashboard/academic/class-syllabus" },
-        { name: "My Subjects", href: "/dashboard/academic/subjects" }
-      ]
-    },
-    {
-      name: "Homework", icon: <BookOpen className="w-4 h-4" />, subItems: [
-        { name: "Pending", href: "/dashboard/homework" },
-        { name: "Completed", href: "/dashboard/homework" }
+        { name: "My Routine", href: "/academic/class-routine" },
+        { name: "My Syllabus", href: "/academic/class-syllabus" },
+        { name: "My Subjects", href: "/academic/subjects" },
+        { name: "Home Work", href: "/academic/class-home-work" },
+        { name: "Progress & Grading", href: "/academic/progress" }
       ]
     },
     {
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
-        { name: "My Attendance", href: "/dashboard/attendance" }
+        { name: "My Attendance", href: "/attendance/my-attendance" }
+      ]
+    },
+    {
+      name: "Leave", icon: <Calendar className="w-4 h-4" />, subItems: [
+        { name: "Apply Leave", href: "/leave/apply" }
       ]
     },
     {
       name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam Schedule", href: "/dashboard/examination/exam-schedule" },
-        { name: "My Grades", href: "/dashboard/results" }
+        { name: "Exam Schedule", href: "/examination/exam-schedule" },
+        { name: "My Grades", href: "/examination/exam-results" }
       ]
     },
     {
       name: "Fees", icon: <DollarSign className="w-4 h-4" />, subItems: [
-        { name: "My Fees", href: "/dashboard/fees" },
-        { name: "Payment History", href: "/dashboard/fees" }
+        { name: "My Fees", href: "/fees" }
       ]
     },
-    { name: "Notice Board", href: "/dashboard/notices", icon: <Megaphone className="w-4 h-4" /> }
+    { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
   ];
 
-  const links = activeRole === "admin" ? adminLinks : activeRole === "teacher" ? teacherLinks : studentLinks;
+  const accountantLinks = [
+    { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    {
+      name: "Fees Collection", icon: <DollarSign className="w-4 h-4" />, subItems: [
+        { name: "Collect Fees", href: "/fees-collection/collect-fees" },
+        { name: "Fees Group", href: "/fees-collection/fees-group" },
+        { name: "Fees Type", href: "/fees-collection/fees-type" },
+        { name: "Fees Master", href: "/fees-collection/fees-master" },
+        { name: "Assign Fees", href: "/fees-collection/assign-fees" }
+      ]
+    },
+    {
+      name: "Reports", icon: <BarChart className="w-4 h-4" />, subItems: [
+        { name: "Fees Report", href: "/reports/fees-report" }
+      ]
+    },
+    { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
+  ];
 
-  const roleLabels = {
-    admin: { text: "Administrator", badge: "bg-blue-500/20 text-blue-400" },
+  const links =
+    activeRole === "admin" ? adminLinks
+      : activeRole === "teacher" ? teacherLinks
+        : activeRole === "accountant" ? accountantLinks
+          : activeRole === "parent" ? parentLinks
+            : studentLinks;
+
+  const roleLabels: Record<"admin" | "accountant" | "teacher" | "student" | "parent", { text: string; badge: string }> = {
+    admin: { text: "Principal / Admin", badge: "bg-blue-500/20 text-blue-400" },
+    accountant: { text: "Accountant", badge: "bg-yellow-500/20 text-yellow-400" },
     teacher: { text: "Faculty Member", badge: "bg-emerald-500/20 text-emerald-400" },
-    student: { text: "Student Profile", badge: "bg-amber-500/20 text-amber-400" }
+    parent: { text: "Parent Portal", badge: "bg-purple-500/20 text-purple-400" },
+    student: { text: "Student Profile", badge: "bg-amber-500/20 text-amber-400" },
   };
 
   const [expandedMenu, setExpandedMenu] = React.useState<string | null>(null);
@@ -274,7 +340,7 @@ export function Sidebar() {
             <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
               <Link
-                href="/dashboard/settings/profile"
+                href="/settings/profile"
                 onClick={() => setIsProfileMenuOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors cursor-pointer"
               >
@@ -282,7 +348,7 @@ export function Sidebar() {
               </Link>
               <div className="h-px w-full bg-slate-700/50 my-1" />
               <button
-                onClick={() => setIsProfileMenuOpen(false)}
+                onClick={() => { setIsProfileMenuOpen(false); logout(); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-rose-400 hover:text-rose-300 hover:bg-slate-700/50 transition-colors cursor-pointer text-left"
               >
                 <LogOut className="w-4 h-4" /> Logout
@@ -297,7 +363,7 @@ export function Sidebar() {
             else setIsProfileMenuOpen(!isProfileMenuOpen);
           }}
           className={`w-full ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-between'} rounded-xl bg-slate-800/30 border border-slate-700/50 flex items-center hover:bg-slate-800/50 transition-colors cursor-pointer`}
-          title={isCollapsed ? roleLabels[activeRole].text : undefined}
+          title={isCollapsed ? (user?.name || roleLabels[activeRole].text) : undefined}
         >
           {isCollapsed ? (
             <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
@@ -312,8 +378,8 @@ export function Sidebar() {
                     {activeRole.toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm font-semibold text-white">
-                  {roleLabels[activeRole].text}
+                <span className="text-sm font-semibold text-white truncate max-w-[140px]">
+                  {user?.name || roleLabels[activeRole].text}
                 </span>
               </div>
               {isProfileMenuOpen ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getAuthHeaders } from "@/lib/utils/session";
 
 export type Role = "admin" | "teacher" | "student";
 
@@ -267,6 +268,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to load local state", e);
     }
     setIsLoaded(true);
+  }, []);
+
+  // Fetch teachers from API
+  useEffect(() => {
+    async function fetchTeachers() {
+      try {
+        const res = await fetch("/api/teachers?limit=100", { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const apiTeachers = data.data.teachers.map((t: any) => ({
+            id: t._id,
+            name: t.name,
+            email: t.email || "",
+            subject: t.subject_specialization || "",
+            classId: "", // Not explicitly stored in teacher model but required by UI interface
+            joinedDate: new Date(t.join_date || t.createdAt).toISOString().split("T")[0],
+            status: t.is_active ? "Active" : "Inactive"
+          }));
+          setTeachers(apiTeachers);
+        }
+      } catch (err) {
+        console.error("Failed to fetch teachers from API:", err);
+      }
+    }
+    fetchTeachers();
   }, []);
 
   // Save changes to local storage

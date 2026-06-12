@@ -215,7 +215,7 @@ export function Header() {
                 {/* Menu items */}
                 <div className="py-1">
                   <Link
-                    href="/dashboard/settings/profile"
+                    href="/settings/profile"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
@@ -223,7 +223,7 @@ export function Header() {
                     My Profile
                   </Link>
                   <Link
-                    href="/dashboard/settings"
+                    href="/settings"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >

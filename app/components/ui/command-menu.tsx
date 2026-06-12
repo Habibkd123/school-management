@@ -53,14 +53,14 @@ export function CommandMenu() {
   const commands: CommandItem[] = [
     // Navigation
     { id: "nav-dash", title: "Go to Dashboard Overview", category: "Navigation", icon: <Zap className="w-4 h-4" />, action: () => { router.push("/dashboard"); setIsOpen(false); } },
-    { id: "nav-stu", title: "Go to Students Directory", category: "Navigation", icon: <GraduationCap className="w-4 h-4" />, action: () => { router.push("/dashboard/students"); setIsOpen(false); } },
-    { id: "nav-tea", title: "Go to Teachers Directory", category: "Navigation", icon: <Users className="w-4 h-4" />, action: () => { router.push("/dashboard/teachers"); setIsOpen(false); } },
-    { id: "nav-cla", title: "Go to Classes & Schedule", category: "Navigation", icon: <Calendar className="w-4 h-4" />, action: () => { router.push("/dashboard/classes"); setIsOpen(false); } },
-    { id: "nav-att", title: "Go to Attendance Register", category: "Navigation", icon: <Clock className="w-4 h-4" />, action: () => { router.push("/dashboard/attendance"); setIsOpen(false); } },
-    { id: "nav-hw", title: "Go to Homework & Assignments", category: "Navigation", icon: <BookOpen className="w-4 h-4" />, action: () => { router.push("/dashboard/homework"); setIsOpen(false); } },
-    { id: "nav-res", title: "Go to Exams & Results", category: "Navigation", icon: <ClipboardList className="w-4 h-4" />, action: () => { router.push("/dashboard/results"); setIsOpen(false); } },
-    { id: "nav-fee", title: "Go to Billing & Fees Portal", category: "Navigation", icon: <DollarSign className="w-4 h-4" />, action: () => { router.push("/dashboard/fees"); setIsOpen(false); } },
-    { id: "nav-not", title: "Go to Notice Board Announcements", category: "Navigation", icon: <Megaphone className="w-4 h-4" />, action: () => { router.push("/dashboard/notices"); setIsOpen(false); } },
+    { id: "nav-stu", title: "Go to Students Directory", category: "Navigation", icon: <GraduationCap className="w-4 h-4" />, action: () => { router.push("/students"); setIsOpen(false); } },
+    { id: "nav-tea", title: "Go to Teachers Directory", category: "Navigation", icon: <Users className="w-4 h-4" />, action: () => { router.push("/teachers"); setIsOpen(false); } },
+    { id: "nav-cla", title: "Go to Classes & Schedule", category: "Navigation", icon: <Calendar className="w-4 h-4" />, action: () => { router.push("/classes"); setIsOpen(false); } },
+    { id: "nav-att", title: "Go to Attendance Register", category: "Navigation", icon: <Clock className="w-4 h-4" />, action: () => { router.push("/attendance"); setIsOpen(false); } },
+    { id: "nav-hw", title: "Go to Homework & Assignments", category: "Navigation", icon: <BookOpen className="w-4 h-4" />, action: () => { router.push("/homework"); setIsOpen(false); } },
+    { id: "nav-res", title: "Go to Exams & Results", category: "Navigation", icon: <ClipboardList className="w-4 h-4" />, action: () => { router.push("/results"); setIsOpen(false); } },
+    { id: "nav-fee", title: "Go to Billing & Fees Portal", category: "Navigation", icon: <DollarSign className="w-4 h-4" />, action: () => { router.push("/fees"); setIsOpen(false); } },
+    { id: "nav-not", title: "Go to Notice Board Announcements", category: "Navigation", icon: <Megaphone className="w-4 h-4" />, action: () => { router.push("/notices"); setIsOpen(false); } },
 
     // Role Switching
     { id: "role-adm", title: "Switch active role to Admin", category: "Role Selection", icon: <UserCheck className="w-4 h-4 text-indigo-500" />, action: () => { setRole("admin"); router.push("/dashboard"); setIsOpen(false); } },
@@ -78,7 +78,7 @@ export function CommandMenu() {
           title: `View Student: ${s.name} (${s.rollNo})`,
           category: "Students Search",
           icon: <GraduationCap className="w-4 h-4 text-zinc-400" />,
-          action: () => { router.push(`/dashboard/students?id=${s.id}`); setIsOpen(false); }
+          action: () => { router.push(`/students?id=${s.id}`); setIsOpen(false); }
         }))
     : [];
 
@@ -91,7 +91,7 @@ export function CommandMenu() {
           title: `View Teacher: ${t.name} - ${t.subject}`,
           category: "Teachers Search",
           icon: <Users className="w-4 h-4 text-zinc-400" />,
-          action: () => { router.push(`/dashboard/teachers?id=${t.id}`); setIsOpen(false); }
+          action: () => { router.push(`/teachers?id=${t.id}`); setIsOpen(false); }
         }))
     : [];
 

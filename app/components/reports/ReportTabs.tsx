@@ -7,12 +7,12 @@ export function ReportTabs() {
   const pathname = usePathname();
 
   const tabs = [
-    { name: "Attendance Report", href: "/dashboard/reports/attendance-report" },
-    { name: "Students Attendance Type", href: "/dashboard/reports/students-attendance-type" },
-    { name: "Daily Attendance", href: "/dashboard/reports/daily-attendance" },
-    { name: "Student Day Wise", href: "/dashboard/reports/student-day-wise" },
-    { name: "Teacher Day Wise", href: "/dashboard/reports/teacher-day-wise" },
-    { name: "Teacher Report", href: "/dashboard/reports/teacher-report" },
+    { name: "Attendance Report", href: "/reports/attendance-report" },
+    { name: "Students Attendance Type", href: "/reports/students-attendance-type" },
+    { name: "Daily Attendance", href: "/reports/daily-attendance" },
+    { name: "Student Day Wise", href: "/reports/student-day-wise" },
+    { name: "Teacher Day Wise", href: "/reports/teacher-day-wise" },
+    { name: "Teacher Report", href: "/reports/teacher-report" },
   ];
 
   return (
