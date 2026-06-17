@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
         password_hash: password || "password123", // use provided password or default
         role: "teacher",
         is_active: true,
+        must_change_password: true, // force password change on first login
       });
       userId = user._id;
     }

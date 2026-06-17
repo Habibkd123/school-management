@@ -234,7 +234,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeRole, setActiveRole] = useState<Role>("admin");
-  const [academicYear, setAcademicYearState] = useState<string>("2024-2025");
+  const [academicYear, setAcademicYearState] = useState<string>("2026-2027");
   const [students, setStudents] = useState<Student[]>(defaultStudents);
   const [teachers, setTeachers] = useState<Teacher[]>(defaultTeachers);
   const [classes, setClasses] = useState<SchoolClass[]>(defaultClasses);
@@ -260,6 +260,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const storedNotices = localStorage.getItem("sm_notices");
 
       if (storedRole) setActiveRole(storedRole as Role);
+      // Restore stored year — header will auto-correct if not present in DB
       if (storedYear) setAcademicYearState(storedYear);
       if (storedStudents) setStudents(JSON.parse(storedStudents));
       if (storedTeachers) setTeachers(JSON.parse(storedTeachers));

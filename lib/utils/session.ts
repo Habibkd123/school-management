@@ -13,6 +13,7 @@ export interface StoredUser {
   email: string;
   role: string;
   school_id: string | null;
+  must_change_password?: boolean;
 }
 
 // ─── Save ─────────────────────────────────────────────────────────
@@ -47,6 +48,13 @@ export const clearSession = () => {
   localStorage.removeItem(KEYS.ACCESS_TOKEN);
   localStorage.removeItem(KEYS.REFRESH_TOKEN);
   localStorage.removeItem(KEYS.USER);
+};
+
+// ─── Update must_change_password flag only ────────────────────────
+export const clearMustChangePassword = () => {
+  const user = getStoredUser();
+  if (!user) return;
+  localStorage.setItem(KEYS.USER, JSON.stringify({ ...user, must_change_password: false }));
 };
 
 // ─── Auth Header Helper ───────────────────────────────────────────

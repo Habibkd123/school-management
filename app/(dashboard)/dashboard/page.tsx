@@ -370,12 +370,7 @@ export default function DashboardPage() {
                 <Plus className="w-4 h-4" />
                 <span>Add New Student</span>
               </Link>
-              <Link
-                href="/fees"
-                className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-              >
-                <span>Fees Details</span>
-              </Link>
+              {/* Fees Details button hidden (Issue 9) */}
             </>
           )}
           {activeRole === "teacher" && (
@@ -452,8 +447,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Top Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Top Metric Cards — 3 col (Subjects card removed, Issue 10) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {/* Students Card */}
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
               <div className="flex items-center justify-between mb-4">
@@ -506,23 +501,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Subjects Card */}
-            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <img src="/asset 10.webp" alt="Subjects" className="w-full sm:w-[52px] h-[52px] object-contain" />
-                  <div className="text-left">
-                    <h3 className="text-2xl font-semibold text-slate-900 dark:text-white leading-none">{filteredSubjects.length}</h3>
-                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Subjects</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-[12px] pt-4 border-t border-slate-100 dark:border-slate-800/50">
-                <span className="text-slate-500 dark:text-slate-400">Theory : <strong className="text-slate-900 dark:text-white">{filteredSubjects.filter(s => s.type === 'theory').length}</strong></span>
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-500 dark:text-slate-400">Practical : <strong className="text-slate-900 dark:text-white">{filteredSubjects.filter(s => s.type === 'practical').length}</strong></span>
-              </div>
-            </div>
+            {/* Total Subjects card removed (Issue 10) */}
           </div>
 
           {/* 3-Column Grid */}
@@ -530,7 +509,7 @@ export default function DashboardPage() {
 
             {/* COLUMN 1: Schedules & Upcoming Events */}
             <div className="space-y-6">
-              {/* Real Calendar */}
+              {/* Schedules card */}
               <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Schedules</h3>
@@ -598,26 +577,20 @@ export default function DashboardPage() {
               </div> */}
             </div>
 
-            {/* COLUMN 2: Attendance & Performers */}
+            {/* COLUMN 2: Attendance */}
             <div className="space-y-6">
-              {/* Attendance Card */}
+              {/* Attendance widget above — Issue 12 */}
+              {/* Attendance Widget — Today's % only (Issue 12) */}
               <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Attendance</h3>
-                  <button className="text-[12px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <CalendarIcon className="w-3.5 h-3.5" /> Today <span className="ml-1 text-[10px]">▼</span>
-                  </button>
+                  <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Today's Attendance</h3>
+                  <span className="text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                    {today.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                  </span>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex items-center gap-6 border-b border-border text-[13px]">
-                  <button onClick={() => setAttendanceTab('Students')} className={`font-semibold pb-2 px-1 border-b-2 ${attendanceTab === 'Students' ? 'text-[#F59E0B] border-[#F59E0B]' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}>Students</button>
-                  <button onClick={() => setAttendanceTab('Teachers')} className={`font-semibold pb-2 px-1 border-b-2 ${attendanceTab === 'Teachers' ? 'text-[#F59E0B] border-[#F59E0B]' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}>Teachers</button>
-                  <button onClick={() => setAttendanceTab('Staff')} className={`font-semibold pb-2 px-1 border-b-2 ${attendanceTab === 'Staff' ? 'text-[#F59E0B] border-[#F59E0B]' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'}`}>Staff</button>
-                </div>
-
-                {/* Stats Blocks */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-5">
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2 mt-1">
                   <div className="bg-[#F8F9FA] dark:bg-slate-800/40 rounded-lg p-3 text-center border border-slate-100 dark:border-slate-700/50">
                     <div className="text-[15px] font-bold text-slate-900 dark:text-white">{emergencyLeaves < 10 ? `0${emergencyLeaves}` : emergencyLeaves}</div>
                     <div className="text-[10px] text-slate-500 dark:text-slate-400">Emergency</div>
@@ -632,7 +605,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Half Donut Mockup */}
+                {/* Attendance % gauge */}
                 <div className="flex-1 mt-6 flex flex-col items-center justify-end overflow-hidden relative min-h-[140px]">
                   <svg viewBox="0 0 100 50" className="w-full sm:w-[80%] h-auto drop-shadow-md">
                     <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F59E0B" strokeWidth="20" />
@@ -647,42 +620,21 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Best Performers Row */}
+              {/* ── Best Performer soft-hidden — Phase 2 (Issue 14) ───────────────────
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Best Performer */}
-                <div className="bg-[#3DC84A] rounded-xl card-shadow overflow-hidden text-center relative p-5 h-[280px] flex flex-col items-center">
-                  <div className="absolute top-2 left-2 flex gap-1 opacity-20">
-                    <Award className="w-6 h-6 text-white fill-white" />
-                  </div>
-                  <h4 className="text-[13px] text-white/90 font-semibold mb-1">Best Performer</h4>
-                  <h3 className="text-xl font-semibold text-white leading-tight">
-                    {bestStudent ? (typeof bestStudent.student_id === 'object' ? bestStudent.student_id.name : 'Unknown') : 'N/A'}
-                  </h3>
-                  <p className="text-[11px] text-white/80">
-                    {bestStudent ? `${bestStudent.percentage.toFixed(1)}%` : 'No Data'}
-                  </p>
-                  <img src="/student-performer-01.png" alt="Best Performer" className="absolute bottom-0 w-full sm:w-[80%] object-contain" />
+                <div className="bg-[#3DC84A] rounded-xl ...">
+                  Best Performer card
                 </div>
-
-                {/* Star Students */}
-                <div className="bg-[#1975D1] rounded-xl card-shadow overflow-hidden text-center relative p-5 h-[280px] flex flex-col items-center">
-                  <div className="absolute top-4 left-4 opacity-10">
-                    <svg className="w-16 h-16 text-white fill-white" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                  </div>
-                  <h4 className="text-[13px] text-white/90 font-semibold mb-1">Star Students</h4>
-                  <h3 className="text-xl font-semibold text-white leading-tight mt-1">
-                    {starStudent ? (typeof starStudent.student_id === 'object' ? starStudent.student_id.name : 'Unknown') : 'N/A'}
-                  </h3>
-                  <p className="text-[11px] text-white/80">
-                    {starStudent ? `${starStudent.percentage.toFixed(1)}%` : 'No Data'}
-                  </p>
-                  <img src="/performer-01.png" alt="Star Student" className="absolute bottom-0 w-full sm:w-[85%] object-contain" />
+                <div className="bg-[#1975D1] rounded-xl ...">
+                  Star Students card
                 </div>
               </div>
+              ─────────────────────────────────────────────────────────────── */}
             </div>
 
-            {/* COLUMN 3: Quick Links, Class Routine, Performance */}
+            {/* COLUMN 3: Quick Links & Class Routine */}
             <div className="space-y-6">
+              {/* Performance card removed — Issue 15 */}
 
               {/* Quick Links Card */}
               <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
@@ -706,12 +658,7 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Attendance</span>
                   </Link>
-                  <Link href="/fees-collection/collect-fees" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
-                    <div className="w-12 h-12 rounded-full bg-[#E6F8FF] border border-[#B3EEFF] text-[#00B5FF] flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <DollarSign className="w-5 h-5" />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Fees</span>
-                  </Link>
+                  {/* Fees quick link hidden (Issue 9) */}
                   <Link href="/homework" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[#FFEBF0] border border-[#FFCCD8] text-[#FF4A6B] flex items-center justify-center group-hover:scale-105 transition-transform">
                       <BookOpen className="w-5 h-5" />
@@ -766,108 +713,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Performance Card */}
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Performance</h3>
-                  <button className="text-[12px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    Class II <span className="ml-1 text-[10px]">▼</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 space-y-3 border border-border rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400">Top</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-900 dark:text-white">{topCount < 10 ? `0${topCount}` : topCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#FFB800]"></span>
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400">Average</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-900 dark:text-white">{avgCount < 10 ? `0${avgCount}` : avgCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF4A6B]"></span>
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400">Below Avg</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-900 dark:text-white">{belowAvgCount < 10 ? `0${belowAvgCount}` : belowAvgCount}</span>
-                    </div>
-                  </div>
-
-                  <div className="w-full sm:w-[100px] h-[100px] relative shrink-0">
-                    {/* Recreating Donut Chart with SVG to match exact colors */}
-                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#F59E0B" strokeWidth="18" strokeDasharray="251.2" strokeDashoffset="0" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#FFB800" strokeWidth="18" strokeDasharray="251.2" strokeDashoffset="180" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#FF4A6B" strokeWidth="18" strokeDasharray="251.2" strokeDashoffset="230" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+              {/* ── Performance card removed (Issue 15) ─────────────────────────────
+              Performance donut chart & top/avg/below-avg stats
+              removed completely from dashboard.
+              ─────────────────────────────────────────────────────────────── */}
 
             </div>
           </div>
 
-          {/* ----------------------------------------------------
-              BOTTOM ROW 1: FEES & LEAVE REQUESTS
-              ---------------------------------------------------- */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Fees Collection */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Fees Collection</h3>
-                <button className="text-[12px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <CalendarIcon className="w-3.5 h-3.5" /> Last 8 Quarter <span className="ml-1 text-[10px]">▼</span>
-                </button>
-              </div>
-              <div className="flex items-center gap-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-4">
-                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-[#F59E0B] rounded-sm"></span> Collected Fee</div>
-                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-slate-200 rounded-sm"></span> Total Fee</div>
-              </div>
-              <div className="flex-1 mt-2 min-h-[160px] relative">
-                {/* Dynamic Grouped Bar Chart */}
-                <div className="absolute inset-0 flex items-end justify-between px-4 pb-6 border-b border-slate-200 dark:border-slate-800">
-                  {feeQuarters.map((q, i) => {
-                    const expectedHeight = Math.min(100, Math.max(10, (q.expected / maxFee) * 100));
-                    const collectedHeight = q.expected > 0 ? (q.collected / q.expected) * 100 : 0;
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-2 h-full justify-end w-full max-w-full sm:w-[40px] px-1 group">
-                        <div
-                          className="w-full bg-slate-200 dark:bg-slate-700 rounded-t flex flex-col justify-end overflow-hidden transition-all duration-500 relative"
-                          style={{ height: `${expectedHeight}%` }}
-                        >
-                          <div
-                            className="w-full bg-[#F59E0B] transition-all duration-500"
-                            style={{ height: `${collectedHeight}%` }}
-                          ></div>
-
-                          {/* Tooltip */}
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap">
-                            Collected: ₹{q.collected.toLocaleString()}<br />
-                            Total: ₹{q.expected.toLocaleString()}
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 whitespace-nowrap">{q.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Y-axis labels dynamic */}
-                <div className="absolute left-0 h-[calc(100%-24px)] flex flex-col justify-between text-[10px] text-slate-400 dark:text-slate-500 font-medium py-2">
-                  <span>{(maxFee).toLocaleString()}</span>
-                  <span>{(maxFee / 2).toLocaleString()}</span>
-                  <span>0</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Leave Requests — Dynamic */}
+          {/* ────────────────────────────────────────────────────
+              BOTTOM ROW 1: Fees Collection chart hidden (Issue 16)
+              ──────────────────────────────────────────────────── */}
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Leave Requests</h3>
@@ -904,7 +760,6 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-          </div>
 
           {/* ----------------------------------------------------
               BOTTOM ROW 2: ACTION BUTTONS
@@ -937,72 +792,18 @@ export default function DashboardPage() {
                 </div>
                 Exam Results
               </div>
-              <div className="w-6 h-6 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-[#FF4A6B]"><ChevronRight className="w-3 h-3" /></div>
             </Link>
 
-            <Link href="/fees-collection/collect-fees" className="bg-[#E6F8FF] hover:bg-[#ccf1ff] transition-colors rounded-xl p-4 flex items-center justify-between border border-[#B3EEFF]">
-              <div className="flex items-center gap-3 text-[#00B5FF] font-bold text-[13px]">
-                <div className="w-10 h-10 bg-[#00B5FF] rounded-lg text-white flex items-center justify-center shadow-sm">
-                  <FileText className="w-5 h-5" />
-                </div>
-                Finance & Accounts
-              </div>
-              <div className="w-6 h-6 bg-[#F59E0B] rounded-full flex items-center justify-center text-white"><ChevronRight className="w-3 h-3" /></div>
-            </Link>
+          {/* ── Finance & Accounts button hidden (Issue 16) ────────────────
+          <Link href="/fees-collection/collect-fees" ...>Finance & Accounts</Link>
+          ─────────────────────────────────────────────────────────────── */}
           </div>
 
-          {/* ----------------------------------------------------
-              BOTTOM ROW 3: STATS & NOTICES
-              ---------------------------------------------------- */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6">
-
-            {/* Sparklines Column */}
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl  card-shadow flex flex-col text-left ">
-                <div className="flex items-center justify-between mb-2 p-2">
-                  <div>
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Earnings</p>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </h3>
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-[#F59E0B] text-white flex items-center justify-center shadow-sm">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex-1 w-full min-h-[60px] relative mt-2 overflow-hidden">
-                  {/* SVG Sparkline Mockup */}
-                  <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="w-full h-[60px] absolute bottom-0">
-                    <path d="M0,40 L40,10 L80,30 L120,20 L160,10 L200,25 L200,50 L0,50 Z" fill="rgba(93, 107, 238, 0.1)" />
-                    <path d="M0,40 L40,10 L80,30 L120,20 L160,10 L200,25" fill="none" stroke="#F59E0B" strokeWidth="2" />
-                  </svg>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl  card-shadow flex flex-col text-left ">
-                <div className="flex items-center justify-between mb-2 p-2">
-                  <div>
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Expenses (Est.)</p>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      ${(totalRevenue * 0.45).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </h3>
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-[#FF4A6B] text-white flex items-center justify-center shadow-sm">
-                    <TrendingUp className="w-4 h-4 transform rotate-180" />
-                  </div>
-                </div>
-                <div className="flex-1 w-full min-h-[60px] relative mt-2 overflow-hidden">
-                  {/* SVG Sparkline Mockup */}
-                  <svg viewBox="0 0 200 50" preserveAspectRatio="none" className="w-full h-[60px] absolute bottom-0">
-                    <path d="M0,30 L40,50 L80,10 L120,20 L160,30 L200,10 L200,50 L0,50 Z" fill="rgba(255, 74, 107, 0.1)" />
-                    <path d="M0,30 L40,50 L80,10 L120,20 L160,30 L200,10" fill="none" stroke="#FF4A6B" strokeWidth="2" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+          {/* Bottom Row: Notice Board only (Sparklines & Fee Stats hidden — Issue 16) */}
+          <div className="grid grid-cols-1 gap-6 pb-6">
 
             {/* Notice Board */}
-            <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
+            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Notice Board</h3>
                 <Link href="/notices" className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200">View All</Link>
@@ -1038,54 +839,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Fee Stats */}
-            <div className="lg:col-span-3 space-y-4">
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow flex items-center justify-between text-left">
-                <div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Fees Collected</p>
-                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
-                    ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </h3>
-                </div>
-                <span className="bg-[#E8F8E8] text-[#1D7F2C] text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
-                  <TrendingUp className="w-3 h-3" />
-                </span>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow flex items-center justify-between text-left">
-                <div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Fine Collected till date</p>
-                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">$0.00</h3>
-                </div>
-                <span className="bg-[#FFEBF0] text-[#FF4A6B] text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
-                  <TrendingUp className="w-3 h-3 transform rotate-180" />
-                </span>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow flex items-center justify-between text-left">
-                <div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Students Not Paid</p>
-                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
-                    {Math.max(0, totalStudents - new Set(payments.map(p => typeof p.student_id === 'object' ? p.student_id?._id : p.student_id)).size)}
-                  </h3>
-                </div>
-                <span className="bg-[#E6F8FF] text-[#00B5FF] text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
-                  <TrendingUp className="w-3 h-3" />
-                </span>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow flex items-center justify-between text-left">
-                <div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Outstanding (Est.)</p>
-                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
-                    ${(Math.max(0, totalStudents - new Set(payments.map(p => typeof p.student_id === 'object' ? p.student_id?._id : p.student_id)).size) * 500).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </h3>
-                </div>
-                <span className="bg-[#FFEBF0] text-[#FF4A6B] text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
-                  <TrendingUp className="w-3 h-3 transform rotate-180" />
-                </span>
-              </div>
-            </div>
+            {/* Total Earnings sparkline hidden (Issue 16) */}
+            {/* Total Expenses sparkline hidden (Issue 16) */}
+            {/* Fee Stats column hidden (Issue 16) */}
 
           </div>
 

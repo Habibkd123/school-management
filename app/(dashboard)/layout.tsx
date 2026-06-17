@@ -9,6 +9,7 @@ import { useAuth } from "../context/auth";
 import { Loader2 } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import type { PermissionModule, AppRole } from "@/lib/permissions";
+import { ForceChangePasswordModal } from "../components/modals/ForceChangePasswordModal";
 
 // Map URL path prefixes → permission module
 const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = [
@@ -34,7 +35,7 @@ export default function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { isAuthenticated, isLoading, user, permissions } = useAuth();
+  const { isAuthenticated, isLoading, user, permissions, mustChangePassword, clearMustChangePasswordFlag } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -105,6 +106,15 @@ export default function DashboardLayout({
 
       {/* Global Search Command Menu */}
       <CommandMenu />
+
+      {/* ── Mandatory First-Login Password Change Modal ─────────────
+           Rendered above everything. Non-dismissable until user
+           successfully changes their password.
+      ─────────────────────────────────────────────────────────────── */}
+      <ForceChangePasswordModal
+        isOpen={mustChangePassword}
+        onSuccess={clearMustChangePasswordFlag}
+      />
     </div>
   );
 }

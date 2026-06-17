@@ -9,6 +9,7 @@ import {
   getAccessToken,
   getRefreshToken,
   getAuthHeaders,
+  clearMustChangePassword,
   StoredUser,
 } from "@/lib/utils/session";
 
@@ -18,11 +19,13 @@ interface AuthContextType {
   permissions: Record<string, Record<string, string[]>> | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  mustChangePassword: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   updateRolePermissions: (role: string, perms: Record<string, string[]>) => Promise<void>;
+  clearMustChangePasswordFlag: () => void;
 }
 
 interface RegisterData {
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [permissions, setPermissions] = useState<Record<string, Record<string, string[]>> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const fetchPermissions = useCallback(async () => {
     try {
@@ -68,6 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = getAccessToken();
     if (storedUser && token) {
       setUser(storedUser);
+      // Restore must_change_password from persisted session
+      if (storedUser.must_change_password) {
+        setMustChangePassword(true);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -104,9 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: userData.email,
         role: userData.role,
         school_id: userData.school_id,
+        must_change_password: userData.must_change_password ?? false,
       });
 
       setUser(userData);
+      // Set must_change_password state for forced modal
+      setMustChangePassword(userData.must_change_password ?? false);
       return { success: true, message: "Login successful" };
     } catch {
       return { success: false, message: "Network error. Please try again." };
@@ -165,8 +176,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
+    setMustChangePassword(false);
     router.push("/login");
   }, [router]);
+
+  // ─── Clear mustChangePassword after forced change ───────────────
+  const clearMustChangePasswordFlag = useCallback(() => {
+    clearMustChangePassword(); // update localStorage
+    setMustChangePassword(false);
+  }, []);
 
   // ─── Refresh user data from /me ──────────────────────────────
   const refreshUser = async () => {
@@ -253,11 +271,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permissions,
         isLoading,
         isAuthenticated: !!user,
+        mustChangePassword,
         login,
         register,
         logout,
         refreshUser,
         updateRolePermissions,
+        clearMustChangePasswordFlag,
       }}
     >
       {children}

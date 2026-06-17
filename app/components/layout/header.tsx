@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAppState } from "../../context/store";
 import { useAuth } from "../../context/auth";
-import { Search, Bell, Sun, Moon, Calendar, BarChart2, ChevronDown, LogOut, User, Settings, Shield, Menu } from "lucide-react";
+import { Bell, Sun, Moon, Calendar, ChevronDown, LogOut, User, Settings, Shield, Menu } from "lucide-react";
+import { getAuthHeaders } from "@/lib/utils/session";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -19,14 +20,38 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isAcademicYearOpen, setIsAcademicYearOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
 
-  // Scroll detection for sticky header styles
+  // Scroll detection
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 0);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Fetch available academic years from actual DB data
+  useEffect(() => {
+    async function fetchYears() {
+      try {
+        const res = await fetch("/api/classes?limit=1000", { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (res.ok && data.success && data.data?.classes?.length > 0) {
+          const years: string[] = Array.from(
+            new Set<string>(data.data.classes.map((c: { academic_year: string }) => c.academic_year))
+          ).sort((a, b) => b.localeCompare(a)); // latest first
+          setAvailableYears(years);
+          // Auto-select latest year if current selection not in DB
+          if (years.length > 0 && !years.includes(academicYear)) {
+            setAcademicYear(years[0]);
+          }
+        }
+      } catch {
+        // fallback to manual list if API fails
+        setAvailableYears(["2026-2027", "2025-2026", "2024-2025", "2023-2024"]);
+      }
+    }
+    fetchYears();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -36,7 +61,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           : "bg-white dark:bg-slate-900 border-b border-border"
         }`}
     >
-      <div className="flex items-center flex-1 max-w-md">
+      <div className="flex items-center">
         {/* Mobile Hamburger toggle button */}
         <button
           onClick={onMenuClick}
@@ -45,18 +70,6 @@ export function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
-
-        {/* Search Input Bar - Hidden on extra small mobile screens */}
-        <div className="relative w-full sm:w-[280px] hidden sm:block">
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-full pl-4 pr-10 py-2.5 text-[14px] bg-[#F1F5F9] dark:bg-slate-800 border-none rounded-lg outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 bg-[#E2E8F0] dark:bg-slate-700 rounded text-[12px] font-bold text-slate-500">
-            ⌘
-          </div>
-        </div>
       </div>
 
       {/* Right Actions */}
@@ -77,24 +90,24 @@ export function Header({ onMenuClick }: HeaderProps) {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsAcademicYearOpen(false)} />
               <div className="absolute top-full left-0 mt-2 w-full min-w-full sm:w-[200px] bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 overflow-hidden py-1">
-                {["2023-2024", "2024-2025", "2025-2026"].map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => { setAcademicYear(year); setIsAcademicYearOpen(false); }}
-                    className={`w-full px-4 py-2 text-left text-[13px] transition-colors cursor-pointer ${year === academicYear ? "bg-[#F59E0B] text-white font-medium" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"}`}
-                  >
-                    {year.replace("-", " / ")}
-                  </button>
-                ))}
+                {availableYears.length === 0 ? (
+                  <p className="px-4 py-2 text-[12px] text-slate-400">Loading...</p>
+                ) : (
+                  availableYears.map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => { setAcademicYear(year); setIsAcademicYearOpen(false); }}
+                      className={`w-full px-4 py-2 text-left text-[13px] transition-colors cursor-pointer ${year === academicYear ? "bg-[#F59E0B] text-white font-medium" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"}`}
+                    >
+                      {year.replace("-", " / ")}
+                    </button>
+                  ))
+                )}
               </div>
             </>
           )}
         </div>
 
-        {/* Language (Flag) */}
-        <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#F1F5F9] dark:bg-slate-800 text-[16px] hover:bg-[#E2E8F0] dark:hover:bg-slate-700 transition-colors">
-          🇺🇸
-        </button>
 
         {/* Theme Toggle */}
         <button

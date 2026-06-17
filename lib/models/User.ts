@@ -10,6 +10,7 @@ export interface IUser extends Document {
   password_hash: string;
   role: UserRole;
   is_active: boolean;
+  must_change_password: boolean; // true = first login, force password change
   last_login?: Date;
   reset_token?: string;
   reset_token_expiry?: Date;
@@ -35,6 +36,7 @@ const userSchema = new Schema<IUser>(
       required: true,
     },
     is_active: { type: Boolean, default: true },
+    must_change_password: { type: Boolean, default: false }, // set true for teacher/student on creation
     last_login: { type: Date, default: null },
     reset_token: { type: String, default: null, select: false },
     reset_token_expiry: { type: Date, default: null, select: false },

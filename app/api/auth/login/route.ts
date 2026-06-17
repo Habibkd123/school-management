@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
             email: user.email,
             role: user.role,
             school_id: user.school_id,
+            must_change_password: user.must_change_password ?? false,
           },
           access_token: accessToken,
           refresh_token: refreshToken,

@@ -73,15 +73,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       ]
     },
 
-    {
-      name: "Fees Collection", icon: <DollarSign className="w-4 h-4" />, subItems: [
-        { name: "Collect Fees", href: "/fees-collection/collect-fees" },
-        { name: "Fees Group", href: "/fees-collection/fees-group" },
-        { name: "Fees Type", href: "/fees-collection/fees-type" },
-        { name: "Fees Master", href: "/fees-collection/fees-master" },
-        { name: "Assign Fees", href: "/fees-collection/assign-fees" }
-      ]
-    },
+    // ── Fees Collection hidden (Issue 9) ──────────────────────────────
     {
       name: "Transport", href: "/transport/bus-details", icon: <Bus className="w-4 h-4" />,
       // subItems: [
@@ -94,7 +86,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       name: "Reports", icon: <BarChart className="w-4 h-4" />, subItems: [
         { name: "Daily Attendance Report", href: "/reports/daily-attendance" },
         { name: "Monthly Attendance Report", href: "/reports/attendance-report" },
-        { name: "Fees Report", href: "/reports/fees-report" },
+        // Fees Report hidden (Issue 9)
         { name: "Examination Reports", href: "/reports/examination-reports" },
         { name: "Merit List", href: "/reports/merit-list" },
         { name: "Student Report", href: "/reports/student-report" },
@@ -154,7 +146,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   const parentLinks = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     { name: "Attendance", href: "/parent/attendance", icon: <Clock className="w-4 h-4" /> },
-    { name: "Fees Status", href: "/parent/fees", icon: <DollarSign className="w-4 h-4" /> },
+    // Fees Status hidden (Issue 9)
     { name: "Result View", href: "/parent/results", icon: <ClipboardList className="w-4 h-4" /> },
     { name: "Homework View", href: "/parent/homework", icon: <BookOpen className="w-4 h-4" /> },
     { name: "Notifications", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }
@@ -192,6 +184,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
 
     {
       name: "Fees", href: "/fees", icon: <DollarSign className="w-4 h-4" />,
+      // Hidden (Issue 9)
       // subItems: [
       // { name: "My Fees", href: "/fees" }
       // ]
@@ -201,18 +194,10 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
 
   const accountantLinks = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    {
-      name: "Fees Collection", icon: <DollarSign className="w-4 h-4" />, subItems: [
-        { name: "Collect Fees", href: "/fees-collection/collect-fees" },
-        { name: "Fees Group", href: "/fees-collection/fees-group" },
-        { name: "Fees Type", href: "/fees-collection/fees-type" },
-        { name: "Fees Master", href: "/fees-collection/fees-master" },
-        { name: "Assign Fees", href: "/fees-collection/assign-fees" }
-      ]
-    },
+    // ── Accountant Fees Collection hidden (Issue 9) ──────────────────────
     {
       name: "Reports", icon: <BarChart className="w-4 h-4" />, subItems: [
-        { name: "Fees Report", href: "/reports/fees-report" }
+        // Fees Report hidden (Issue 9)
       ]
     },
     { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> }

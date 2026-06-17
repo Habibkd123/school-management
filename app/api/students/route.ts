@@ -235,6 +235,7 @@ export async function POST(request: NextRequest) {
         password_hash: studentPassword, // dob-based default password
         role: "student",
         is_active: true,
+        must_change_password: true, // force password change on first login
       });
       userId = user._id;
     }
@@ -275,6 +276,7 @@ export async function POST(request: NextRequest) {
               password_hash: "parent123", // default — admin should share this
               role: "parent",
               is_active: true,
+              must_change_password: true, // force password change on first login
             });
             parentUserId = parentUser._id;
           }

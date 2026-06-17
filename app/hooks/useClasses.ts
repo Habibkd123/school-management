@@ -34,7 +34,7 @@ export interface FetchClassesParams {
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────
-export function useClasses(options?: { skip?: boolean }) {
+export function useClasses(options?: { skip?: boolean; filterByYear?: boolean }) {
   const [classes, setClasses] = useState<ApiClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +76,11 @@ export function useClasses(options?: { skip?: boolean }) {
 
   useEffect(() => {
     if (options?.skip) return;
-    fetchClasses({ academic_year: academicYear, limit: 1000 });
-  }, [fetchClasses, academicYear, options?.skip]);
+    // Only filter by academic year when caller explicitly opts in
+    const params: FetchClassesParams = { limit: 1000 };
+    if (options?.filterByYear) params.academic_year = academicYear;
+    fetchClasses(params);
+  }, [fetchClasses, academicYear, options?.skip, options?.filterByYear]);
 
   // ─── Create class ───────────────────────────────────────────────
   const createClass = async (
