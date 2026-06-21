@@ -7,7 +7,7 @@ import { useAuth } from "../../context/auth";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, Clock, BookOpen,
   ClipboardList, Megaphone, ChevronDown, ChevronRight, Building2,
-  BarChart, LogOut, User, ChevronUp, Menu, Bus, X
+  BarChart, LogOut, User, ChevronUp, Menu, Bus, X, Globe
 } from "lucide-react";
 
 // Map DB roles → sidebar role key
@@ -102,6 +102,18 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       ]
     },
     { name: "Notice Board", href: "/notices", icon: <Megaphone className="w-4 h-4" /> },
+    {
+      name: "Website", icon: <Globe className="w-4 h-4" />, subItems: [
+        { name: "Landing Page", href: "/website" },
+        { name: "About Us", href: "/website/about" },
+        { name: "Academics", href: "/website/academics" },
+        { name: "Admissions", href: "/website/admissions" },
+        { name: "Student Life", href: "/website/student-life" },
+        { name: "News & Notices", href: "/website/news" },
+        { name: "Gallery", href: "/website/gallery" },
+        { name: "Contact Us", href: "/website/contact" },
+      ]
+    },
     {
       name: "Settings", icon: <User className="w-4 h-4" />, subItems: [
         { name: "Profile", href: "/settings/profile" },

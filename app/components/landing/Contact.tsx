@@ -1,12 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Phone, Mail, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Globe, Loader2, CheckCircle2, AlertCircle, ExternalLink, Share2, Video, Link2 } from "lucide-react";
 
-export function Contact() {
+interface ContactData {
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  map_embed_url?: string;
+  social?: {
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    youtube?: string;
+  };
+}
+
+export function Contact({ data }: { data?: ContactData | null }) {
   const [formData, setFormData] = useState({ name: "", phone: "", email: "", grade: "Pre-Primary" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+
+  const address = data?.address || "Sector 62, Knowledge Park,\nNew Delhi, 110001, India";
+  const phone = data?.phone || "+91 98765 43210";
+  const email = data?.email || "admissions@school.edu.in";
+  const website = data?.website || "";
+  const mapUrl = data?.map_embed_url || "";
+  const social = data?.social || {};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,16 +44,16 @@ export function Contact() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const responseData = await res.json();
+      if (res.ok && responseData.success) {
         setStatus("success");
         setMessage("Your enquiry has been sent successfully!");
         setFormData({ name: "", phone: "", email: "", grade: "Pre-Primary" });
       } else {
         setStatus("error");
-        setMessage(data.message || "Failed to send enquiry.");
+        setMessage(responseData.message || "Failed to send enquiry.");
       }
-    } catch (error) {
+    } catch {
       setStatus("error");
       setMessage("An unexpected error occurred.");
     }
@@ -53,7 +74,7 @@ export function Contact() {
           
           {/* Left: Contact Info */}
           <div className="space-y-8">
-            <p className="text-[15px] text-slate-600 leading-relaxed mb-10">
+            <p className="text-[15px] text-slate-600 leading-relaxed">
               We welcome prospective parents to visit our campus. Please contact our admissions desk to schedule a tour or for any queries regarding the admission process.
             </p>
             
@@ -61,21 +82,77 @@ export function Contact() {
               <div className="bg-slate-50 p-6 rounded-sm border-l-4 border-[#0F172A]">
                 <MapPin className="w-8 h-8 text-[#F59E0B] mb-4" />
                 <h4 className="font-bold text-[#0F172A] mb-2 text-[15px]">Campus Address</h4>
-                <p className="text-slate-600 text-[14px]">Sector 62, Knowledge Park,<br/>New Delhi, 110001, India</p>
+                <p className="text-slate-600 text-[14px] whitespace-pre-line">{address}</p>
               </div>
               
               <div className="bg-slate-50 p-6 rounded-sm border-l-4 border-[#0F172A]">
                 <Phone className="w-8 h-8 text-[#F59E0B] mb-4" />
                 <h4 className="font-bold text-[#0F172A] mb-2 text-[15px]">Contact Numbers</h4>
-                <p className="text-slate-600 text-[14px]">+91 98765 43210<br/>011-23456789</p>
+                <p className="text-slate-600 text-[14px]">
+                  <a href={`tel:${phone.replace(/\s/g, "")}`} className="hover:text-[#F59E0B] transition-colors">
+                    {phone}
+                  </a>
+                </p>
               </div>
               
               <div className="bg-slate-50 p-6 rounded-sm border-l-4 border-[#0F172A] sm:col-span-2">
                 <Mail className="w-8 h-8 text-[#F59E0B] mb-4" />
                 <h4 className="font-bold text-[#0F172A] mb-2 text-[15px]">Email Address</h4>
-                <p className="text-slate-600 text-[14px]">admissions@MySchoolLife.edu.in<br/>principal@MySchoolLife.edu.in</p>
+                <p className="text-slate-600 text-[14px]">
+                  <a href={`mailto:${email}`} className="hover:text-[#F59E0B] transition-colors">{email}</a>
+                </p>
+                {website && (
+                  <p className="text-slate-600 text-[14px] mt-1">
+                    <a href={website} target="_blank" rel="noopener noreferrer" className="hover:text-[#F59E0B] transition-colors flex items-center gap-1">
+                      <Globe className="w-4 h-4" /> {website}
+                    </a>
+                  </p>
+                )}
               </div>
             </div>
+
+            {/* Social Links */}
+            {(social.facebook || social.twitter || social.instagram || social.youtube) && (
+              <div className="flex items-center gap-4 pt-2">
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Follow us:</span>
+                {social.facebook && (
+                  <a href={social.facebook} target="_blank" rel="noopener noreferrer" title="Facebook" className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-[#F59E0B] hover:text-white transition-all">
+                    <Share2 className="w-5 h-5" />
+                  </a>
+                )}
+                {social.twitter && (
+                  <a href={social.twitter} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-[#F59E0B] hover:text-white transition-all">
+                    <Link2 className="w-5 h-5" />
+                  </a>
+                )}
+                {social.instagram && (
+                  <a href={social.instagram} target="_blank" rel="noopener noreferrer" title="Instagram" className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-[#F59E0B] hover:text-white transition-all">
+                    <ExternalLink className="w-5 h-5" />
+                  </a>
+                )}
+                {social.youtube && (
+                  <a href={social.youtube} target="_blank" rel="noopener noreferrer" title="YouTube" className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-[#F59E0B] hover:text-white transition-all">
+                    <Video className="w-5 h-5" />
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Map Embed */}
+            {mapUrl && (
+              <div className="rounded-sm overflow-hidden border border-slate-200 shadow-md h-48 mt-4">
+                <iframe
+                  src={mapUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="School Location Map"
+                />
+              </div>
+            )}
           </div>
 
           {/* Right: Contact Form */}

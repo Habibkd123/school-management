@@ -12,9 +12,9 @@ export function Header() {
       {/* Top Bar for Affiliation & Quick Links */}
       <div className="hidden lg:flex bg-[#0F172A] text-white/80 py-2 px-6 text-[12px] font-medium justify-between items-center border-b border-white/10">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Admissions Open 2024-25</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Admissions Open {new Date().getFullYear()}-{String(new Date().getFullYear() + 1).slice(2)}</span>
           <span className="text-white/30">|</span>
-          <span>Affiliated to CBSE, New Delhi (Affiliation No. 1234567)</span>
+          <span>Affiliated to CBSE, New Delhi</span>
         </div>
         <div className="flex items-center gap-4">
           <a href="#" className="hover:text-[#F59E0B] transition-colors">Pay Fees Online</a>
@@ -33,7 +33,7 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-[22px] font-black tracking-tight text-[#0F172A] leading-none">
-                MySchoolLife
+                {process.env.NEXT_PUBLIC_SCHOOL_NAME || "MySchoolLife"}
               </span>
               <span className="text-[10px] font-bold tracking-widest text-[#F59E0B] uppercase">Public School</span>
             </div>

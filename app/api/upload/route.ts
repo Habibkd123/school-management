@@ -15,18 +15,31 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "video/mp4",
+      "video/webm",
+      "video/ogg",
+      "video/quicktime"
+    ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, message: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF" },
+        { success: false, message: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF, MP4, WebM, OGG, MOV" },
         { status: 400 }
       );
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 25MB for videos, 5MB for others)
+    const isVideo = file.type.startsWith("video/");
+    const maxSize = isVideo ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, message: "File too large. Maximum size is 5MB" },
+        { success: false, message: `File too large. Maximum size is ${isVideo ? "25MB" : "5MB"}` },
         { status: 400 }
       );
     }

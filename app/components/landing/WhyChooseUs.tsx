@@ -1,15 +1,39 @@
 import React from "react";
-import { Monitor, Users, FlaskConical, Trophy, Laptop, ShieldCheck } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 
-export function WhyChooseUs() {
-  const reasons = [
-    { icon: <Monitor className="w-8 h-8 text-[#0F172A]" />, title: "Smart Classrooms", desc: "Interactive digital boards and modern learning tools in every class.", color: "bg-blue-50" },
-    { icon: <Users className="w-8 h-8 text-[#0F172A]" />, title: "Expert Faculty", desc: "Highly qualified educators dedicated to personalized student success.", color: "bg-blue-50" },
-    { icon: <FlaskConical className="w-8 h-8 text-[#0F172A]" />, title: "Integrated Coaching", desc: "In-house foundation programs for IIT-JEE, NEET, and Olympiads.", color: "bg-blue-50" },
-    { icon: <Trophy className="w-8 h-8 text-[#0F172A]" />, title: "Sports Excellence", desc: "World-class sports infrastructure and professional coaching.", color: "bg-blue-50" },
-    { icon: <Laptop className="w-8 h-8 text-[#0F172A]" />, title: "Digital Learning", desc: "Comprehensive e-learning portal and digital library access.", color: "bg-blue-50" },
-    { icon: <ShieldCheck className="w-8 h-8 text-[#0F172A]" />, title: "Safe Campus", desc: "24/7 CCTV surveillance and strict campus security measures.", color: "bg-blue-50" },
+interface FeatureItem {
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+interface WhyChooseUsProps {
+  data?: {
+    why_choose_us?: FeatureItem[];
+  } | null;
+}
+
+export function WhyChooseUs({ data }: WhyChooseUsProps) {
+  const defaultReasons = [
+    { icon: "Monitor", title: "Smart Classrooms", desc: "Interactive digital boards and modern learning tools in every class." },
+    { icon: "Users", title: "Expert Faculty", desc: "Highly qualified educators dedicated to personalized student success." },
+    { icon: "FlaskConical", title: "Integrated Coaching", desc: "In-house foundation programs for IIT-JEE, NEET, and Olympiads." },
+    { icon: "Trophy", title: "Sports Excellence", desc: "World-class sports infrastructure and professional coaching." },
+    { icon: "Laptop", title: "Digital Learning", desc: "Comprehensive e-learning portal and digital library access." },
+    { icon: "ShieldCheck", title: "Safe Campus", desc: "24/7 CCTV surveillance and strict campus security measures." },
   ];
+
+  const reasons = data?.why_choose_us && data.why_choose_us.length > 0
+    ? data.why_choose_us
+    : defaultReasons;
+
+  const renderIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as any)[iconName];
+    if (IconComponent) {
+      return <IconComponent className="w-8 h-8 text-[#0F172A]" />;
+    }
+    return <LucideIcons.Sparkles className="w-8 h-8 text-[#0F172A]" />;
+  };
 
   return (
     <section className="py-24 bg-white relative">
@@ -31,7 +55,7 @@ export function WhyChooseUs() {
           {reasons.map((item, idx) => (
             <div key={idx} className="bg-white p-8 rounded-sm shadow-md border-t-4 border-transparent hover:border-[#F59E0B] hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group">
               <div className={`w-16 h-16 rounded-sm bg-slate-100 flex items-center justify-center mb-6 group-hover:bg-[#F59E0B]/20 transition-colors duration-300`}>
-                {item.icon}
+                {renderIcon(item.icon)}
               </div>
               <h4 className="text-xl font-bold text-[#0F172A] mb-3">{item.title}</h4>
               <p className="text-slate-600 leading-relaxed text-[14px]">{item.desc}</p>

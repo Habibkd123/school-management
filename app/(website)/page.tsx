@@ -14,23 +14,42 @@ import { LatestNews } from "../components/landing/LatestNews";
 import { FAQ } from "../components/landing/FAQ";
 import { Contact } from "../components/landing/Contact";
 
-export default function Home() {
+async function getLandingData() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const isDev = process.env.NODE_ENV === "development";
+    const res = await fetch(`${baseUrl}/api/public/landing`, {
+      ...(isDev
+        ? { cache: "no-store" }           // always fresh in dev
+        : { next: { revalidate: 60 } }),  // 60s cache in production
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function Home() {
+  const landingData = await getLandingData();
+
   return (
     <main className="w-full">
-      <Hero />
-      <Highlights />
-      <AboutSchool />
-      <WhyChooseUs />
-      <AcademicPrograms />
-      <Facilities />
-      <Achievements />
-      <Gallery />
-      <VirtualCampusTour />
-      <Testimonials />
-      <AdmissionProcess />
-      <LatestNews />
-      <FAQ />
-      <Contact />
+      <Hero data={landingData} />
+      <Highlights data={landingData} />
+      <AboutSchool data={landingData?.about} />
+      <WhyChooseUs data={landingData} />
+      <AcademicPrograms data={landingData?.academics} />
+      <Facilities data={landingData} />
+      <Achievements data={landingData?.student_life} />
+      <Gallery data={landingData?.gallery} />
+      <VirtualCampusTour data={landingData?.gallery} />
+      <Testimonials data={landingData} />
+      <AdmissionProcess data={landingData?.admissions} />
+      <LatestNews data={landingData?.news_notices} />
+      <FAQ data={landingData} />
+      <Contact data={landingData?.contact} />
     </main>
   );
 }

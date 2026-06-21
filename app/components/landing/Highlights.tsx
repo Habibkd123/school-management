@@ -1,12 +1,32 @@
 import React from "react";
 
-export function Highlights() {
-  const highlights = [
+interface HighlightItem {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+interface LandingData {
+  about?: {
+    founded_year?: number;
+  };
+  highlights?: HighlightItem[];
+}
+
+export function Highlights({ data }: { data?: LandingData | null }) {
+  const foundedYear = data?.about?.founded_year;
+  const yearsLegacy = foundedYear ? `${new Date().getFullYear() - foundedYear}+` : "25+";
+
+  const defaultHighlights = [
     { value: "2500+", label: "Happy Students", icon: "🎓" },
     { value: "150+", label: "Expert Faculty", icon: "👨‍🏫" },
     { value: "100%", label: "CBSE Board Pass Rate", icon: "📈" },
-    { value: "99.2%", label: "District Highest Score", icon: "🏆" }
+    { value: yearsLegacy, label: "Years of Legacy", icon: "🏆" },
   ];
+
+  const highlights = data?.highlights && data.highlights.length > 0
+    ? data.highlights
+    : defaultHighlights;
 
   return (
     <section className="py-12 bg-white relative z-20 border-b border-slate-200">

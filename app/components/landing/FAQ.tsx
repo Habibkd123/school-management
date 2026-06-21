@@ -3,14 +3,29 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export function FAQ() {
-  const faqs = [
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface FAQProps {
+  data?: {
+    faqs?: FAQItem[];
+  } | null;
+}
+
+export function FAQ({ data }: FAQProps) {
+  const defaultFaqs = [
     { question: "What is the admission procedure for Class XI?", answer: "Admission to Class XI is based on the student's performance in the Class X board exams and an internal aptitude test. We offer Science (PCM/PCB), Commerce, and Humanities streams." },
     { question: "Does the school provide transport facilities?", answer: "Yes, we provide GPS-enabled, air-conditioned bus services covering a 20km radius around the school. All buses have a dedicated female attendant." },
     { question: "What is the student-teacher ratio?", answer: "We maintain a healthy student-teacher ratio of 25:1 to ensure personalized attention for every child in the classroom." },
     { question: "Are there any integrated coaching programs?", answer: "Yes, we offer integrated foundation coaching for IIT-JEE, NEET, and Olympiads starting from Class VIII, conducted by expert faculty during school hours." },
     { question: "What extracurricular activities are available?", answer: "We offer a wide range of activities including Cricket, Basketball, Swimming, Classical Music, Dance, Robotics, and Debate clubs." },
   ];
+
+  const faqs = data?.faqs && data.faqs.length > 0
+    ? data.faqs
+    : defaultFaqs;
 
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 

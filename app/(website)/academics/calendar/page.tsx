@@ -1,13 +1,35 @@
-import React from 'react';
+import React from "react";
+import { Calendar } from "lucide-react";
 
-export default function AcademicsCalendarPage() {
+async function getAcademics() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/public/landing`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? json.data?.academics : null;
+  } catch { return null; }
+}
+
+export default async function AcademicCalendarPage() {
+  const academics = await getAcademics();
+  const cal = academics?.academic_calendar;
   return (
-    <div className="py-20 px-4 md:px-8 max-w-7xl mx-auto min-h-[60vh]">
-      <h1 className="text-4xl font-bold mb-6 capitalize">Academics Calendar</h1>
-      <p className="text-gray-600 mb-8">This is the placeholder page for the Academics Calendar section.</p>
-      <div className="p-8 bg-gray-50 border border-gray-200 rounded-2xl">
-        <p className="text-gray-500">Content for this section will be added here soon.</p>
-      </div>
-    </div>
+    <main className="py-20 px-4 md:px-8 max-w-5xl mx-auto min-h-[60vh]">
+      <h1 className="text-4xl font-serif font-bold text-[#0F172A] mb-3">Academic Calendar</h1>
+      <p className="text-[#F59E0B] font-bold uppercase tracking-widest text-[12px] mb-10">Important Dates & Events</p>
+      {cal ? (
+        <div className="bg-white border border-slate-200 rounded-sm shadow-md p-8">
+          <div className="flex items-start gap-4 mb-6">
+            <Calendar className="w-8 h-8 text-[#F59E0B] shrink-0 mt-1" />
+            <p className="text-[15px] text-slate-600 leading-relaxed whitespace-pre-line">{cal}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-8 bg-gray-50 border border-gray-200 rounded-2xl">
+          <p className="text-gray-500">Academic calendar will appear here. Add it from <strong>Admin → Website → Academics</strong>.</p>
+        </div>
+      )}
+    </main>
   );
 }

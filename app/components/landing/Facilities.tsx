@@ -1,17 +1,40 @@
 import React from "react";
-import { MonitorPlay, TestTube2, Library, Trophy, Bus, Mic2, Music, Presentation } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 
-export function Facilities() {
-  const facilities = [
-    { icon: <MonitorPlay />, title: "Smart Computer Labs", bg: "bg-blue-900" },
-    { icon: <TestTube2 />, title: "Physics/Chem/Bio Labs", bg: "bg-blue-800" },
-    { icon: <Library />, title: "Digital Library", bg: "bg-blue-900" },
-    { icon: <Trophy />, title: "Sports Complex", bg: "bg-blue-800" },
-    { icon: <Bus />, title: "GPS Transport", bg: "bg-blue-900" },
-    { icon: <Mic2 />, title: "AC Auditorium", bg: "bg-blue-800" },
-    { icon: <Music />, title: "Performing Arts", bg: "bg-blue-900" },
-    { icon: <Presentation />, title: "Smart Classrooms", bg: "bg-blue-800" }
+interface FacilityItem {
+  icon: string;
+  title: string;
+}
+
+interface FacilitiesProps {
+  data?: {
+    facilities?: FacilityItem[];
+  } | null;
+}
+
+export function Facilities({ data }: FacilitiesProps) {
+  const defaultFacilities = [
+    { icon: "MonitorPlay", title: "Smart Computer Labs" },
+    { icon: "TestTube2", title: "Physics/Chem/Bio Labs" },
+    { icon: "Library", title: "Digital Library" },
+    { icon: "Trophy", title: "Sports Complex" },
+    { icon: "Bus", title: "GPS Transport" },
+    { icon: "Mic2", title: "AC Auditorium" },
+    { icon: "Music", title: "Performing Arts" },
+    { icon: "Presentation", title: "Smart Classrooms" }
   ];
+
+  const facilities = data?.facilities && data.facilities.length > 0
+    ? data.facilities
+    : defaultFacilities;
+
+  const renderIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as any)[iconName];
+    if (IconComponent) {
+      return <IconComponent className="w-8 h-8" />;
+    }
+    return <LucideIcons.Star className="w-8 h-8" />;
+  };
 
   return (
     <section id="facilities" className="py-24 bg-[#0F172A] text-white relative overflow-hidden">
@@ -32,8 +55,8 @@ export function Facilities() {
         <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-6">
           {facilities.map((fac, idx) => (
             <div key={idx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-sm p-8 flex flex-col items-center justify-center text-center hover:bg-[#F59E0B] transition-colors cursor-pointer group">
-              <div className={`w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                {React.cloneElement(fac.icon as React.ReactElement<any>, { className: "w-8 h-8" })}
+              <div className="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                {renderIcon(fac.icon)}
               </div>
               <h4 className="text-[15px] font-bold text-white tracking-wide">{fac.title}</h4>
             </div>
