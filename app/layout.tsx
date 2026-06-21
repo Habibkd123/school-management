@@ -11,7 +11,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Portal | Modern School ERP",
+  title: "Portal | My School Life",
   description: "A premium, unified dashboard for managing school operations, attendance, grading, billing, and scheduling.",
 };
 
