@@ -61,14 +61,15 @@ export async function GET(req: NextRequest) {
         .populate("class_teacher_id", "name employee_id")
         .sort({ name: sortOrder, section: 1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Class.countDocuments(query),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: { classes, total, page, limit, totalPages: Math.ceil(total / limit) },
-    });
+    return NextResponse.json(
+      { success: true, data: { classes, total, page, limit, totalPages: Math.ceil(total / limit) } },
+      { headers: { "Cache-Control": "private, max-age=120, stale-while-revalidate=300" } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json({ success: false, message }, { status: 500 });
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
     const newClass = await Class.create({
       school_id: schoolId as string,
       name: name.trim(),
-      section: section?.trim() || "A",
+      section: section?.trim() || "",
       academic_year: academic_year.trim(),
       class_teacher_id: class_teacher_id || null,
       capacity: capacity ? parseInt(capacity) : 40,

@@ -114,7 +114,9 @@ export default function TeachersPage() {
 
   const getClassName = (teacher: ApiTeacher) => {
     if (teacher.class_id && typeof teacher.class_id === "object") {
-      return `${teacher.class_id.name} - ${teacher.class_id.section}`;
+      return teacher.class_id.section 
+        ? `${teacher.class_id.name} - ${teacher.class_id.section}`
+        : teacher.class_id.name;
     }
     return "None / Floating";
   };

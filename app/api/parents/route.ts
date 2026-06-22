@@ -27,15 +27,24 @@ export async function GET(request: NextRequest) {
 
     const parents = await Parent.find(filter).sort({ name: 1 }).lean();
     
-    // Fetch children for each parent
-    const parentsWithChildren = await Promise.all(
-      parents.map(async (parent) => {
-        const children = await Student.find({ parent_id: parent._id })
-          .populate("class_id", "name section")
-          .lean();
-        return { ...parent, children };
-      })
-    );
+    // Fetch ALL children for these parents in a single query (avoids N+1)
+    const parentIds = parents.map((p: any) => p._id);
+    const allChildren = await Student.find({ parent_id: { $in: parentIds } })
+      .populate("class_id", "name section")
+      .lean();
+
+    // Group children by parent_id
+    const childrenByParent: Record<string, any[]> = {};
+    for (const child of allChildren) {
+      const pid = String((child as any).parent_id);
+      if (!childrenByParent[pid]) childrenByParent[pid] = [];
+      childrenByParent[pid].push(child);
+    }
+
+    const parentsWithChildren = parents.map((parent: any) => ({
+      ...parent,
+      children: childrenByParent[String(parent._id)] ?? [],
+    }));
 
     return NextResponse.json({
       success: true,

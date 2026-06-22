@@ -26,8 +26,8 @@ function getStudentDefaultPassword(dob?: string | null): string {
     if (!isNaN(d.getTime())) {
       const day   = String(d.getDate()).padStart(2, "0");
       const month = String(d.getMonth() + 1).padStart(2, "0");
-      const year  = d.getFullYear().toString();
-      return `${day}${month}${year}`;
+      const yy    = d.getFullYear().toString().slice(-2);
+      return `${day}${month}${yy}`;
     }
   }
   return "student123";
@@ -70,6 +70,7 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
   if (target === "student" && student) {
     name    = student.name;
     subtext = getClassName(student.class_id);
+    // Prefer the linked User account email (auto-generated login ID), then student.email
     email   = (student.user_id && typeof student.user_id === "object" && student.user_id.email)
       ? student.user_id.email
       : (student.email || "");
@@ -227,7 +228,7 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
                   <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
                     {target === "student" && (
                       <>
-                        Default password = <strong>Date of Birth</strong> in <strong>DDMMYYYY</strong> format.
+                        Default password = <strong>Date of Birth</strong> in <strong>DDMMYY</strong> format.
                         If DOB was not provided, password is <strong>student123</strong>.
                         Student must change password on first login.
                       </>

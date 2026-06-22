@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
     const masters = await FeeMaster.find(query)
       .populate("fee_group_id", "name description")
       .populate("fee_type_id", "name description")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json({ success: true, data: { masters } });
   } catch (error: any) {

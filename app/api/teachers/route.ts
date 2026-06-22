@@ -95,10 +95,10 @@ export async function GET(req: NextRequest) {
       Teacher.countDocuments(query),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: { teachers, total, page, limit }
-    });
+    return NextResponse.json(
+      { success: true, data: { teachers, total, page, limit } },
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || "Internal server error" },

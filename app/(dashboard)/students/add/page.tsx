@@ -7,9 +7,12 @@ import { useClasses } from "../../../hooks/useClasses";
 import { useStudents } from "../../../hooks/useStudents";
 import { useUpload } from "../../../hooks/useUpload";
 import {
-  Upload, User, FileText, MapPin, Users, Activity, CreditCard, Home,
-  Plus, X, XCircle, Loader2, ImageIcon
+  Upload, User, FileText, MapPin, Users, CreditCard, Home,
+  Plus, X, XCircle, Loader2, ImageIcon, Copy, Check, Lock, KeyRound
 } from "lucide-react";
+
+// ─── School slug from env (used to build login ID) ────────────────
+const SCHOOL_SLUG = process.env.NEXT_PUBLIC_SCHOOL_SLUG || "school";
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface SiblingRow { id: number; name: string; rollNo: string; admNo: string; cls: string; }
@@ -228,7 +231,6 @@ function AddStudentContent() {
   const [email, setEmail] = useState("");
   const [gender, setGender] = useState("Select");
   const [dob, setDob] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("Select");
   const [admissionNo, setAdmissionNo] = useState("");
   const [admissionDate, setAdmissionDate] = useState("");
   const [languages, setLanguages] = useState<string[]>(["English"]);
@@ -236,10 +238,34 @@ function AddStudentContent() {
   const [category, setCategory] = useState("Select");
   const [house, setHouse] = useState("Select");
   const [motherTongue, setMotherTongue] = useState("Select");
-  const [caste, setCaste] = useState("");
   const [primaryPhone, setPrimaryPhone] = useState("");
   const [section, setSection] = useState("Select");
-  const [academicYear, setAcademicYear] = useState("June 2024 - 2025");
+  const [academicYear, setAcademicYear] = useState("June 2025 - 2026");
+
+  // ── Login Credentials Popup ────────────────────────────────────
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{ loginId: string; password: string } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Helper: generate login ID from first name, DOB day, and school slug
+  const generateLoginId = (name: string, dobStr: string): string => {
+    const namePart = name.toLowerCase().replace(/\s+/g, "");
+    let dobDay = "";
+    if (dobStr) {
+      const dobDate = new Date(dobStr);
+      if (!isNaN(dobDate.getTime())) {
+        dobDay = String(dobDate.getDate());
+      }
+    }
+    return `${namePart}${dobDay}.${SCHOOL_SLUG}@gmail.com`;
+  };
+
+  const handleCopyCredential = (text: string, field: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  };
 
   // ── Parents ────────────────────────────────────────────────────
   const [fatherPhoto, setFatherPhoto] = useState("");
@@ -322,13 +348,11 @@ function AddStudentContent() {
           if (student.photo_url) setPhotoPreview(student.photo_url);
           if (student.gender) setGender(student.gender.charAt(0).toUpperCase() + student.gender.slice(1));
           if (student.dob) setDob(new Date(student.dob).toISOString().split("T")[0]);
-          if (student.blood_group) setBloodGroup(student.blood_group);
           if (student.admission_no) setAdmissionNo(student.admission_no);
           if (student.admission_date) setAdmissionDate(new Date(student.admission_date).toISOString().split("T")[0]);
           if (student.academic_year) setAcademicYear(student.academic_year);
           if (student.religion) setReligion(student.religion);
           if (student.category) setCategory(student.category);
-          if (student.caste) setCaste(student.caste);
           if (student.mother_tongue) setMotherTongue(student.mother_tongue);
           if (student.languages) setLanguages(student.languages);
           if (student.house) setHouse(student.house);
@@ -502,8 +526,9 @@ function AddStudentContent() {
     setIsSubmitting(true);
 
     try {
+      const studentName = `${firstName} ${lastName}`.trim() || "New Student";
       const payload = {
-        name: `${firstName} ${lastName}`.trim() || "New Student",
+        name: studentName,
         email: email || undefined,
         guardian_email: guardianEmail || fatherEmail || undefined,
         class_id: classId || classOptions[0]?.value || "",
@@ -514,7 +539,6 @@ function AddStudentContent() {
         photo_url: photoPreview || undefined,
         gender: gender !== "Select" ? gender.toLowerCase() : undefined,
         dob: dob || undefined,
-        blood_group: bloodGroup !== "Select" ? bloodGroup : undefined,
         admission_no: admissionNo || undefined,
         admission_date: admissionDate || undefined,
         address: currentAddress || undefined,
@@ -522,7 +546,6 @@ function AddStudentContent() {
         guardian_photo: guardianPhoto || fatherPhoto || motherPhoto || undefined,
         religion: religion !== "Select" ? religion : undefined,
         category: category !== "Select" ? category : undefined,
-        caste: caste || undefined,
         mother_tongue: motherTongue !== "Select" ? motherTongue : undefined,
         languages: languages,
         house: house !== "Select" ? house : undefined,
@@ -553,20 +576,38 @@ function AddStudentContent() {
         guardian_address: guardianAddress || undefined,
         permanent_address: permanentAddress || undefined,
         other_info: otherInfo || undefined,
+        academic_year: academicYear || undefined,
       };
 
       let result;
       if (editId) {
         result = await updateStudent(editId, payload as any);
+        if (result?.success !== false) {
+          router.push("/students");
+        } else {
+          alert(result.message || "Failed to save student");
+        }
       } else {
         result = await createStudent(payload as any);
-      }
-
-      // Only navigate away on success
-      if (result?.success !== false) {
-        router.push("/students");
-      } else {
-        alert(result.message || "Failed to save student");
+        if (result?.success !== false) {
+          // Build login credentials to show in popup
+          const loginId = generateLoginId(firstName || studentName, dob);
+          // Password: DDMMYY format from DOB
+          let password = "student123";
+          if (dob) {
+            const dobDate = new Date(dob);
+            if (!isNaN(dobDate.getTime())) {
+              const dd = String(dobDate.getDate()).padStart(2, "0");
+              const mm = String(dobDate.getMonth() + 1).padStart(2, "0");
+              const yy = dobDate.getFullYear().toString().slice(-2);
+              password = `${dd}${mm}${yy}`;
+            }
+          }
+          setCreatedCredentials({ loginId: email || loginId, password });
+          setShowCredentials(true);
+        } else {
+          alert(result.message || "Failed to save student");
+        }
       }
     } finally {
       // Always reset flags so the user can try again on error
@@ -610,7 +651,7 @@ function AddStudentContent() {
               />
               {/* Form Grid */}
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 text-left">
-                <InputGroup label="Academic Year" type="select" value={academicYear} onChange={e => setAcademicYear(e.target.value)} options={["June 2023 - 2024", "June 2024 - 2025", "June 2025 - 2026"]} />
+                <InputGroup label="Academic Year" type="select" value={academicYear} onChange={e => setAcademicYear(e.target.value)} options={["June 2024 - 2025", "June 2025 - 2026", "June 2026 - 2027"]} />
                 <InputGroup label="Admission Number" placeholder="Auto-generated" value={admissionNo} onChange={e => setAdmissionNo(e.target.value)} />
                 <InputGroup label="Admission Date" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} />
                 <InputGroup label="Roll Number" value={rollNo} onChange={e => setRollNo(e.target.value)} />
@@ -618,19 +659,16 @@ function AddStudentContent() {
                 <InputGroup label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
                 <InputGroup label="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} />
                 <InputGroup label="Class" type="select" value={classId} onChange={e => setClassId(e.target.value)} options={[{ label: "Select", value: "" }, ...classOptions]} />
-                <InputGroup label="Section" type="select" value={section} onChange={e => setSection(e.target.value)} options={["Select", "A", "B", "C", "D"]} />
+                {/* Section hidden per user request — auto-derived from class */}
 
                 <InputGroup label="Gender" type="select" value={gender} onChange={e => setGender(e.target.value)} options={["Select", "Male", "Female"]} />
                 <InputGroup label="Date of Birth" type="date" value={dob} onChange={e => setDob(e.target.value)} />
-                <InputGroup label="Blood Group" type="select" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} options={["Select", "A+", "A-", "O+", "O-", "B+", "B-", "AB+", "AB-"]} />
                 <InputGroup label="House" type="select" value={house} onChange={e => setHouse(e.target.value)} options={["Select", "Red", "Blue", "Green", "Yellow"]} />
-
                 <InputGroup label="Religion" type="select" value={religion} onChange={e => setReligion(e.target.value)} options={["Select", "Christian", "Muslim", "Hindu", "Other"]} />
+
                 <InputGroup label="Category" type="select" value={category} onChange={e => setCategory(e.target.value)} options={["Select", "General", "OBC", "SC/ST"]} />
                 <InputGroup label="Primary Contact Number" value={primaryPhone} onChange={e => setPrimaryPhone(e.target.value)} />
-                <InputGroup label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-
-                <InputGroup label="Caste" value={caste} onChange={e => setCaste(e.target.value)} />
+                <InputGroup label="Email Address (Optional)" type="email" value={email} onChange={e => setEmail(e.target.value)} />
                 <InputGroup label="Mother Tongue" type="select" value={motherTongue} onChange={e => setMotherTongue(e.target.value)} options={["Select", "English", "Hindi", "Urdu", "French", "Arabic"]} />
                 <div className="col-span-1 xl:col-span-2">
                   <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Language Known</label>
@@ -664,25 +702,7 @@ function AddStudentContent() {
               </div>
             </div>
 
-            {/* Mother */}
-            <div>
-              <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 mb-4 border-b border-border pb-2 text-left">Mother Info</h3>
-              <div className="flex flex-col lg:flex-row gap-8">
-                <PhotoUploader
-                  label="Mother Photo"
-                  preview={motherPhoto}
-                  onChange={handleMotherPhoto}
-                  onRemove={() => setMotherPhoto("")}
-                  uploading={uploadingMotherPhoto}
-                />
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 text-left">
-                  <InputGroup label="Mother Name" value={motherName} onChange={e => setMotherName(e.target.value)} />
-                  <InputGroup label="Email" type="email" value={motherEmail} onChange={e => setMotherEmail(e.target.value)} />
-                  <InputGroup label="Phone Number" value={motherPhone} onChange={e => setMotherPhone(e.target.value)} />
-                  <InputGroup label="Mother Occupation" value={motherOccupation} onChange={e => setMotherOccupation(e.target.value)} />
-                </div>
-              </div>
-            </div>
+            {/* Mother section hidden per user request */}
 
             {/* Guardian */}
             <div>
@@ -785,55 +805,7 @@ function AddStudentContent() {
           </div>
         </SectionCard>
 
-        {/* ── 5. Documents ── */}
-        <SectionCard icon={<FileText className="w-4 h-4" />} title="Documents">
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-            <DocUploader label="Medical Certificate" doc={medicalCert} onChange={handleMedicalCert} uploading={uploadingMedicalCert} />
-            <DocUploader label="Migration Certificate" doc={migrationCert} onChange={handleMigrationCert} uploading={uploadingMigrationCert} />
-            <DocUploader label="Transfer Certificate" doc={transferCert} onChange={handleTransferCert} uploading={uploadingTransferCert} />
-            <DocUploader label="Birth Certificate" doc={birthCert} onChange={handleBirthCert} uploading={uploadingBirthCert} />
-          </div>
-        </SectionCard>
-
-        {/* ── 6. Medical History ── */}
-        <SectionCard icon={<Activity className="w-4 h-4" />} title="Medical History">
-          <div className="p-6 space-y-5 text-left">
-            <div className="flex items-center gap-4 text-[13px] text-slate-700 dark:text-slate-200">
-              <label className="font-semibold">Medical Conditions?</label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="medical" className="accent-[#F59E0B]" checked={hasMedical} onChange={() => setHasMedical(true)} /> Yes
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="medical" className="accent-[#F59E0B]" checked={!hasMedical} onChange={() => setHasMedical(false)} /> No
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                Allergies <span className="text-slate-400 font-normal">(type and press Enter)</span>
-              </label>
-              <TagInput tags={allergies} onChange={setAllergies} placeholder="e.g. Peanuts, Dust..." />
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                Medications <span className="text-slate-400 font-normal">(type and press Enter)</span>
-              </label>
-              <TagInput tags={medications} onChange={setMedications} placeholder="e.g. Paracetamol..." />
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Additional Notes</label>
-              <textarea
-                value={medicalNotes}
-                onChange={e => setMedicalNotes(e.target.value)}
-                rows={3}
-                placeholder="Any other medical notes..."
-                className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-[#F59E0B]/50 transition-all resize-none"
-              />
-            </div>
-          </div>
-        </SectionCard>
+        {/* Documents and Medical History sections are temporarily hidden */}
 
         {/* ── 7. Previous School ── */}
         <SectionCard icon={<Home className="w-4 h-4" />} title="Previous School Details">
@@ -877,6 +849,86 @@ function AddStudentContent() {
         </div>
 
       </form>
+
+      {/* ── Login Credentials Popup ── */}
+      {showCredentials && createdCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-border animate-in fade-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="flex items-center gap-3 p-5 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center">
+                <Lock className="w-5 h-5 text-[#F59E0B]" />
+              </div>
+              <div>
+                <h2 className="text-[16px] font-bold text-slate-900 dark:text-white">Student Created Successfully! 🎉</h2>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">Save these login credentials before closing</p>
+              </div>
+            </div>
+
+            {/* Credentials */}
+            <div className="p-5 space-y-4">
+              {/* Login ID */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-border">
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Login ID (Username)</p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-white font-mono break-all">{createdCredentials.loginId}</span>
+                  <button
+                    onClick={() => handleCopyCredential(createdCredentials.loginId, "loginId")}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] transition-colors"
+                    title="Copy Login ID"
+                  >
+                    {copiedField === "loginId" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-border">
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <KeyRound className="w-3 h-3" /> Default Password
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-white font-mono tracking-widest">{createdCredentials.password}</span>
+                  <button
+                    onClick={() => handleCopyCredential(createdCredentials.password, "password")}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] transition-colors"
+                    title="Copy Password"
+                  >
+                    {copiedField === "password" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Copy All button */}
+              <button
+                onClick={() => handleCopyCredential(
+                  `Login ID: ${createdCredentials.loginId}\nPassword: ${createdCredentials.password}`,
+                  "all"
+                )}
+                className="w-full py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                {copiedField === "all" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedField === "all" ? "Copied!" : "Copy All to Clipboard"}
+              </button>
+
+              <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                Password format: <strong>DDMMYY</strong> (Date of Birth). Student must change password on first login.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-border flex justify-end">
+              <button
+                onClick={() => { setShowCredentials(false); router.push("/students"); }}
+                className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[13px] font-bold rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Done — Go to Students
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

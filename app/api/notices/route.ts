@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
     const notices = await Notice.find({ school_id: schoolId })
       .sort({ createdAt: -1 })
       .limit(limit);
-    return NextResponse.json({ success: true, data: { notices } });
+    return NextResponse.json(
+      { success: true, data: { notices } },
+      { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" } }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

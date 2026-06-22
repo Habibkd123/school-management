@@ -427,7 +427,7 @@ function StudentViewContent() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Email Address</p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.email}</p>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">{student.email || "—"}</p>
                 </div>
               </div>
             </div>

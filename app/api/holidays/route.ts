@@ -10,7 +10,10 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
     const holidays = await Holiday.find({ school_id: schoolId }).sort({ date: 1 });
-    return NextResponse.json({ success: true, data: holidays });
+    return NextResponse.json(
+      { success: true, data: holidays },
+      { headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=600" } }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

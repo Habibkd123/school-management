@@ -135,100 +135,16 @@ interface AppContextType extends AppState {
   deleteNotice: (id: string) => void;
 }
 
-const defaultStudents: Student[] = [
-  { id: "s1", name: "Alex Rivera", email: "alex.rivera@school.com", classId: "c1", rollNo: "01", status: "Active", joinedDate: "2025-08-15", parentName: "Maria Rivera", parentContact: "+1 (555) 123-4567" },
-  { id: "s2", name: "Chloe Chen", email: "chloe.chen@school.com", classId: "c1", rollNo: "02", status: "Active", joinedDate: "2025-08-15", parentName: "Bo Chen", parentContact: "+1 (555) 234-5678" },
-  { id: "s3", name: "Daniel Kim", email: "daniel.kim@school.com", classId: "c2", rollNo: "01", status: "Active", joinedDate: "2025-08-15", parentName: "Sun-Hee Kim", parentContact: "+1 (555) 345-6789" },
-  { id: "s4", name: "Emily Watson", email: "emily.watson@school.com", classId: "c3", rollNo: "01", status: "Active", joinedDate: "2025-08-15", parentName: "Richard Watson", parentContact: "+1 (555) 456-7890" },
-  { id: "s5", name: "Frank Miller", email: "frank.miller@school.com", classId: "c4", rollNo: "01", status: "Active", joinedDate: "2025-08-15", parentName: "John Miller", parentContact: "+1 (555) 567-8901" },
-  { id: "s6", name: "Grace Hopper", email: "grace.hopper@school.com", classId: "c1", rollNo: "03", status: "Active", joinedDate: "2025-08-16", parentName: "Sarah Hopper", parentContact: "+1 (555) 678-9012" },
-  { id: "s7", name: "Henry Cavill", email: "henry.cavill@school.com", classId: "c2", rollNo: "02", status: "Active", joinedDate: "2025-08-16", parentName: "Colin Cavill", parentContact: "+1 (555) 789-0123" },
-  { id: "s8", name: "Isabella Ross", email: "isabella.ross@school.com", classId: "c3", rollNo: "02", status: "Active", joinedDate: "2025-08-17", parentName: "Patricia Ross", parentContact: "+1 (555) 890-1234" }
-];
-
-const defaultTeachers: Teacher[] = [
-  { id: "t1", name: "Sarah Jenkins", email: "s.jenkins@school.com", subject: "English", classId: "c1", joinedDate: "2022-09-01", status: "Active" },
-  { id: "t2", name: "David Miller", email: "d.miller@school.com", subject: "Mathematics", classId: "c2", joinedDate: "2021-08-15", status: "Active" },
-  { id: "t3", name: "Elena Rostova", email: "e.rostova@school.com", subject: "Science", classId: "c3", joinedDate: "2023-01-10", status: "Active" },
-  { id: "t4", name: "Marcus Aurelius", email: "m.aurelius@school.com", subject: "History", classId: "c4", joinedDate: "2020-08-01", status: "Active" }
-];
-
-const defaultClasses: SchoolClass[] = [
-  { id: "c1", name: "Class 10A", room: "Room 301", teacherId: "t1", subjects: ["English", "Mathematics", "Science"] },
-  { id: "c2", name: "Class 10B", room: "Room 302", teacherId: "t2", subjects: ["Mathematics", "Science", "History"] },
-  { id: "c3", name: "Class 9A", room: "Room 201", teacherId: "t3", subjects: ["English", "Science", "Geography"] },
-  { id: "c4", name: "Class 9B", room: "Room 202", teacherId: "t4", subjects: ["Mathematics", "History", "Civics"] }
-];
-
-const defaultAttendance: AttendanceStore = {
-  s1: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Late", "2026-06-02": "Present", "2026-06-01": "Present" },
-  s2: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Present", "2026-06-02": "Absent", "2026-06-01": "Present" },
-  s3: { "2026-06-05": "Absent", "2026-06-04": "Absent", "2026-06-03": "Present", "2026-06-02": "Present", "2026-06-01": "Present" },
-  s4: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Present", "2026-06-02": "Present", "2026-06-01": "Present" },
-  s5: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Present", "2026-06-02": "Present", "2026-06-01": "Present" },
-  s6: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Late", "2026-06-02": "Present", "2026-06-01": "Present" },
-  s7: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Present", "2026-06-02": "Present", "2026-06-01": "Absent" },
-  s8: { "2026-06-05": "Present", "2026-06-04": "Present", "2026-06-03": "Present", "2026-06-02": "Present", "2026-06-01": "Present" }
-};
-
-const defaultHomework: Homework[] = [
-  {
-    id: "h1",
-    title: "Shakespearean Drama Essay",
-    description: "Write a 500-word essay detailing the role of the supernatural in Macbeth and Hamlet. Support with text references.",
-    classId: "c1",
-    subject: "English",
-    assignedDate: "2026-06-04",
-    dueDate: "2026-06-10",
-    submissions: [
-      { studentId: "s1", submittedAt: "2026-06-05T14:30:00Z", content: "Supernatural elements drive the plot in Macbeth through the witches...", grade: "A", feedback: "Excellent analysis and structured arguments!" }
-    ]
-  },
-  {
-    id: "h2",
-    title: "Quadratic Equations Worksheet",
-    description: "Complete exercises 1 to 15 on page 112 of the Mathematics textbook.",
-    classId: "c2",
-    subject: "Mathematics",
-    assignedDate: "2026-06-05",
-    dueDate: "2026-06-09",
-    submissions: []
-  },
-  {
-    id: "h3",
-    title: "Photosynthesis Experiment Log",
-    description: "Write down the observations of the elodea plant experiment under different light intensities.",
-    classId: "c3",
-    subject: "Science",
-    assignedDate: "2026-06-06",
-    dueDate: "2026-06-08",
-    submissions: []
-  }
-];
-
-const defaultGrades: Grade[] = [
-  { id: "g1", studentId: "s1", subject: "English", examName: "Mid-Term", score: 88, maxScore: 100, date: "2026-04-15" },
-  { id: "g2", studentId: "s1", subject: "Mathematics", examName: "Mid-Term", score: 92, maxScore: 100, date: "2026-04-16" },
-  { id: "g3", studentId: "s1", subject: "Science", examName: "Mid-Term", score: 85, maxScore: 100, date: "2026-04-17" },
-  { id: "g4", studentId: "s2", subject: "English", examName: "Mid-Term", score: 94, maxScore: 100, date: "2026-04-15" },
-  { id: "g5", studentId: "s2", subject: "Mathematics", examName: "Mid-Term", score: 78, maxScore: 100, date: "2026-04-16" },
-  { id: "g6", studentId: "s3", subject: "Mathematics", examName: "Mid-Term", score: 81, maxScore: 100, date: "2026-04-16" }
-];
-
-const defaultFees: FeeInvoice[] = [
-  { id: "f1", studentId: "s1", title: "Term 1 Tuition Fees", amount: 1500, dueDate: "2026-05-01", status: "Paid", paidDate: "2026-04-28" },
-  { id: "f2", studentId: "s1", title: "Term 2 Tuition Fees", amount: 1500, dueDate: "2026-06-30", status: "Unpaid" },
-  { id: "f3", studentId: "s2", title: "Term 1 Tuition Fees", amount: 1500, dueDate: "2026-05-01", status: "Paid", paidDate: "2026-04-29" },
-  { id: "f4", studentId: "s3", title: "Term 1 Tuition Fees", amount: 1500, dueDate: "2026-05-01", status: "Overdue" },
-  { id: "f5", studentId: "s4", title: "Term 1 Tuition Fees", amount: 1500, dueDate: "2026-05-01", status: "Paid", paidDate: "2026-05-01" },
-  { id: "f6", studentId: "s5", title: "Term 1 Tuition Fees", amount: 1500, dueDate: "2026-05-01", status: "Unpaid" }
-];
-
-const defaultNotices: Notice[] = [
-  { id: "n1", title: "Annual Sports Day Registrations", content: "Registrations for the Annual Sports Day track & field events are now open. Reach out to the physical education department.", target: "All", date: "2026-06-05", type: "Announcement", author: "Administration" },
-  { id: "n2", title: "Final Examinations Prep Schedule", content: "The final examinations schedule has been uploaded. Revision classes will take place from Monday to Thursday after normal school hours.", target: "All", date: "2026-06-03", type: "Alert", author: "Principal Office" },
-  { id: "n3", title: "Faculty Training: EdTech Integration", content: "A seminar on integrating new digital resources into lesson plans will happen this Friday at 3:00 PM in the auditorium.", target: "Teachers", date: "2026-06-06", type: "Event", author: "IT Department" }
-];
+// ── Mock defaults removed — all data now served from the real API/DB ──
+// Empty arrays prevent unnecessary localStorage serialization on every render.
+const defaultStudents: Student[]      = [];
+const defaultTeachers: Teacher[]      = [];
+const defaultClasses: SchoolClass[]   = [];
+const defaultAttendance: AttendanceStore = {};
+const defaultHomework: Homework[]     = [];
+const defaultGrades: Grade[]          = [];
+const defaultFees: FeeInvoice[]       = [];
+const defaultNotices: Notice[]        = [];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -245,112 +161,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [notices, setNotices] = useState<Notice[]>(defaultNotices);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from local storage
+  // Load lightweight prefs from localStorage (role + academic year only)
   useEffect(() => {
     try {
       const storedRole = localStorage.getItem("sm_role");
       const storedYear = localStorage.getItem("sm_academic_year");
-      const storedStudents = localStorage.getItem("sm_students");
-      const storedTeachers = localStorage.getItem("sm_teachers");
-      const storedClasses = localStorage.getItem("sm_classes");
-      const storedAttendance = localStorage.getItem("sm_attendance");
-      const storedHomework = localStorage.getItem("sm_homework");
-      const storedGrades = localStorage.getItem("sm_grades");
-      const storedFees = localStorage.getItem("sm_fees");
-      const storedNotices = localStorage.getItem("sm_notices");
 
       if (storedRole) setActiveRole(storedRole as Role);
       // Restore stored year — header will auto-correct if not present in DB
       if (storedYear) setAcademicYearState(storedYear);
-      if (storedStudents) setStudents(JSON.parse(storedStudents));
-      if (storedTeachers) setTeachers(JSON.parse(storedTeachers));
-      if (storedClasses) setClasses(JSON.parse(storedClasses));
-      if (storedAttendance) setAttendance(JSON.parse(storedAttendance));
-      if (storedHomework) setHomework(JSON.parse(storedHomework));
-      if (storedGrades) setGrades(JSON.parse(storedGrades));
-      if (storedFees) setFees(JSON.parse(storedFees));
-      if (storedNotices) setNotices(JSON.parse(storedNotices));
     } catch (e) {
       console.error("Failed to load local state", e);
     }
     setIsLoaded(true);
   }, []);
 
-  // Fetch teachers from API
+  // NOTE: Teachers are no longer fetched here.
+  // useTeachers() has a module-level cache; fetching here was a duplicate request.
+
+  // ── Persist only lightweight UI preferences to localStorage ──────
+  // The bulk collections (students, teachers, etc.) are served from the
+  // real API, so we only save the two prefs that the header needs.
   useEffect(() => {
-    async function fetchTeachers() {
+    if (!isLoaded) return;
+    const timer = setTimeout(() => {
       try {
-        const res = await fetch("/api/teachers?limit=100", { headers: getAuthHeaders() });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          const apiTeachers = data.data.teachers.map((t: any) => ({
-            id: t._id,
-            name: t.name,
-            email: t.email || "",
-            subject: t.subject_specialization || "",
-            classId: "", // Not explicitly stored in teacher model but required by UI interface
-            joinedDate: new Date(t.join_date || t.createdAt).toISOString().split("T")[0],
-            status: t.is_active ? "Active" : "Inactive"
-          }));
-          setTeachers(apiTeachers);
-        }
-      } catch (err) {
-        console.error("Failed to fetch teachers from API:", err);
+        localStorage.setItem("sm_role", activeRole);
+        localStorage.setItem("sm_academic_year", academicYear);
+      } catch (e) {
+        console.error("Failed to persist local state", e);
       }
-    }
-    fetchTeachers();
-  }, []);
-
-  // Save changes to local storage
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_role", activeRole);
-  }, [activeRole, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_academic_year", academicYear);
-  }, [academicYear, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_students", JSON.stringify(students));
-  }, [students, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_teachers", JSON.stringify(teachers));
-  }, [teachers, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_classes", JSON.stringify(classes));
-  }, [classes, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_attendance", JSON.stringify(attendance));
-  }, [attendance, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_homework", JSON.stringify(homework));
-  }, [homework, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_grades", JSON.stringify(grades));
-  }, [grades, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_fees", JSON.stringify(fees));
-  }, [fees, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem("sm_notices", JSON.stringify(notices));
-  }, [notices, isLoaded]);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isLoaded, activeRole, academicYear]);
 
   // Actions
   const setRole = (role: Role) => setActiveRole(role);

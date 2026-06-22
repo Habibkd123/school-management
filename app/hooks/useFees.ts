@@ -193,9 +193,9 @@ export function useFeeAllocations(studentId?: string) {
   return { allocations, loading, fetchAllocations, allocateFees };
 }
 
-export function useFeePayments(studentId?: string) {
+export function useFeePayments(studentId?: string, options?: { skip?: boolean }) {
   const [payments, setPayments] = useState<ApiFeePayment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(options?.skip ? false : true);
 
   const fetchPayments = useCallback(async (sId?: string) => {
     setLoading(true);
@@ -211,7 +211,10 @@ export function useFeePayments(studentId?: string) {
     }
   }, []);
 
-  useEffect(() => { fetchPayments(studentId); }, [fetchPayments, studentId]);
+  useEffect(() => {
+    if (options?.skip) return;
+    fetchPayments(studentId);
+  }, [fetchPayments, studentId, options?.skip]);
 
   const recordPayment = async (payload: any) => {
     const res = await fetch("/api/fees/payments", { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify(payload) });

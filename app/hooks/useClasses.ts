@@ -33,17 +33,46 @@ export interface FetchClassesParams {
   limit?: number;
 }
 
+// ─── Module-level cache (shared across all useClasses() instances) ──
+let _classesCache: ApiClass[] | null = null;
+let _cacheTimestamp = 0;
+const CACHE_TTL_MS = 60_000; // 60 seconds
+const _listeners = new Set<(classes: ApiClass[]) => void>();
+
+function invalidateCache() {
+  _classesCache = null;
+  _cacheTimestamp = 0;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────
 export function useClasses(options?: { skip?: boolean; filterByYear?: boolean }) {
-  const [classes, setClasses] = useState<ApiClass[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [classes, setClasses] = useState<ApiClass[]>(_classesCache ?? []);
+  const [isLoading, setIsLoading] = useState(_classesCache === null);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Subscribe to cache broadcasts
+  useEffect(() => {
+    const listener = (data: ApiClass[]) => setClasses(data);
+    _listeners.add(listener);
+    return () => { _listeners.delete(listener); };
+  }, []);
+
   // ─── Fetch all classes ──────────────────────────────────────────
   const fetchClasses = useCallback(async (params: FetchClassesParams = {}) => {
+    const isFiltered = !!(params.search || params.academic_year || params.section || params.sort);
+    const isFresh = _classesCache !== null && (Date.now() - _cacheTimestamp) < CACHE_TTL_MS;
+
+    // Serve from cache for unfiltered requests
+    if (isFresh && !isFiltered) {
+      setClasses(_classesCache!);
+      setTotal(_classesCache!.length);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -61,6 +90,14 @@ export function useClasses(options?: { skip?: boolean; filterByYear?: boolean })
 
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Failed to fetch");
+
+      // Only cache unfiltered results
+      if (!isFiltered) {
+        _classesCache = data.data.classes;
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(data.data.classes));
+      }
+
       setClasses(data.data.classes);
       setTotal(data.data.total ?? data.data.classes.length);
       setTotalPages(data.data.totalPages ?? 1);
@@ -76,8 +113,7 @@ export function useClasses(options?: { skip?: boolean; filterByYear?: boolean })
 
   useEffect(() => {
     if (options?.skip) return;
-    // Only filter by academic year when caller explicitly opts in
-    const params: FetchClassesParams = { limit: 1000 };
+    const params: FetchClassesParams = { limit: 500 };
     if (options?.filterByYear) params.academic_year = academicYear;
     fetchClasses(params);
   }, [fetchClasses, academicYear, options?.skip, options?.filterByYear]);
@@ -95,9 +131,14 @@ export function useClasses(options?: { skip?: boolean; filterByYear?: boolean })
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to create" };
 
-      setClasses((prev) => [...prev, data.data].sort((a, b) =>
+      const sorted = [...(_classesCache ?? []), data.data].sort((a, b) =>
         a.name.localeCompare(b.name) || a.section.localeCompare(b.section)
-      ));
+      );
+      _classesCache = sorted;
+      _cacheTimestamp = Date.now();
+      _listeners.forEach(fn => fn(sorted));
+
+      setClasses(sorted);
       return { success: true, message: "Class created successfully", data: data.data };
     } catch {
       return { success: false, message: "Network error" };
@@ -118,6 +159,14 @@ export function useClasses(options?: { skip?: boolean; filterByYear?: boolean })
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to update" };
 
+      if (_classesCache) {
+        _classesCache = _classesCache.map(c => c._id === id ? data.data : c);
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(_classesCache!));
+      } else {
+        invalidateCache();
+      }
+
       setClasses((prev) => prev.map((c) => (c._id === id ? data.data : c)));
       return { success: true, message: "Class updated successfully" };
     } catch {
@@ -134,6 +183,14 @@ export function useClasses(options?: { skip?: boolean; filterByYear?: boolean })
       });
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to delete" };
+
+      if (_classesCache) {
+        _classesCache = _classesCache.filter(c => c._id !== id);
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(_classesCache!));
+      } else {
+        invalidateCache();
+      }
 
       setClasses((prev) => prev.filter((c) => c._id !== id));
       return { success: true, message: "Class deleted successfully" };

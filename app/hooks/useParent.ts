@@ -16,12 +16,12 @@ export interface ApiChild {
   gender?: string;
 }
 
-export function useParent() {
+export function useParent(options?: { skip?: boolean }) {
   const { user } = useAuth();
   const { academicYear } = useAppState();
   const [children, setChildren] = useState<ApiChild[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(options?.skip ? false : true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchChildren = useCallback(async () => {
@@ -37,7 +37,6 @@ export function useParent() {
       if (data.success) {
         setChildren(data.data);
         if (data.data.length > 0) {
-          // Select the first child by default if none is selected yet, or if previous selected child is not in the new list
           setSelectedChildId((prev) => {
             if (prev && data.data.some((c: ApiChild) => c._id === prev)) {
               return prev;
@@ -58,12 +57,13 @@ export function useParent() {
   }, [academicYear]);
 
   useEffect(() => {
-    if (user?.role === "parent") {
-      fetchChildren();
-    } else {
+    // Skip if explicitly told to, or if user is not a parent
+    if (options?.skip || user?.role !== "parent") {
       setIsLoading(false);
+      return;
     }
-  }, [user, academicYear, fetchChildren]);
+    fetchChildren();
+  }, [user, academicYear, fetchChildren, options?.skip]);
 
   const selectedChild = children.find(c => c._id === selectedChildId) || null;
 

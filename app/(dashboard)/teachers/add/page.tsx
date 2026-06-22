@@ -549,7 +549,6 @@ function AddTeacherContent() {
                 <InputGroup label="Blood Group" type="select" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} options={["Select", "A+", "A-", "O+", "O-", "B+", "B-", "AB+", "AB-"]} />
                 <InputGroup label="Date of Joining" type="date" value={joinDate} onChange={e => setJoinDate(e.target.value)} />
                 <InputGroup label="Father's Name" value={fatherName} onChange={e => setFatherName(e.target.value)} />
-                <InputGroup label="Mother's Name" value={motherName} onChange={e => setMotherName(e.target.value)} />
                 <InputGroup label="Date of Birth" type="date" value={dob} onChange={e => setDob(e.target.value)} />
                 <InputGroup label="Marital Status" type="select" value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} options={["Select", "Single", "Married"]} />
                 <div className="col-span-1">
@@ -568,7 +567,6 @@ function AddTeacherContent() {
                 <InputGroup label="Previous School Phone" value={prevSchoolPhone} onChange={e => setPrevSchoolPhone(e.target.value)} />
                 <InputGroup label="Address" value={address} onChange={e => setAddress(e.target.value)} />
                 <InputGroup label="Permanent Address" value={permanentAddress} onChange={e => setPermanentAddress(e.target.value)} />
-                <InputGroup label="PAN / ID Number" value={panNumber} onChange={e => setPanNumber(e.target.value)} />
                 <InputGroup label="Status" type="select" value={status} onChange={e => setStatus(e.target.value as "Active" | "Inactive")} options={["Active", "Inactive"]} />
                 <div className="col-span-1 md:col-span-2 xl:col-span-4">
                   <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Notes</label>
@@ -588,7 +586,6 @@ function AddTeacherContent() {
         <SectionCard icon={<Briefcase className="w-4 h-4" />} title="Payroll">
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 text-left">
             <InputGroup label="EPF No" value={epfNo} onChange={e => setEpfNo(e.target.value)} />
-            <InputGroup label="Basic Salary" value={basicSalary} onChange={e => setBasicSalary(e.target.value)} />
             <InputGroup label="Contract Type" type="select" value={contractType} onChange={e => setContractType(e.target.value)} options={["Select", "Permanent", "Contract"]} />
             <InputGroup label="Work Shift" type="select" value={workShift} onChange={e => setWorkShift(e.target.value)} options={["Select", "Morning", "Evening"]} />
             <InputGroup label="Work Location" value={workLocation} onChange={e => setWorkLocation(e.target.value)} />
@@ -614,15 +611,6 @@ function AddTeacherContent() {
             <InputGroup label="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
             <InputGroup label="IFSC Code" value={ifscCode} onChange={e => setIfscCode(e.target.value)} />
             <InputGroup label="Branch Name" value={branchName} onChange={e => setBranchName(e.target.value)} />
-          </div>
-        </SectionCard>
-
-        {/* 5. Transport */}
-        <SectionCard icon={<Bus className="w-4 h-4" />} title="Transport Information">
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <InputGroup label="Route" type="select" value={route} onChange={e => setRoute(e.target.value)} options={["Select", "Route 1", "Route 2"]} />
-            <InputGroup label="Vehicle Number" type="select" value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} options={["Select", "Bus 42", "Bus 50"]} />
-            <InputGroup label="Pickup Point" type="select" value={pickupPoint} onChange={e => setPickupPoint(e.target.value)} options={["Select", "Point A", "Point B"]} />
           </div>
         </SectionCard>
 

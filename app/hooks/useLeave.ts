@@ -17,9 +17,9 @@ export interface ApiLeaveRequest {
   createdAt: string;
 }
 
-export function useLeave(statusFilter?: string, userId?: string) {
+export function useLeave(statusFilter?: string, userId?: string, options?: { skip?: boolean }) {
   const [leaveRequests, setLeaveRequests] = useState<ApiLeaveRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(options?.skip ? false : true);
 
   const fetchLeave = useCallback(async () => {
     setLoading(true);
@@ -38,7 +38,10 @@ export function useLeave(statusFilter?: string, userId?: string) {
     }
   }, [statusFilter, userId]);
 
-  useEffect(() => { fetchLeave(); }, [fetchLeave]);
+  useEffect(() => {
+    if (options?.skip) return;
+    fetchLeave();
+  }, [fetchLeave, options?.skip]);
 
   const submitLeave = useCallback(async (payload: Partial<ApiLeaveRequest>) => {
     const res = await fetch("/api/leave", {

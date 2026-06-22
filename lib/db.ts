@@ -8,8 +8,11 @@ if (!MONGODB_URI) {
   );
 }
 
+// ─── Mongoose global options ───────────────────────────────────────
+// Applied once; subsequent connectDB() calls reuse the cached connection.
+mongoose.set("bufferCommands", false); // fail fast — no silent query queuing
+
 // ─── Global cache to reuse connection across hot reloads ──────────
-// Next.js dev mode mein har request pe naya connection nahi banata
 declare global {
   // eslint-disable-next-line no-var
   var _mongooseCache: {
@@ -24,13 +27,27 @@ if (!cached) {
   cached = global._mongooseCache = { conn: null, promise: null };
 }
 
+const MONGOOSE_OPTS: mongoose.ConnectOptions = {
+  // Connection pool — allows up to 10 simultaneous DB operations
+  maxPoolSize: 10,
+  minPoolSize: 2,
+
+  // Timeout settings
+  serverSelectionTimeoutMS: 5_000,  // give up finding a server after 5 s
+  socketTimeoutMS: 45_000,          // close idle sockets after 45 s
+  connectTimeoutMS: 10_000,         // TCP connect timeout
+
+  // Keep connections alive through load-balancer idle timeouts
+  heartbeatFrequencyMS: 10_000,
+};
+
 async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((m) => m);
+    cached.promise = mongoose.connect(MONGODB_URI, MONGOOSE_OPTS).then((m) => m);
   }
 
   try {

@@ -13,7 +13,7 @@ const classSchema = new Schema<IClass>(
   {
     school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
     name: { type: String, required: true, trim: true },
-    section: { type: String, trim: true, default: "A" },
+    section: { type: String, trim: true, default: "" },
     academic_year: { type: String, required: true },
     class_teacher_id: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", default: null },
     capacity: { type: Number, default: 40 },

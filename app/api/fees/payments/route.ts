@@ -56,7 +56,8 @@ export async function GET(req: NextRequest) {
           { path: "fee_type_id", select: "name" }
         ]
       })
-      .sort({ transaction_date: -1 });
+      .sort({ transaction_date: -1 })
+      .lean();
 
     return NextResponse.json({ success: true, data: { payments } });
   } catch (error: any) {

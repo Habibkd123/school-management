@@ -169,12 +169,32 @@ export interface CreateTeacherInput {
   joining_letter_url?: string;
 }
 
+// ─── Module-level cache (shared across all useTeachers() instances) ─
+// Matches the pattern used in useStudents — prevents duplicate fetches
+// when multiple components mount simultaneously.
+let _teachersCache: ApiTeacher[] | null = null;
+let _cacheTimestamp = 0;
+const CACHE_TTL_MS = 60_000; // 60 seconds
+const _listeners = new Set<(teachers: ApiTeacher[]) => void>();
+
+function invalidateCache() {
+  _teachersCache = null;
+  _cacheTimestamp = 0;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────
 export function useTeachers(options?: { skip?: boolean }) {
-  const [teachers, setTeachers] = useState<ApiTeacher[]>([]);
+  const [teachers, setTeachers] = useState<ApiTeacher[]>(_teachersCache ?? []);
   const [total, setTotal] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(_teachersCache === null);
   const [error, setError] = useState<string | null>(null);
+
+  // Subscribe to cache broadcasts so all instances stay in sync
+  useEffect(() => {
+    const listener = (data: ApiTeacher[]) => setTeachers(data);
+    _listeners.add(listener);
+    return () => { _listeners.delete(listener); };
+  }, []);
 
   // ─── Fetch all teachers ─────────────────────────────────────────
   const fetchTeachers = useCallback(async (
@@ -209,6 +229,17 @@ export function useTeachers(options?: { skip?: boolean }) {
       limit = 500;
     }
 
+    const isFiltered = !!(search || status || dateRange || sort || isObject);
+    const isFresh = _teachersCache !== null && (Date.now() - _cacheTimestamp) < CACHE_TTL_MS;
+
+    // Use cache only for unfiltered legacy fetch (same strategy as useStudents)
+    if (isFresh && !isFiltered) {
+      setTeachers(_teachersCache!);
+      setTotal(_teachersCache!.length);
+      setIsLoading(false);
+      return { teachers: _teachersCache!, total: _teachersCache!.length };
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -226,6 +257,14 @@ export function useTeachers(options?: { skip?: boolean }) {
 
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Failed to fetch");
+
+      // Only cache unfiltered results
+      if (!isFiltered) {
+        _teachersCache = data.data.teachers;
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(data.data.teachers));
+      }
+
       setTeachers(data.data.teachers);
       setTotal(data.data.total ?? data.data.teachers.length);
       return {
@@ -258,6 +297,11 @@ export function useTeachers(options?: { skip?: boolean }) {
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to create" };
 
+      const newList = [data.data, ...(_teachersCache ?? [])];
+      _teachersCache = newList;
+      _cacheTimestamp = Date.now();
+      _listeners.forEach(fn => fn(newList));
+
       setTeachers((prev) => [data.data, ...prev]);
       return { success: true, message: "Teacher created successfully", data: data.data };
     } catch {
@@ -276,6 +320,14 @@ export function useTeachers(options?: { skip?: boolean }) {
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to update" };
 
+      if (_teachersCache) {
+        _teachersCache = _teachersCache.map(t => t._id === id ? data.data : t);
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(_teachersCache!));
+      } else {
+        invalidateCache();
+      }
+
       setTeachers((prev) => prev.map((t) => (t._id === id ? data.data : t)));
       return { success: true, message: "Teacher updated successfully" };
     } catch {
@@ -292,6 +344,14 @@ export function useTeachers(options?: { skip?: boolean }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to delete" };
+
+      if (_teachersCache) {
+        _teachersCache = _teachersCache.filter(t => t._id !== id);
+        _cacheTimestamp = Date.now();
+        _listeners.forEach(fn => fn(_teachersCache!));
+      } else {
+        invalidateCache();
+      }
 
       setTeachers((prev) => prev.filter((t) => t._id !== id));
       return { success: true, message: "Teacher deleted successfully" };

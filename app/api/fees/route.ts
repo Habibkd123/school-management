@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const query: any = { school_id: schoolId };
     if (classId) query.class_id = classId;
     if (academic_year) query.academic_year = academic_year;
-    const fees = await FeesStructure.find(query).sort({ createdAt: -1 }).populate("class_id", "name section");
+    const fees = await FeesStructure.find(query).sort({ createdAt: -1 }).populate("class_id", "name section").lean();
     return NextResponse.json({ success: true, data: { fees } });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useStudents } from "../../hooks/useStudents";
 import { useTeachers } from "../../hooks/useTeachers";
@@ -13,7 +13,7 @@ import { useAppState } from "../../context/store";
 import { useSchedules } from "../../hooks/useSchedules";
 import { useHolidays } from "../../hooks/useHolidays";
 import { useResults } from "../../hooks/useResults";
-import { getAuthHeaders } from "@/lib/utils/session";
+import { getAuthHeaders, getStoredUser } from "@/lib/utils/session";
 import { useLeave } from "../../hooks/useLeave";
 import { useSubjects } from "../../hooks/useSubjects";
 import { useParent } from "../../hooks/useParent";
@@ -46,20 +46,43 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { students } = useStudents();
-  const { teachers } = useTeachers();
-  const { classes } = useClasses();
-  const { payments } = useFeePayments();
-  const { notices } = useNotices();
-  const { homework } = useHomework();
-  const { schedules } = useSchedules();
-  const { holidays } = useHolidays();
-  const { results } = useResults();
-  const { leaveRequests: leaves } = useLeave();
-  const { subjects } = useSubjects();
-  const { user } = useAuth();
+  // ── Synchronous role detection ──────────────────────────────────
+  // getStoredUser() reads from localStorage synchronously (no effect needed)
+  // so we can determine the role on the very first render and skip
+  // API fetches that are irrelevant to this user's role.
+  const storedUser = getStoredUser();
+  const storedRole = storedUser?.role ?? "school_admin";
+
+  const isAdmin      = storedRole === "school_admin";
+  const isTeacher    = storedRole === "teacher";
+  const isStudent    = storedRole === "student";
+  const isParent     = storedRole === "parent";
+  const isSuperAdmin = storedRole === "super_admin";
+
+  // ── Hooks — skip irrelevant fetches per role ────────────────────
+  const { students } = useStudents({ skip: isSuperAdmin });
+  const { teachers } = useTeachers({ skip: isSuperAdmin || isStudent || isParent });
+  const { classes }  = useClasses({ skip: isSuperAdmin || isStudent || isParent });
+  // Fees only used in admin dashboard — pass skip as second arg (studentId is first)
+  const { payments } = useFeePayments(undefined, { skip: !isAdmin });
+  // Notices needed by all roles
+  const { notices }  = useNotices();
+  // Homework: teacher, student, parent — classId is first arg, options second
+  const { homework } = useHomework(undefined, { skip: isSuperAdmin || isAdmin });
+  // Schedules: teacher, student, parent — classId/teacherId are first two args, options third
+  const { schedules } = useSchedules(undefined, undefined, { skip: isSuperAdmin || isAdmin });
+  // Holidays: admin + teacher for calendar
+  const { holidays }  = useHolidays({ skip: isSuperAdmin || isStudent || isParent });
+  // Results: admin, teacher, student
+  const { results }   = useResults({ skip: isSuperAdmin || isParent });
+  // Leave: admin (attendance tab), teacher — statusFilter/userId are first two args, options third
+  const { leaveRequests: leaves } = useLeave(undefined, undefined, { skip: isSuperAdmin || isStudent || isParent });
+  // Subjects: admin only — classId is first arg, options second
+  const { subjects }  = useSubjects(undefined, { skip: !isAdmin });
+  const { user }      = useAuth();
   const { academicYear } = useAppState();
-  const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent();
+  // Parent portal only
+  const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent({ skip: !isParent });
 
   const [attendanceTab, setAttendanceTab] = useState<'Students' | 'Teachers' | 'Staff'>('Students');
 
@@ -84,13 +107,14 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // ADMIN DASHBOARD CALCULATIONS
   // ----------------------------------------------------
-  const studentIdsInYear = new Set(students.map(s => s._id));
-  const classIdsInYear = new Set(classes.map(c => c._id));
-  
-  const filteredSubjects = subjects.filter(sub => {
+  // ── Memoized derived sets (rebuilt only when source arrays change) ─
+  const studentIdsInYear = useMemo(() => new Set(students.map(s => s._id)), [students]);
+  const classIdsInYear   = useMemo(() => new Set(classes.map(c => c._id)), [classes]);
+
+  const filteredSubjects = useMemo(() => subjects.filter(sub => {
     const classId = typeof (sub.class_id as any) === 'object' ? (sub.class_id as any)?._id : sub.class_id;
     return classIdsInYear.has(classId);
-  });
+  }), [subjects, classIdsInYear]);
 
   const totalStudents = students.length;
   const totalTeachers = teachers.length;
@@ -117,59 +141,58 @@ export default function DashboardPage() {
   const totalMockAttendance = totalCountForTab > 0 ? totalCountForTab : (totalPresent + emergencyLeaves + absentLeavesCount);
   const attendanceRateMock = totalMockAttendance > 0 ? ((totalPresent / totalMockAttendance) * 100).toFixed(1) : "0.0";
 
-  const filteredResults = results.filter(r => {
+  const filteredResults = useMemo(() => results.filter(r => {
     const studentId = typeof r.student_id === 'object' ? r.student_id?._id : r.student_id;
     return studentIdsInYear.has(studentId);
-  });
+  }), [results, studentIdsInYear]);
 
-  const globalPerformers = [...filteredResults]
+  const globalPerformers = useMemo(() => [...filteredResults]
     .map(r => ({
       ...r,
       percentage: r.total_marks > 0 ? (r.marks_obtained / r.total_marks) * 100 : 0
     }))
-    .sort((a, b) => b.percentage - a.percentage);
+    .sort((a, b) => b.percentage - a.percentage)
+  , [filteredResults]);
 
   const bestStudent = globalPerformers[0] || null;
   const starStudent = globalPerformers[1] || null;
 
-  const topCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length;
-  const avgCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length;
-  const belowAvgCount = filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) < 0.5).length;
+  const topCount      = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length,  [filteredResults]);
+  const avgCount      = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length, [filteredResults]);
+  const belowAvgCount = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) < 0.5).length, [filteredResults]);
 
-  const filteredPayments = payments.filter(p => {
+  const filteredPayments = useMemo(() => payments.filter(p => {
     const studentId = typeof p.student_id === 'object' ? p.student_id?._id : p.student_id;
     return studentIdsInYear.has(studentId);
-  });
+  }), [payments, studentIdsInYear]);
 
-  const totalRevenue = filteredPayments
-    .reduce((acc: number, curr) => acc + curr.amount_paid, 0);
+  const totalRevenue = useMemo(() =>
+    filteredPayments.reduce((acc: number, curr) => acc + curr.amount_paid, 0)
+  , [filteredPayments]);
 
   // Fee Quarters Calculation for Chart
-  const getQuarter = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1}: ${date.getFullYear()}`;
+  const getQuarter    = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1}: ${date.getFullYear()}`;
   const getQuarterKey = (date: Date) => `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`;
 
-  const quarterStats = new Map<string, { label: string; collected: number; expected: number }>();
-  // Initialize last 8 quarters
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date(new Date().getFullYear(), new Date().getMonth() - i * 3, 1);
-    const key = getQuarterKey(d);
-    quarterStats.set(key, { label: getQuarter(d), collected: 0, expected: 5000 }); // Default baseline
-  }
-
-  filteredPayments.forEach(p => {
-    const pDate = new Date(p.transaction_date);
-    const key = getQuarterKey(pDate);
-    if (quarterStats.has(key)) {
-      const stat = quarterStats.get(key)!;
-      stat.collected += p.amount_paid;
-      if (stat.collected > stat.expected) {
-        stat.expected = stat.collected * 1.2; // Visual scaling if expected is exceeded
-      }
+  const { feeQuarters, maxFee } = useMemo(() => {
+    const quarterStats = new Map<string, { label: string; collected: number; expected: number }>();
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(new Date().getFullYear(), new Date().getMonth() - i * 3, 1);
+      const key = getQuarterKey(d);
+      quarterStats.set(key, { label: getQuarter(d), collected: 0, expected: 5000 });
     }
-  });
-
-  const feeQuarters = Array.from(quarterStats.values());
-  const maxFee = Math.max(1000, ...feeQuarters.map(q => q.expected));
+    filteredPayments.forEach(p => {
+      const pDate = new Date(p.transaction_date);
+      const key = getQuarterKey(pDate);
+      if (quarterStats.has(key)) {
+        const stat = quarterStats.get(key)!;
+        stat.collected += p.amount_paid;
+        if (stat.collected > stat.expected) stat.expected = stat.collected * 1.2;
+      }
+    });
+    const quarters = Array.from(quarterStats.values());
+    return { feeQuarters: quarters, maxFee: Math.max(1000, ...quarters.map(q => q.expected)) };
+  }, [filteredPayments]);
 
   // ----------------------------------------------------
   // TEACHER LOGIC (uses real API data where available)
@@ -254,26 +277,26 @@ export default function DashboardPage() {
   // ---------------------------------------------------------------------------
 
   // Assigned Classes & Subjects
-  const teacherSchedules = schedules.filter(s => {
+  const teacherSchedules = useMemo(() => schedules.filter(s => {
     if (typeof s.teacher_id === 'object' && s.teacher_id !== null) {
       return s.teacher_id._id === user?.id;
     }
     return s.teacher_id === user?.id;
-  });
+  }), [schedules, user?.id]);
 
-  const uniqueClasses = Array.from(new Set(teacherSchedules.map(s => {
+  const uniqueClasses = useMemo(() => Array.from(new Set(teacherSchedules.map(s => {
     if (typeof s.class_id === 'object' && s.class_id !== null) {
       return `${s.class_id?.name} ${s.class_id?.section}`;
     }
     return String(s.class_id);
-  })));
+  }))), [teacherSchedules]);
 
-  const uniqueSubjects = Array.from(new Set(teacherSchedules.map(s => {
+  const uniqueSubjects = useMemo(() => Array.from(new Set(teacherSchedules.map(s => {
     if (typeof s.subject_id === 'object' && s.subject_id !== null) {
       return s.subject_id.name;
     }
     return String(s.subject_id);
-  })));
+  }))), [teacherSchedules]);
 
   // Today's classes
   const todaysClasses = teacherSchedules

@@ -27,9 +27,9 @@ export interface ApiSchedule {
   academic_year?: string;
 }
 
-export function useSchedules(classId?: string, teacherId?: string) {
+export function useSchedules(classId?: string, teacherId?: string, options?: { skip?: boolean }) {
   const [schedules, setSchedules] = useState<ApiSchedule[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(options?.skip ? false : true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSchedules = useCallback(async (cId?: string, tId?: string) => {
@@ -57,8 +57,9 @@ export function useSchedules(classId?: string, teacherId?: string) {
 
 
   useEffect(() => {
+    if (options?.skip) return;
     fetchSchedules(classId, teacherId);
-  }, [fetchSchedules, classId, teacherId]);
+  }, [fetchSchedules, classId, teacherId, options?.skip]);
 
   const createSchedule = async (input: {
     classId: string;

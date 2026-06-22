@@ -15,9 +15,9 @@ export interface ApiHoliday {
   updatedAt?: string;
 }
 
-export function useHolidays() {
+export function useHolidays(options?: { skip?: boolean }) {
   const [holidays, setHolidays] = useState<ApiHoliday[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(options?.skip ? false : true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchHolidays = useCallback(async () => {
@@ -38,8 +38,9 @@ export function useHolidays() {
   }, []);
 
   useEffect(() => {
+    if (options?.skip) return;
     fetchHolidays();
-  }, [fetchHolidays]);
+  }, [fetchHolidays, options?.skip]);
 
   const createHoliday = async (payload: Partial<ApiHoliday>) => {
     try {

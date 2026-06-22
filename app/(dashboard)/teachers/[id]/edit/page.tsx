@@ -531,7 +531,6 @@ export default function EditTeacherPage() {
                 <InputGroup label="Date of Joining" type="date" value={joinDate} onChange={(e) => setJoinDate(e.target.value)} />
 
                 <InputGroup label="Father's Name" value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
-                <InputGroup label="Mother's Name" value={motherName} onChange={(e) => setMotherName(e.target.value)} />
                 <InputGroup label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                 <InputGroup label="Marital Status" type="select" value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} options={["Select", "Single", "Married", "Divorced", "Widowed"]} />
                 
@@ -548,7 +547,6 @@ export default function EditTeacherPage() {
 
                 <InputGroup label="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
                 <InputGroup label="Permanent Address" value={permanentAddress} onChange={(e) => setPermanentAddress(e.target.value)} />
-                <InputGroup label="PAN Number / ID Number" value={panNumber} onChange={(e) => setPanNumber(e.target.value)} />
                 <InputGroup label="Status" type="select" value={status} onChange={(e) => setStatus(e.target.value as "Active" | "Inactive")} options={["Active", "Inactive"]} />
                 
                 <div className="col-span-1 md:col-span-2 xl:col-span-4">
@@ -568,7 +566,6 @@ export default function EditTeacherPage() {
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 text-left">
             <InputGroup label="EPF No" value={epfNo} onChange={(e) => setEpfNo(e.target.value)} />
-            <InputGroup label="Basic Salary ($)" type="number" value={basicSalary} onChange={(e) => setBasicSalary(e.target.value)} />
             <InputGroup label="Contract Type" type="select" value={contractType} onChange={(e) => setContractType(e.target.value)} options={["Select", "Permanent", "Contract", "Temporary"]} />
             <InputGroup label="Work Shift" type="select" value={workShift} onChange={(e) => setWorkShift(e.target.value)} options={["Select", "Morning", "Evening", "Night"]} />
             <InputGroup label="Work Location" value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} />
@@ -602,19 +599,6 @@ export default function EditTeacherPage() {
             <InputGroup label="Bank Name" value={bankName} onChange={(e) => setBankName(e.target.value)} />
             <InputGroup label="IFSC Code" value={ifscCode} onChange={(e) => setIfscCode(e.target.value)} />
             <InputGroup label="Branch Name" value={branchName} onChange={(e) => setBranchName(e.target.value)} />
-          </div>
-        </div>
-
-        {/* 5. Transport Information */}
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
-            <Bus className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Transport Information</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <InputGroup label="Route" type="select" value={transportRoute} onChange={(e) => setTransportRoute(e.target.value)} options={["Select", "Route 1", "Route 2", "Route 3", "Route 4"]} />
-            <InputGroup label="Vehicle Number" type="select" value={transportVehicle} onChange={(e) => setTransportVehicle(e.target.value)} options={["Select", "Bus 42", "Bus 50", "Van 12", "Van 15"]} />
-            <InputGroup label="Pickup Point" type="select" value={transportPickupPoint} onChange={(e) => setTransportPickupPoint(e.target.value)} options={["Select", "Point A", "Point B", "Point C", "Point D"]} />
           </div>
         </div>
 

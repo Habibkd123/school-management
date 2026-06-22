@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     if (error) return error;
 
     await connectDB();
-    const types = await FeeType.find({ school_id: schoolId }).sort({ name: 1 });
+    const types = await FeeType.find({ school_id: schoolId }).sort({ name: 1 }).lean();
     return NextResponse.json({ success: true, data: { types } });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });

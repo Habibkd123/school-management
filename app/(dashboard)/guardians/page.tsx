@@ -299,13 +299,6 @@ export default function GuardiansPage() {
             <span>Export</span>
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-[#F59E0B] hover:bg-[#D97706] rounded-lg shadow-sm transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Parent</span>
-          </button>
         </div>
       </div>
 

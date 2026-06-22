@@ -108,14 +108,14 @@ export default function ClassesPage() {
 
   // ── Form states ────────────────────────────────────────────────────
   const [formName, setFormName] = useState("");
-  const [formSection, setFormSection] = useState("A");
+  const [formSection, setFormSection] = useState("");
   const [formAcademicYear, setFormAcademicYear] = useState("");
   const [formTeacherId, setFormTeacherId] = useState("");
   const [formCapacity, setFormCapacity] = useState("40");
 
   const resetForm = () => {
     setFormName("");
-    setFormSection("A");
+    setFormSection("");
     setFormAcademicYear("");
     setFormTeacherId("");
     setFormCapacity("40");
@@ -204,7 +204,11 @@ export default function ClassesPage() {
       accessorKey: "name",
       render: (c) => <span className="font-bold text-[#F59E0B]">{c.name}</span>,
     },
-    { header: "Section", accessorKey: "section" },
+    { 
+      header: "Section", 
+      accessorKey: "section",
+      render: (c) => <span>{c.section || "—"}</span>
+    },
     { header: "Academic Year", accessorKey: "academic_year" },
     {
       header: "Class Teacher",
@@ -533,6 +537,7 @@ export default function ClassesPage() {
               <div className="relative">
                 <select value={formSection} onChange={(e) => setFormSection(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                  <option value="">No Section</option>
                   {["A","B","C","D","E"].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
@@ -621,6 +626,7 @@ export default function ClassesPage() {
               <div className="relative">
                 <select value={formSection} onChange={(e) => setFormSection(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#F59E0B]/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                  <option value="">No Section</option>
                   {["A","B","C","D","E"].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
@@ -684,7 +690,7 @@ export default function ClassesPage() {
           <p className="text-[14px] text-slate-600 dark:text-slate-300">
             Are you sure you want to delete{" "}
             <span className="font-bold text-[#0F172A] dark:text-white">
-              {selectedClass?.name} - {selectedClass?.section}
+              {selectedClass?.name}{selectedClass?.section ? ` - ${selectedClass.section}` : ""}
             </span>
             ? This action cannot be undone.
           </p>

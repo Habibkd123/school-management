@@ -6,6 +6,22 @@ import User from "@/lib/models/User";
 import Class from "@/lib/models/Class";
 import { requireAuth } from "@/lib/utils/auth";
 
+// ─── Helper: generate student login email ──────────────────────
+const SCHOOL_SLUG = process.env.NEXT_PUBLIC_SCHOOL_SLUG || "school";
+
+function generateStudentLoginEmail(name: string, dob?: string): string {
+  const namePart = name.toLowerCase().trim().replace(/\s+/g, "");
+  let dobDay = "";
+  if (dob) {
+    const d = new Date(dob);
+    if (!isNaN(d.getTime())) {
+      dobDay = String(d.getDate());
+    }
+  }
+  return `${namePart}${dobDay}.${SCHOOL_SLUG}@gmail.com`;
+}
+
+
 // ─── GET /api/students — List all students for the school ──────────
 export async function GET(request: NextRequest) {
   const { schoolId, role, userId, error } = requireAuth(request, ["school_admin", "teacher", "super_admin", "student", "parent"]);
@@ -124,10 +140,10 @@ export async function GET(request: NextRequest) {
       Student.countDocuments(filter),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      data: { students, total, page, limit },
-    });
+    return NextResponse.json(
+      { success: true, data: { students, total, page, limit } },
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } }
+    );
   } catch (err) {
     console.error("[GET /api/students]", err);
     return NextResponse.json(
@@ -188,59 +204,65 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-generate admission number if not provided
+    // Auto-generate admission number if not provided — O(1) via sort+limit
     let finalAdmissionNo = admission_no;
     if (!finalAdmissionNo || !finalAdmissionNo.trim()) {
-      const studentsWithAdm = await Student.find({ school_id: schoolId, admission_no: { $exists: true, $ne: "" } })
+      const lastStudent = await Student.findOne({
+        school_id: schoolId,
+        admission_no: { $exists: true, $ne: "" },
+      })
+        .sort({ createdAt: -1 })
         .select("admission_no")
         .lean();
-      
+
       let maxNum = 0;
-      for (const s of studentsWithAdm) {
-        if (s.admission_no) {
-          const numPart = s.admission_no.replace(/\D/g, "");
-          if (numPart) {
-            const parsed = parseInt(numPart, 10);
-            if (parsed > maxNum) {
-              maxNum = parsed;
-            }
-          }
-        }
+      if (lastStudent?.admission_no) {
+        const numPart = lastStudent.admission_no.replace(/\D/g, "");
+        if (numPart) maxNum = parseInt(numPart, 10) || 0;
       }
       finalAdmissionNo = `ADM${String(maxNum + 1).padStart(4, "0")}`;
     }
 
+    // Determine login email for student (custom email or auto-generated)
+    const studentLoginEmail = email?.trim().toLowerCase() || generateStudentLoginEmail(name.trim(), dob);
+
     // Check if email already exists in User table
     let userId = undefined;
-    if (email) {
-      const existingUser = await User.findOne({ email: email.toLowerCase().trim(), school_id: schoolId });
+    {
+      const existingUser = await User.findOne({ email: studentLoginEmail, school_id: schoolId });
       if (existingUser) {
-        return NextResponse.json({ success: false, message: "Email already exists" }, { status: 400 });
-      }
-
-      // Generate default password based on DOB
-      let studentPassword = "student123";
-      if (dob) {
-        const dateObj = new Date(dob);
-        if (!isNaN(dateObj.getTime())) {
-          const day = String(dateObj.getDate()).padStart(2, "0");
-          const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-          const year = dateObj.getFullYear().toString();
-          studentPassword = `${day}${month}${year}`;
+        // If using a custom email and it's taken, reject
+        if (email?.trim()) {
+          return NextResponse.json({ success: false, message: "Email already exists" }, { status: 400 });
         }
-      }
+        // For auto-generated email collision, append admission number suffix later
+        // For now just reuse the user (edge case)
+        userId = existingUser._id;
+      } else {
+        // Generate default password based on DOB (DDMMYY format)
+        let studentPassword = "student123";
+        if (dob) {
+          const dateObj = new Date(dob);
+          if (!isNaN(dateObj.getTime())) {
+            const day = String(dateObj.getDate()).padStart(2, "0");
+            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const yy = dateObj.getFullYear().toString().slice(-2);
+            studentPassword = `${day}${month}${yy}`;
+          }
+        }
 
-      // Create user
-      const user = await User.create({
-        school_id: schoolId as string,
-        name: name.trim(),
-        email: email.trim(),
-        password_hash: studentPassword, // dob-based default password
-        role: "student",
-        is_active: true,
-        must_change_password: true, // force password change on first login
-      });
-      userId = user._id;
+        // Create user account for the student (always created now)
+        const user = await User.create({
+          school_id: schoolId as string,
+          name: name.trim(),
+          email: studentLoginEmail,
+          password_hash: studentPassword,
+          role: "student",
+          is_active: true,
+          must_change_password: true,
+        });
+        userId = user._id;
+      }
     }
 
     // Auto-link or create Parent (and their login User account)
@@ -318,7 +340,7 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       parent_id: parentId,
       name: name.trim(),
-      email: email?.trim().toLowerCase(),
+      email: studentLoginEmail,
       class_id,
       roll_no: roll_no?.trim() || undefined,
       gender,

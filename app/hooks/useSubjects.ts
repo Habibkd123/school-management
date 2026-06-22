@@ -14,9 +14,9 @@ export interface ApiSubject {
   createdAt: string;
 }
 
-export function useSubjects(classId?: string) {
+export function useSubjects(classId?: string, options?: { skip?: boolean }) {
   const [rawSubjects, setRawSubjects] = useState<ApiSubject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(options?.skip ? false : true);
 
   const { academicYear } = useAppState();
 
@@ -25,8 +25,6 @@ export function useSubjects(classId?: string) {
     try {
       const params = new URLSearchParams();
       if (classId) params.set("class_id", classId);
-      // Only apply academic_year filter when not fetching by specific classId
-      // (classId-scoped subjects are already year-scoped via their class)
       if (!classId && academicYear) params.set("academic_year", academicYear);
       const res = await fetch(`/api/subjects?${params.toString()}`, { headers: getAuthHeaders() });
       const data = await res.json();
@@ -38,7 +36,10 @@ export function useSubjects(classId?: string) {
     }
   }, [classId, academicYear]);
 
-  useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
+  useEffect(() => {
+    if (options?.skip) return;
+    fetchSubjects();
+  }, [fetchSubjects, options?.skip]);
 
   // Deduplicate by name so dropdowns never show the same subject twice
   // (subjects are stored per-section so classId queries return duplicates)
