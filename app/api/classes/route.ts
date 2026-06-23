@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const andFilters: any[] = [];
 
     if (user.role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
       if (teacher) {
         const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
         andFilters.push({

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const leaveTypes = await LeaveType.find({ school_id: schoolId }).sort({ leave_type: 1 });
+    const leaveTypes = await LeaveType.find({ school_id: schoolId }).sort({ leave_type: 1 }).lean();
     return NextResponse.json({ success: true, data: leaveTypes });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const parent = await Parent.findOne({ user_id: user.user_id, school_id: schoolId });
+    const parent = await Parent.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
     if (!parent) {
       return NextResponse.json({ success: false, message: "Parent profile not found" }, { status: 404 });
     }
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       _id: studentId,
       parent_id: parent._id,
       school_id: schoolId
-    });
+    }).lean();
 
     if (!student) {
       return NextResponse.json({ success: false, message: "Student not found or unauthorized" }, { status: 403 });

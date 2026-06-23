@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId }).lean();
       if (teacher) {
         const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
         let teacherClassIds = await Class.find({
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const subjects = await Subject.find(query).sort({ name: 1 });
+    const subjects = await Subject.find(query).sort({ name: 1 }).lean();
     return NextResponse.json({ success: true, data: { subjects } });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message || "Server error" }, { status: 500 });
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId }).lean();
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
       }

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId }).lean();
       if (teacher) {
         const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
         let teacherClassIds = await Class.find({
@@ -104,7 +104,8 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .populate("class_id", "name section")
       .populate("subject_id", "name")
-      .populate("teacher_id", "name");
+      .populate("teacher_id", "name")
+      .lean();
 
     return NextResponse.json({
       success: true,
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
     // Resolve teacher
     let teacherId = null;
     if (role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId }).lean();
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
       }
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!teacherId) {
-      const fallbackTeacher = await Teacher.findOne({ school_id: schoolId });
+      const fallbackTeacher = await Teacher.findOne({ school_id: schoolId }).lean();
       teacherId = fallbackTeacher?._id || new mongoose.Types.ObjectId();
     }
 
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
     let subjectDoc = await Subject.findOne({
       school_id: new mongoose.Types.ObjectId(schoolId as string),
       name: new RegExp(`^${subject.trim()}$`, "i"),
-    });
+    }).lean();
 
     if (!subjectDoc) {
       subjectDoc = await Subject.create({

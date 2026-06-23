@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       console.warn("Class model not loaded");
     }
 
-    const parent = await Parent.findOne({ user_id: user.user_id, school_id: schoolId });
+    const parent = await Parent.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
     if (!parent) {
       return NextResponse.json({ success: false, message: "Parent profile not found" }, { status: 404 });
     }

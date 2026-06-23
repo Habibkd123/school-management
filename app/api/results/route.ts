@@ -71,7 +71,8 @@ export async function GET(req: NextRequest) {
     const results = await Result.find(query)
       .populate("student_id", "name roll_no")
       .populate("subject_id", "name code")
-      .populate("exam_id", "name type");
+      .populate("exam_id", "name type")
+      .lean();
 
     return NextResponse.json({ success: true, data: { results } });
   } catch (err: any) {

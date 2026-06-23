@@ -9,7 +9,7 @@ const DEFAULT_SCHOOL_ID = new mongoose.Types.ObjectId("65f0a1b2c3d4e5f6a7b8c9d0"
 export async function GET(request: Request) {
   try {
     await connectDB();
-    const buses = await Bus.find({ school_id: DEFAULT_SCHOOL_ID }).sort({ createdAt: -1 });
+    const buses = await Bus.find({ school_id: DEFAULT_SCHOOL_ID }).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ success: true, data: buses });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

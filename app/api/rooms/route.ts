@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const rooms = await Room.find({ school_id: schoolId }).sort({ room_no: 1 });
+    const rooms = await Room.find({ school_id: schoolId }).sort({ room_no: 1 }).lean();
     return NextResponse.json({ success: true, data: { rooms } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";

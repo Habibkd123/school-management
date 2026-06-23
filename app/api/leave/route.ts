@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
 
     const leaves = await LeaveRequest.find(query)
       .sort({ createdAt: -1 })
-      .populate("user_id", "name email role photo_url");
+      .populate("user_id", "name email role photo_url")
+      .lean();
 
     return NextResponse.json({ success: true, data: { leaves } });
   } catch (err: any) {

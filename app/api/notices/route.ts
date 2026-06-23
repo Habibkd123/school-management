@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const notices = await Notice.find({ school_id: schoolId })
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(limit)
+      .lean();
     return NextResponse.json(
       { success: true, data: { notices } },
       { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" } }

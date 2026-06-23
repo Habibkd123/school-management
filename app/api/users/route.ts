@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
     // Retrieve users with school_admin role
-    const users = await User.find({ role: "school_admin" }).sort({ createdAt: -1 });
+    const users = await User.find({ role: "school_admin" }).sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({
       success: true,

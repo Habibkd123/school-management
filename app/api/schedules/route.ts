@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const andFilters: any[] = [];
     
     if (user.role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId });
+      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
       if (teacher) {
         const classIdsAsClassTeacher = await mongoose.model("Class").find({ class_teacher_id: teacher._id, school_id: schoolId }).distinct("_id");
         andFilters.push({
@@ -92,7 +92,8 @@ export async function GET(req: NextRequest) {
       .populate("class_id", "name section")
       .populate("subject_id", "name")
       .populate("teacher_id", "name photo_url")
-      .sort({ day: 1, start_time: 1 });
+      .sort({ day: 1, start_time: 1 })
+      .lean();
 
     return NextResponse.json({
       success: true,
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
       school_id: new mongoose.Types.ObjectId(schoolId as string),
       class_id:  new mongoose.Types.ObjectId(classId),
       day:       day.toLowerCase(),
-    }).populate("class_id", "name section");
+    }).populate("class_id", "name section").lean();
 
     for (const entry of existingOnDay) {
       const eStart = parseTimeToMinutes(entry.start_time);
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
     // Resolve teacher (find first if teacherId not provided)
     let selectedTeacherId = teacherId;
     if (!selectedTeacherId) {
-      const fallbackTeacher = await Teacher.findOne({ school_id: schoolId });
+      const fallbackTeacher = await Teacher.findOne({ school_id: schoolId }).lean();
       selectedTeacherId = fallbackTeacher?._id.toString() || new mongoose.Types.ObjectId().toString();
     }
 
