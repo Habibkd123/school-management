@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const parents = await Parent.find(filter).sort({ name: 1 }).lean();
+    const parents = await Parent.find(filter)
+      .populate("user_id", "name email role is_active plain_password must_change_password")
+      .sort({ name: 1 })
+      .lean();
     
     // Fetch ALL children for these parents in a single query (avoids N+1)
     const parentIds = parents.map((p: any) => p._id);

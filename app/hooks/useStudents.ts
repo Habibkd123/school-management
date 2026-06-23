@@ -295,8 +295,9 @@ export function useStudents(options?: { skip?: boolean }) {
   // ─── Get single student ─────────────────────────────────────────
   const getStudent = async (id: string): Promise<ApiStudent | null> => {
     try {
-      const res = await fetch(`/api/students/${id}`, {
+      const res = await fetch(`/api/students/${id}?t=${Date.now()}`, {
         headers: getAuthHeaders(),
+        cache: "no-store"
       });
       const data = await res.json();
       if (!res.ok || !data.success) return null;

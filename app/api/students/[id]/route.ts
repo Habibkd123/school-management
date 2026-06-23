@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Student from "@/lib/models/Student";
 import { Parent } from "@/lib/models";
+import User from "@/lib/models/User";
+import Class from "@/lib/models/Class";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 

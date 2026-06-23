@@ -1158,6 +1158,7 @@ function StudentViewContent() {
         userId={resetPassTarget?.userId}
         userName={resetPassTarget?.name || ""}
         userEmail={resetPassTarget?.email || ""}
+        onSuccess={() => getStudent(studentId).then(s => { if (s) setStudent(s); })}
       />
 
       {isFeesModalOpen && (

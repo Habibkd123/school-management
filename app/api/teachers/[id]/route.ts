@@ -106,6 +106,7 @@ export async function PUT(
         const user = await User.findById(teacher.user_id);
         if (user) {
           user.password_hash = body.password;
+          user.plain_password = body.password;
           await user.save();
         }
       }

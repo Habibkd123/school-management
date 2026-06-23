@@ -684,6 +684,7 @@ export default function EditTeacherPage() {
         userId={resetPassTarget?.userId}
         userName={resetPassTarget?.name || ""}
         userEmail={resetPassTarget?.email || ""}
+        onSuccess={() => getTeacher(editId).then(t => { if (t) setTeacherObj(t); })}
       />
     </div>
   );

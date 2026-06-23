@@ -408,6 +408,7 @@ export default function ParentDetailPage() {
         userId={resetPassTarget?.userId}
         userName={resetPassTarget?.name || ""}
         userEmail={resetPassTarget?.email || ""}
+        onSuccess={() => fetchParentDetails()}
       />
 
       {/* ── Edit Parent Modal ── */}

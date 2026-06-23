@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
     const [students, total] = await Promise.all([
       Student.find(filter)
         .populate("class_id", "name section")
+        .populate("user_id", "name email role is_active plain_password must_change_password")
         .sort(sortObj)
         .skip(skip)
         .limit(limit)

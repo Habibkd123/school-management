@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const endDateParam = url.searchParams.get("endDate"); // YYYY-MM-DD
     const type = url.searchParams.get("type") || "student";
     const classId = url.searchParams.get("classId");
+    const recordId = url.searchParams.get("recordId");
 
     if (!startDateParam || !endDateParam) {
       return NextResponse.json(
@@ -26,9 +27,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (type === "student" && !classId) {
+    if (type === "student" && !classId && !recordId) {
       return NextResponse.json(
-        { success: false, message: "classId is required for student summary" },
+        { success: false, message: "classId or recordId is required for student summary" },
         { status: 400 }
       );
     }
@@ -48,9 +49,21 @@ export async function GET(req: NextRequest) {
         ]
       }).distinct("_id");
 
-      const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId!);
+      let targetClassId = classId;
+      if (!targetClassId && recordId) {
+        const Student = (await import("@/lib/models/Student")).default;
+        const studentDoc = await Student.findOne({ _id: recordId, school_id: schoolId }).select("class_id").lean();
+        if (studentDoc) {
+          targetClassId = studentDoc.class_id?.toString();
+        }
+      }
+
+      const hasAccess = targetClassId
+        ? teacherClassIds.map(id => id.toString()).includes(targetClassId)
+        : false;
+
       if (!hasAccess) {
-        return NextResponse.json({ success: false, message: "You are not assigned to this class" }, { status: 403 });
+        return NextResponse.json({ success: false, message: "You are not assigned to this class or student" }, { status: 403 });
       }
     }
 
@@ -66,11 +79,14 @@ export async function GET(req: NextRequest) {
       type,
     };
     if (type === "student") {
-      query.class_id = classId;
+      if (classId) {
+        query.class_id = classId;
+      } else if (recordId) {
+        query["records.student_id"] = recordId;
+      }
     }
 
     const detail = url.searchParams.get("detail") === "true";
-    const recordId = url.searchParams.get("recordId");
 
     const attendances = await Attendance.find(query).lean();
 

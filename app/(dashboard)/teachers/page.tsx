@@ -637,6 +637,7 @@ export default function TeachersPage() {
         userId={resetPassTarget?.userId}
         userName={resetPassTarget?.name || ""}
         userEmail={resetPassTarget?.email || ""}
+        onSuccess={() => fetchTeachers({ search: debouncedSearch, status: statusFilter, dateRange: selectedDateRange, sort: selectedSort, page, limit: 10 })}
       />
     </div>
   );

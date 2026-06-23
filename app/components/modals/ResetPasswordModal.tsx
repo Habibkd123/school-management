@@ -8,9 +8,11 @@ interface ResetPasswordModalProps {
   userId: string | undefined;
   userName: string;
   userEmail: string;
+  /** Called after a successful password update — use this to refetch the data list so Login Details modal reflects the new password */
+  onSuccess?: () => void;
 }
 
-export function ResetPasswordModal({ isOpen, onClose, userId, userName, userEmail }: ResetPasswordModalProps) {
+export function ResetPasswordModal({ isOpen, onClose, userId, userName, userEmail, onSuccess }: ResetPasswordModalProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -50,6 +52,8 @@ export function ResetPasswordModal({ isOpen, onClose, userId, userName, userEmai
         setMsg({ type: "success", text: "Password updated successfully." });
         setNewPassword("");
         setConfirmPassword("");
+        // Refetch the list so Login Details modal reflects the new password
+        onSuccess?.();
       } else {
         setMsg({ type: "error", text: data.message || "Failed to update password." });
       }

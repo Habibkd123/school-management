@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const section      = url.searchParams.get("section") || "";
     const sortOrder    = url.searchParams.get("sort") === "desc" ? -1 : 1;
     const page         = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
-    const limit        = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "10")));
+    const limit        = Math.min(10, Math.max(1, parseInt(url.searchParams.get("limit") || "10")));
 
     const query: Record<string, any> = { school_id: schoolId as string };
     const andFilters: any[] = [];

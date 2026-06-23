@@ -7,6 +7,50 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+// GET /api/users/[id] - Fetch live user data (used by LoginDetailsModal to get current password)
+export async function GET(request: NextRequest, context: RouteContext) {
+  const auth = requireAuth(request, ["school_admin", "super_admin", "teacher"]);
+  if (auth.error) return auth.error;
+
+  const { id } = await context.params;
+
+  try {
+    await connectDB();
+    const user = await User.findById(id).select("name email role is_active plain_password must_change_password");
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        is_active: user.is_active,
+        plain_password: user.plain_password,
+        must_change_password: user.must_change_password,
+      }
+    }, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      }
+    });
+  } catch (error: any) {
+    console.error("[USER GET ERROR]", error);
+    return NextResponse.json(
+      { success: false, message: error.message || "Failed to fetch user" },
+      { status: 500 }
+    );
+  }
+}
+
 // PUT /api/users/[id] - Update user details/status
 export async function PUT(request: NextRequest, context: RouteContext) {
   const auth = requireAuth(request, ["super_admin"]);

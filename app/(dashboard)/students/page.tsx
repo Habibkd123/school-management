@@ -1165,6 +1165,7 @@ export default function StudentsPage() {
         userId={resetPassTarget?.userId}
         userName={resetPassTarget?.name || ""}
         userEmail={resetPassTarget?.email || ""}
+        onSuccess={() => fetchStudents({ search: debouncedSearch, classId: classFilter, gender: genderFilter, status: statusFilter, dateRange: selectedDateRange, sort: selectedSort, page, limit: 10, academic_year: academicYear })}
       />
 
       <ConfirmModal

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({
       reset_token: token,
       reset_token_expiry: { $gt: new Date() }, // not expired
-    }).select("+reset_token +reset_token_expiry +password_hash");
+    }).select("+reset_token +reset_token_expiry +password_hash +plain_password");
 
     if (!user) {
       return NextResponse.json(

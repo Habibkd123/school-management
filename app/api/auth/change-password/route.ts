@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // ─── Fetch user with password ─────────────────────────────────
-    const dbUser = await User.findById(user!.user_id).select("+password_hash");
+    const dbUser = await User.findById(user!.user_id).select("+password_hash +plain_password");
 
     if (!dbUser) {
       return NextResponse.json(

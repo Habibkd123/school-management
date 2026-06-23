@@ -367,8 +367,9 @@ export function useTeachers(options?: { skip?: boolean }) {
   // ─── Get single teacher ─────────────────────────────────────────
   const getTeacher = async (id: string): Promise<ApiTeacher | null> => {
     try {
-      const res = await fetch(`/api/teachers/${id}`, {
+      const res = await fetch(`/api/teachers/${id}?t=${Date.now()}`, {
         headers: getAuthHeaders(),
+        cache: "no-store"
       });
       const data = await res.json();
       if (!res.ok || !data.success) return null;

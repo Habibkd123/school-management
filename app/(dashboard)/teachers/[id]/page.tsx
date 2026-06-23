@@ -1176,6 +1176,7 @@ export default function TeacherDetailsPage() {
         userId={teacherUserId}
         userName={teacher?.name || ""}
         userEmail={(teacher?.user_id && typeof teacher.user_id === "object" && teacher.user_id.email) ? teacher.user_id.email : (teacher?.email || "")}
+        onSuccess={() => getTeacher(teacherId).then(t => { if (t) setTeacher(t); })}
       />
 
     </div>
