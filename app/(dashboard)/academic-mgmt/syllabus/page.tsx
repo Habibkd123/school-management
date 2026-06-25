@@ -29,6 +29,22 @@ export default function SyllabusManagementPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Toast message states
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    setErrorMsg(null);
+    setTimeout(() => setSuccessMsg(null), 3500);
+  };
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setSuccessMsg(null);
+    setTimeout(() => setErrorMsg(null), 6000);
+  };
+
   useEffect(() => {
     fetchAssignments({ academic_year: academicYear, limit: 500 });
   }, [fetchAssignments, academicYear]);
@@ -59,14 +75,24 @@ export default function SyllabusManagementPage() {
     if (!syllabus || !confirm("Are you sure you want to delete this chapter?")) return;
     const updatedChapters = [...syllabus.chapters];
     updatedChapters.splice(index, 1);
-    await saveSyllabus(selectedAssignment, updatedChapters);
+    const res = await saveSyllabus(selectedAssignment, updatedChapters);
+    if (res.success) {
+      showSuccess("Chapter deleted successfully");
+    } else {
+      showError(res.message || "Failed to delete chapter");
+    }
   };
 
   const handleStatusChange = async (index: number, newStatus: "Not Started" | "In Progress" | "Completed") => {
     if (!syllabus) return;
     const updatedChapters = [...syllabus.chapters];
     updatedChapters[index].status = newStatus;
-    await saveSyllabus(selectedAssignment, updatedChapters);
+    const res = await saveSyllabus(selectedAssignment, updatedChapters);
+    if (res.success) {
+      showSuccess(`Status updated to "${newStatus}"`);
+    } else {
+      showError(res.message || "Failed to update status");
+    }
   };
 
   const handleSaveChapter = async (e: React.FormEvent) => {
@@ -93,6 +119,9 @@ export default function SyllabusManagementPage() {
     const res = await saveSyllabus(selectedAssignment, updatedChapters);
     if (res.success) {
       setIsChapterModalOpen(false);
+      showSuccess(editingIndex !== null ? "Chapter updated successfully" : "Chapter added successfully");
+    } else {
+      showError(res.message || "Failed to save chapter");
     }
     setSubmitting(false);
   };
@@ -298,6 +327,20 @@ export default function SyllabusManagementPage() {
           </div>
         </form>
       </Modal>
+
+      {/* ── Floating status alerts (Toasts) ───────────────────────────── */}
+      {successMsg && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg animate-in slide-in-from-bottom-5 duration-300">
+          <CheckCircle2 className="w-4 h-4 shrink-0 stroke-[3]" />
+          <span className="text-[13px] font-medium">{successMsg}</span>
+        </div>
+      )}
+      {errorMsg && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg animate-in slide-in-from-bottom-5 duration-300">
+          <AlertCircle className="w-4 h-4 shrink-0 stroke-[3]" />
+          <span className="text-[13px] font-medium">{errorMsg}</span>
+        </div>
+      )}
     </div>
   );
 }
