@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
 import { TeacherAssignment, Class } from "@/lib/models/index";
 import Stream from "@/lib/models/Stream"; // register Stream model for populate
+import Section from "@/lib/models/Section"; // register Section model for populate
+import Teacher from "@/lib/models/Teacher"; // register Teacher model for populate
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
