@@ -79,35 +79,6 @@ export default async function AdmissionsPage() {
         </section>
       )}
 
-      {/* Fee Structure */}
-      {fees.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <h2 className="text-primary font-bold tracking-widest uppercase text-[12px] mb-3">Fees</h2>
-            <h3 className="text-3xl font-serif font-bold text-foreground mb-8">Fee Structure</h3>
-            <div className="overflow-x-auto rounded-sm border border-slate-200 shadow-md">
-              <table className="w-full text-[14px]">
-                <thead className="bg-[var(--sidebar-bg)] text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold uppercase tracking-wider text-[12px]">Class</th>
-                    <th className="px-6 py-4 text-right font-bold uppercase tracking-wider text-[12px]">Annual Fee (₹)</th>
-                    <th className="px-6 py-4 text-right font-bold uppercase tracking-wider text-[12px]">Monthly Fee (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fees.map((f: any, i: number) => (
-                    <tr key={f._id ?? i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                      <td className="px-6 py-4 font-medium text-foreground">{f.class_name}</td>
-                      <td className="px-6 py-4 text-right text-slate-700">₹{f.annual_fee?.toLocaleString("en-IN")}</td>
-                      <td className="px-6 py-4 text-right text-slate-700">₹{f.monthly_fee?.toLocaleString("en-IN")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Quick links */}
       <section className="py-14 bg-[var(--sidebar-bg)]">
@@ -116,7 +87,6 @@ export default async function AdmissionsPage() {
             {[
               { href: "/admissions/apply", label: "Apply Online" },
               { href: "/admissions/documents", label: "Documents Required" },
-              { href: "/admissions/fee-structure", label: "Fee Structure" },
               { href: "/admissions/online-form", label: "Online Enquiry" },
             ].map((l) => (
               <Link key={l.href} href={l.href} className="flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-sm hover:bg-primary/10 hover:border-primary/30 transition-all group">

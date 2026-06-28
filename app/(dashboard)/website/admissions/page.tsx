@@ -3,17 +3,10 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Save, Loader2, Plus, Trash2, BookOpen,
+  ArrowLeft, Save, Loader2, BookOpen, Plus,
   CheckCircle2, AlertCircle, X, ToggleLeft, ToggleRight
 } from "lucide-react";
 import { FileUploadField } from "../../../components/ui/FileUploadField";
-
-interface FeeItem {
-  _id?: string;
-  class_name: string;
-  annual_fee: number;
-  monthly_fee: number;
-}
 
 interface AdmissionsData {
   how_to_apply: string;
@@ -21,7 +14,6 @@ interface AdmissionsData {
   apply_url: string;
   hero_image_url: string;
   documents_required: string[];
-  fee_structure: FeeItem[];
 }
 
 const defaultData: AdmissionsData = {
@@ -30,7 +22,6 @@ const defaultData: AdmissionsData = {
   apply_url: "",
   hero_image_url: "",
   documents_required: [],
-  fee_structure: [],
 };
 
 function TextareaField({ label, value, onChange, placeholder = "", rows = 4 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
@@ -93,16 +84,6 @@ export default function AdmissionsPage() {
   };
 
   const removeDoc = (i: number) => setData((p) => ({ ...p, documents_required: p.documents_required.filter((_, idx) => idx !== i) }));
-
-  const addFeeRow = () => setData((p) => ({ ...p, fee_structure: [...p.fee_structure, { class_name: "", annual_fee: 0, monthly_fee: 0 }] }));
-  const removeFeeRow = (i: number) => setData((p) => ({ ...p, fee_structure: p.fee_structure.filter((_, idx) => idx !== i) }));
-  const updateFee = (i: number, f: keyof FeeItem, v: string) =>
-    setData((p) => ({
-      ...p,
-      fee_structure: p.fee_structure.map((row, idx) =>
-        idx === i ? { ...row, [f]: f === "class_name" ? v : parseFloat(v) || 0 } : row
-      ),
-    }));
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
 
@@ -194,55 +175,6 @@ export default function AdmissionsPage() {
                 </button>
               </div>
             ))}
-          </div>
-        )}
-      </div>
-
-      {/* Fee Structure */}
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
-          <h2 className="text-white font-bold text-[14px]">Fee Structure</h2>
-          <button onClick={addFeeRow} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
-            <Plus className="w-3.5 h-3.5" /> Add Class
-          </button>
-        </div>
-        {data.fee_structure.length === 0 ? (
-          <p className="text-slate-500 text-[13px] text-center py-4">No fee rows yet. Click "Add Class" to add fee details.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-slate-700/50">
-                  <th className="text-left text-slate-400 font-semibold pb-3 pr-4">Class / Grade</th>
-                  <th className="text-left text-slate-400 font-semibold pb-3 pr-4">Annual Fee (₹)</th>
-                  <th className="text-left text-slate-400 font-semibold pb-3 pr-4">Monthly Fee (₹)</th>
-                  <th className="pb-3 w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="space-y-2">
-                {data.fee_structure.map((row, i) => (
-                  <tr key={i} className="border-b border-slate-800/50">
-                    <td className="py-2 pr-4">
-                      <input type="text" value={row.class_name} onChange={(e) => updateFee(i, "class_name", e.target.value)} placeholder="Class 1"
-                        className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all" />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <input type="number" value={row.annual_fee} onChange={(e) => updateFee(i, "annual_fee", e.target.value)} placeholder="0"
-                        className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all" />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <input type="number" value={row.monthly_fee} onChange={(e) => updateFee(i, "monthly_fee", e.target.value)} placeholder="0"
-                        className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all" />
-                    </td>
-                    <td className="py-2">
-                      <button onClick={() => removeFeeRow(i)} className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         )}
       </div>
