@@ -42,6 +42,13 @@ interface FAQItem {
   answer: string;
 }
 
+interface HeroStatItem {
+  _id?: string;
+  value: string;
+  label: string;
+  icon: string;
+}
+
 interface EditorData {
   hero_tagline: string;
   hero_description: string;
@@ -49,6 +56,14 @@ interface EditorData {
   hero_side_image_url: string;
   hero_video_url: string;
   founded_year: number;
+  // School Info — shown in Hero & Footer
+  hero_stats: HeroStatItem[];
+  affiliation_name: string;
+  affiliation_number: string;
+  school_code: string;
+  recognition_tags: string;
+  admission_year_label: string;
+  // Sections
   highlights: HighlightItem[];
   why_choose_us: FeatureItem[];
   facilities: FacilityItem[];
@@ -62,43 +77,18 @@ const defaultData: EditorData = {
   hero_image_url: "",
   hero_side_image_url: "",
   hero_video_url: "",
-  founded_year: 1999,
-  highlights: [
-    { value: "2500+", label: "Happy Students", icon: "🎓" },
-    { value: "150+", label: "Expert Faculty", icon: "👨‍🏫" },
-    { value: "100%", label: "CBSE Board Pass Rate", icon: "📈" },
-    { value: "25+", label: "Years of Legacy", icon: "🏆" }
-  ],
-  why_choose_us: [
-    { icon: "Monitor", title: "Smart Classrooms", desc: "Interactive digital boards and modern learning tools in every class." },
-    { icon: "Users", title: "Expert Faculty", desc: "Highly qualified educators dedicated to personalized student success." },
-    { icon: "FlaskConical", title: "Integrated Coaching", desc: "In-house foundation programs for IIT-JEE, NEET, and Olympiads." },
-    { icon: "Trophy", title: "Sports Excellence", desc: "World-class sports infrastructure and professional coaching." },
-    { icon: "Laptop", title: "Digital Learning", desc: "Comprehensive e-learning portal and digital library access." },
-    { icon: "ShieldCheck", title: "Safe Campus", desc: "24/7 CCTV surveillance and strict campus security measures." }
-  ],
-  facilities: [
-    { icon: "MonitorPlay", title: "Smart Computer Labs" },
-    { icon: "TestTube2", title: "Physics/Chem/Bio Labs" },
-    { icon: "Library", title: "Digital Library" },
-    { icon: "Trophy", title: "Sports Complex" },
-    { icon: "Bus", title: "GPS Transport" },
-    { icon: "Mic2", title: "AC Auditorium" },
-    { icon: "Music", title: "Performing Arts" },
-    { icon: "Presentation", title: "Smart Classrooms" }
-  ],
-  testimonials: [
-    { name: "Rajesh Sharma", role: "Parent of Class X Student", content: "The focus on both academics and values is what makes the school stand out. My son's transformation has been incredible, and the board results speak for themselves.", img: "https://i.pravatar.cc/150?u=1" },
-    { name: "Priya Patel", role: "Alumni (Batch of 2018)", content: "The foundation I received here helped me crack the JEE exams. The teachers here are true mentors who guide you beyond the syllabus.", img: "https://i.pravatar.cc/150?u=2" },
-    { name: "Amit Verma", role: "Parent of Class VI Student", content: "From state-of-the-art sports facilities to strict security measures, the school provides an environment where children can thrive safely.", img: "https://i.pravatar.cc/150?u=3" }
-  ],
-  faqs: [
-    { question: "What is the admission procedure for Class XI?", answer: "Admission to Class XI is based on the student's performance in the Class X board exams and an internal aptitude test. We offer Science (PCM/PCB), Commerce, and Humanities streams." },
-    { question: "Does the school provide transport facilities?", answer: "Yes, we provide GPS-enabled, air-conditioned bus services covering a 20km radius around the school. All buses have a dedicated female attendant." },
-    { question: "What is the student-teacher ratio?", answer: "We maintain a healthy student-teacher ratio of 25:1 to ensure personalized attention for every child in the classroom." },
-    { question: "Are there any integrated coaching programs?", answer: "Yes, we offer integrated foundation coaching for IIT-JEE, NEET, and Olympiads starting from Class VIII, conducted by expert faculty during school hours." },
-    { question: "What extracurricular activities are available?", answer: "We offer a wide range of activities including Cricket, Basketball, Swimming, Classical Music, Dance, Robotics, and Debate clubs." }
-  ]
+  founded_year: 0,
+  hero_stats: [],
+  affiliation_name: "",
+  affiliation_number: "",
+  school_code: "",
+  recognition_tags: "",
+  admission_year_label: "",
+  highlights: [],
+  why_choose_us: [],
+  facilities: [],
+  testimonials: [],
+  faqs: [],
 };
 
 const SUGGESTED_ICONS = ["Monitor", "Users", "FlaskConical", "Trophy", "Laptop", "ShieldCheck", "MonitorPlay", "TestTube2", "Library", "Bus", "Mic2", "Music", "Presentation", "BookOpen", "GraduationCap", "Heart", "Star", "Target"];
@@ -108,7 +98,7 @@ export default function LandingEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
-  const [tab, setTab] = useState<"hero" | "highlights" | "features" | "facilities" | "testimonials" | "faq">("hero");
+  const [tab, setTab] = useState<"hero" | "school_info" | "highlights" | "features" | "facilities" | "testimonials" | "faq">("hero");
 
   useEffect(() => {
     const token = localStorage.getItem("sm_access_token");
@@ -124,12 +114,18 @@ export default function LandingEditorPage() {
             hero_image_url: doc.about?.hero_image_url || "",
             hero_side_image_url: doc.about?.hero_side_image_url || "",
             hero_video_url: doc.about?.hero_video_url || "",
-            founded_year: doc.about?.founded_year || 1999,
-            highlights: doc.highlights && doc.highlights.length > 0 ? doc.highlights : defaultData.highlights,
-            why_choose_us: doc.why_choose_us && doc.why_choose_us.length > 0 ? doc.why_choose_us : defaultData.why_choose_us,
-            facilities: doc.facilities && doc.facilities.length > 0 ? doc.facilities : defaultData.facilities,
-            testimonials: doc.testimonials && doc.testimonials.length > 0 ? doc.testimonials : defaultData.testimonials,
-            faqs: doc.faqs && doc.faqs.length > 0 ? doc.faqs : defaultData.faqs,
+            founded_year: doc.about?.founded_year || 0,
+            hero_stats: doc.about?.hero_stats && doc.about.hero_stats.length > 0 ? doc.about.hero_stats : [],
+            affiliation_name: doc.about?.affiliation_name || "",
+            affiliation_number: doc.about?.affiliation_number || "",
+            school_code: doc.about?.school_code || "",
+            recognition_tags: (doc.about?.recognition_tags || []).join(", "),
+            admission_year_label: doc.about?.admission_year_label || "",
+            highlights: doc.highlights && doc.highlights.length > 0 ? doc.highlights : [],
+            why_choose_us: doc.why_choose_us && doc.why_choose_us.length > 0 ? doc.why_choose_us : [],
+            facilities: doc.facilities && doc.facilities.length > 0 ? doc.facilities : [],
+            testimonials: doc.testimonials && doc.testimonials.length > 0 ? doc.testimonials : [],
+            faqs: doc.faqs && doc.faqs.length > 0 ? doc.faqs : [],
           });
         }
       })
@@ -156,7 +152,15 @@ export default function LandingEditorPage() {
             "about.hero_image_url": data.hero_image_url,
             "about.hero_side_image_url": data.hero_side_image_url,
             "about.hero_video_url": data.hero_video_url,
-            "about.founded_year": data.founded_year,
+            "about.founded_year": data.founded_year || undefined,
+            "about.hero_stats": data.hero_stats,
+            "about.affiliation_name": data.affiliation_name,
+            "about.affiliation_number": data.affiliation_number,
+            "about.school_code": data.school_code,
+            "about.recognition_tags": data.recognition_tags
+              ? data.recognition_tags.split(",").map((t) => t.trim()).filter(Boolean)
+              : [],
+            "about.admission_year_label": data.admission_year_label,
             highlights: data.highlights,
             why_choose_us: data.why_choose_us,
             facilities: data.facilities,
@@ -176,6 +180,11 @@ export default function LandingEditorPage() {
   };
 
   // State Helpers for arrays
+  const addHeroStat = () => setData((p) => ({ ...p, hero_stats: [...p.hero_stats, { value: "", label: "", icon: "Users" }] }));
+  const removeHeroStat = (i: number) => setData((p) => ({ ...p, hero_stats: p.hero_stats.filter((_, idx) => idx !== i) }));
+  const updateHeroStat = (i: number, f: keyof HeroStatItem, v: string) =>
+    setData((p) => ({ ...p, hero_stats: p.hero_stats.map((s, idx) => idx === i ? { ...s, [f]: v } : s) }));
+
   const addHighlight = () => setData((p) => ({ ...p, highlights: [...p.highlights, { value: "", label: "", icon: "🎓" }] }));
   const removeHighlight = (i: number) => setData((p) => ({ ...p, highlights: p.highlights.filter((_, idx) => idx !== i) }));
   const updateHighlight = (i: number, f: keyof HighlightItem, v: string) =>
@@ -250,10 +259,11 @@ export default function LandingEditorPage() {
       {/* Dynamic Tab Bar */}
       <div className="flex flex-wrap gap-1.5 p-1 bg-slate-800/40 rounded-xl border border-slate-700/50 w-fit">
         {[
-          { id: "hero", label: "✨ Hero banner" },
+          { id: "hero", label: "✨ Hero Banner" },
+          { id: "school_info", label: "🏫 School Info" },
           { id: "highlights", label: "📈 Stats Highlights" },
           { id: "features", label: "⭐ Why Choose Us" },
-          { id: "facilities", label: "🏫 Facilities" },
+          { id: "facilities", label: "🏛️ Facilities" },
           { id: "testimonials", label: "💬 Testimonials" },
           { id: "faq", label: "❓ FAQs" }
         ].map((t) => (
@@ -286,9 +296,9 @@ export default function LandingEditorPage() {
               <label className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Founded Year</label>
               <input
                 type="number"
-                value={data.founded_year}
+                value={data.founded_year || ""}
                 onChange={(e) => setData({ ...data, founded_year: parseInt(e.target.value) || 0 })}
-                placeholder="e.g. 1999"
+                placeholder="e.g. 1999 (leave blank to hide)"
                 className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
               />
             </div>
@@ -326,6 +336,97 @@ export default function LandingEditorPage() {
             accept="video/*"
             placeholder="Pasted YouTube link or uploaded direct MP4..."
           />
+        </div>
+      )}
+
+      {/* ── Tab: School Info (Hero Stats, Affiliation, Recognition) ── */}
+      {tab === "school_info" && (
+        <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 space-y-6">
+          <h2 className="text-white font-bold text-[14px] border-b border-slate-700/50 pb-3">School Info (shown in Hero &amp; Footer)</h2>
+
+          {/* Affiliation Details */}
+          <div>
+            <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Affiliation &amp; Recognition</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Affiliation Board (e.g. CBSE)</label>
+                <input type="text" value={data.affiliation_name}
+                  onChange={(e) => setData({ ...data, affiliation_name: e.target.value })}
+                  placeholder="e.g. CBSE (leave blank to hide)"
+                  className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Affiliation Number</label>
+                <input type="text" value={data.affiliation_number}
+                  onChange={(e) => setData({ ...data, affiliation_number: e.target.value })}
+                  placeholder="e.g. 1234567 (leave blank to hide)"
+                  className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">School Code</label>
+                <input type="text" value={data.school_code}
+                  onChange={(e) => setData({ ...data, school_code: e.target.value })}
+                  placeholder="e.g. 98765 (leave blank to hide)"
+                  className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Recognition Tags (comma separated — shown at bottom of hero)</label>
+              <input type="text" value={data.recognition_tags}
+                onChange={(e) => setData({ ...data, recognition_tags: e.target.value })}
+                placeholder="e.g. CBSE Board, ISO Certified, NAAC Accredited (leave blank to hide)"
+                className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+            </div>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Admission Year Label (for Footer CTA)</label>
+              <input type="text" value={data.admission_year_label}
+                onChange={(e) => setData({ ...data, admission_year_label: e.target.value })}
+                placeholder="e.g. 2025-26 (leave blank to hide)"
+                className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+            </div>
+          </div>
+
+          {/* Hero Stats */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">Hero Stats (shown below description)</p>
+              <button onClick={addHeroStat} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                <Plus className="w-3.5 h-3.5" /> Add Stat
+              </button>
+            </div>
+            {data.hero_stats.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-[13px] border border-dashed border-slate-700/40 rounded-xl">
+                No stats added — hero stats section will be hidden on landing page.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.hero_stats.map((s, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/30 flex gap-4 items-start">
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Value</label>
+                        <input type="text" value={s.value} onChange={(e) => updateHeroStat(i, "value", e.target.value)} placeholder="e.g. 3500+"
+                          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all" />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Label</label>
+                        <input type="text" value={s.label} onChange={(e) => updateHeroStat(i, "label", e.target.value)} placeholder="e.g. Students"
+                          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all" />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Icon (Lucide name or Emoji)</label>
+                        <input type="text" value={s.icon} onChange={(e) => updateHeroStat(i, "icon", e.target.value)} placeholder="e.g. Users or 🎓"
+                          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-[12px] text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all" />
+                      </div>
+                    </div>
+                    <button onClick={() => removeHeroStat(i)} className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0 mt-6">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

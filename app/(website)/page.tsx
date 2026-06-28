@@ -84,7 +84,7 @@ export default async function Home() {
   );
 
   const hasNews = Boolean(
-    landingData?.news_notices?.some((item) => item.is_published)
+    landingData?.news_notices?.some((item: any) => item.is_published)
   );
 
   const hasFAQs = Boolean(landingData?.faqs?.length);

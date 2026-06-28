@@ -55,6 +55,12 @@ const VideoSchema = new Schema({
   title: { type: String, default: "" },
 }, { _id: true });
 
+const HeroStatSchema = new Schema({
+  value: { type: String, default: "" },
+  label: { type: String, default: "" },
+  icon: { type: String, default: "" },
+}, { _id: true });
+
 const HighlightSchema = new Schema({
   value: { type: String, default: "" },
   label: { type: String, default: "" },
@@ -94,6 +100,17 @@ export interface ILandingContent extends Document {
     hero_image_url?: string;
     hero_side_image_url?: string;
     hero_video_url?: string;
+    hero_stats?: Array<{
+      _id?: mongoose.Types.ObjectId;
+      value: string;
+      label: string;
+      icon: string;
+    }>;
+    affiliation_name?: string;
+    affiliation_number?: string;
+    school_code?: string;
+    recognition_tags?: string[];
+    admission_year_label?: string;
     history: string;
     history_image_url?: string;
     vision: string;
@@ -256,6 +273,12 @@ const landingContentSchema = new Schema<ILandingContent>(
       hero_image_url: { type: String, default: "" },
       hero_side_image_url: { type: String, default: "" },
       hero_video_url: { type: String, default: "" },
+      hero_stats: { type: [HeroStatSchema], default: [] },
+      affiliation_name: { type: String, default: "" },
+      affiliation_number: { type: String, default: "" },
+      school_code: { type: String, default: "" },
+      recognition_tags: { type: [String], default: [] },
+      admission_year_label: { type: String, default: "" },
       history: { type: String, default: "" },
       history_image_url: { type: String, default: "" },
       vision: { type: String, default: "" },

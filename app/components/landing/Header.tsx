@@ -5,48 +5,80 @@ import Link from "next/link";
 import { Menu, X, Phone, Mail } from "lucide-react";
 import { usePublicSchoolInfo } from "@/app/hooks/usePublicSchoolInfo";
 
-export function Header() {
+interface ContactData {
+  phone?: string;
+  email?: string;
+}
+
+interface AdmissionsData {
+  admission_open?: boolean;
+}
+
+interface HeaderProps {
+  contact?: ContactData | null;
+  admissions?: AdmissionsData | null;
+}
+
+const NAV_LINKS = [
+  { label: "Home", href: "/" },
+  { label: "About Us", href: "/about" },
+  { label: "Academics", href: "/academics" },
+  { label: "Admissions", href: "/admissions" },
+  { label: "Student Life", href: "/student-life" },
+  { label: "News", href: "/news" },
+  { label: "Gallery", href: "/gallery" },
+  { label: "Contact", href: "/contact" },
+];
+
+export function Header({ contact, admissions }: HeaderProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { schoolInfo } = usePublicSchoolInfo();
 
+  const phone = contact?.phone?.trim();
+  const email = contact?.email?.trim();
+  const admissionOpen = admissions?.admission_open;
+
+  const hasTopBar = phone || email || admissionOpen;
+
   return (
     <>
-      {/* ── Top Info Bar — Charcoal (#231F20) ─────────────────── */}
-      <div className="hidden lg:flex bg-[#231F20] text-[#CCCCCC] py-2 px-6 text-[12px] font-medium justify-between items-center border-b border-[#5C5D5D]">
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1.5">
-            <Phone className="w-3 h-3 text-[var(--primary)]" />
-            +91 98765 43210
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Mail className="w-3 h-3 text-[var(--primary)]" />
-            info@myschoollife.edu.in
-          </span>
-          <span className="text-[#5C5D5D]">|</span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1FC16B]"></span>
-            Admissions Open {new Date().getFullYear()}-{String(new Date().getFullYear() + 1).slice(2)}
-          </span>
+      {/* ── Top Info Bar — only if contact/admission info exists ─────────────────── */}
+      {hasTopBar && (
+        <div className="hidden lg:flex bg-[#231F20] text-[#CCCCCC] py-2 px-6 text-[12px] font-medium justify-between items-center border-b border-[#5C5D5D]">
+          <div className="flex items-center gap-6">
+            {phone && (
+              <a href={`tel:${phone}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                <Phone className="w-3 h-3 text-[var(--primary)]" />
+                {phone}
+              </a>
+            )}
+            {email && (
+              <a href={`mailto:${email}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                <Mail className="w-3 h-3 text-[var(--primary)]" />
+                {email}
+              </a>
+            )}
+            {admissionOpen && (
+              <>
+                {(phone || email) && <span className="text-[#5C5D5D]">|</span>}
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1FC16B]" />
+                  Admissions Open {new Date().getFullYear()}-{String(new Date().getFullYear() + 1).slice(2)}
+                </span>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="#" className="hover:text-[#0088CC] transition-colors">Pay Fees Online</a>
-          <span className="text-[#5C5D5D]">|</span>
-          <a href="#" className="hover:text-[#0088CC] transition-colors">Mandatory Disclosures</a>
-          <span className="text-[#5C5D5D]">|</span>
-          <a href="#" className="hover:text-[#0088CC] transition-colors">Alumni Network</a>
-          <span className="text-[#5C5D5D]">|</span>
-          <span className="text-[#999999]">Affiliated to CBSE, New Delhi</span>
-        </div>
-      </div>
+      )}
 
-      {/* ── Main Nav — White with Red accents ─────────────────── */}
+      {/* ── Main Nav ─────────────────────────────────────── */}
       <nav className="sticky top-0 left-0 right-0 z-50 bg-[#FFFFFF] shadow-md border-b-4 border-[var(--primary)] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
 
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-md border-2 border-[var(--primary)] flex items-center justify-center">
-              <img src="/logo.png" alt="MySchoolLife Logo" className="w-full h-full object-contain p-1" />
+              <img src="/logo.png" alt="School Logo" className="w-full h-full object-contain p-1" />
             </div>
             <div className="flex flex-col">
               <span className="text-[20px] font-black tracking-tight text-[#231F20] leading-none">
@@ -60,16 +92,7 @@ export function Header() {
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-0 font-bold text-[13px] uppercase tracking-wide">
-            {[
-              { label: "Home", href: "/" },
-              { label: "About Us", href: "/about" },
-              { label: "Academics", href: "/academics" },
-              { label: "Admissions", href: "/admissions" },
-              { label: "Student Life", href: "/student-life" },
-              { label: "News", href: "/news" },
-              { label: "Gallery", href: "/gallery" },
-              { label: "Contact", href: "/contact" },
-            ].map((item) => (
+            {NAV_LINKS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -103,16 +126,7 @@ export function Header() {
         {/* Mobile Menu Dropdown */}
         {isOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-[#FFFFFF] border-t-2 border-[var(--primary)] shadow-2xl p-4 flex flex-col gap-0 max-h-[80vh] overflow-y-auto">
-            {[
-              { label: "Home", href: "/" },
-              { label: "About Us", href: "/about" },
-              { label: "Academics", href: "/academics" },
-              { label: "Admissions", href: "/admissions" },
-              { label: "Student Life", href: "/student-life" },
-              { label: "News", href: "/news" },
-              { label: "Gallery", href: "/gallery" },
-              { label: "Contact", href: "/contact" },
-            ].map((item) => (
+            {NAV_LINKS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -123,13 +137,22 @@ export function Header() {
               </Link>
             ))}
 
-            {/* Quick Links for Mobile */}
-            <div className="pt-3 flex flex-col gap-2">
-              <span className="text-[10px] font-black text-[#999999] uppercase tracking-widest">Quick Links</span>
-              <a href="#" onClick={() => setIsOpen(false)} className="text-[#0088CC] font-medium text-sm hover:underline">Pay Fees Online</a>
-              <a href="#" onClick={() => setIsOpen(false)} className="text-[#0088CC] font-medium text-sm hover:underline">Mandatory Disclosures</a>
-              <a href="#" onClick={() => setIsOpen(false)} className="text-[#0088CC] font-medium text-sm hover:underline">Alumni Network</a>
-            </div>
+            {/* Mobile contact info */}
+            {(phone || email) && (
+              <div className="pt-3 flex flex-col gap-2">
+                <span className="text-[10px] font-black text-[#999999] uppercase tracking-widest">Contact</span>
+                {phone && (
+                  <a href={`tel:${phone}`} className="text-[#0088CC] font-medium text-sm hover:underline flex items-center gap-1.5">
+                    <Phone className="w-3 h-3" />{phone}
+                  </a>
+                )}
+                {email && (
+                  <a href={`mailto:${email}`} className="text-[#0088CC] font-medium text-sm hover:underline flex items-center gap-1.5">
+                    <Mail className="w-3 h-3" />{email}
+                  </a>
+                )}
+              </div>
+            )}
 
             <Link
               href="/login"

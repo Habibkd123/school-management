@@ -117,11 +117,11 @@ export function AboutSchool({ data }: { data?: AboutData | null }) {
               </div>
             )}
 
-            {data?.management_team?.length > 0 && (
+            {(managementTeam?.length ?? 0) > 0 && (
               <div className="mt-10">
                 <h4 className="text-lg font-bold text-foreground mb-6">Leadership Team</h4>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {data.management_team.map((member) => (
+                  {managementTeam.map((member) => (
                     <div key={member._id?.toString() ?? member.name} className="bg-white rounded-sm p-4 border border-slate-200">
                       <p className="font-bold text-foreground">{member.name}</p>
                       <p className="text-slate-500 text-[13px] mb-3">{member.position}</p>
