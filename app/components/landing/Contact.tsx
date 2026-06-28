@@ -157,11 +157,11 @@ export function Contact({ data }: { data?: ContactData | null }) {
           </div>
 
           {/* Right: Contact Form */}
-          <div className="bg-[var(--sidebar-bg)] p-10 rounded-sm shadow-2xl relative overflow-hidden">
+          <div className="bg-[var(--sidebar-bg)] p-10 rounded-sm shadow-2xl relative overflow-hidden h-[550px]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary rounded-full blur-[100px] opacity-20 -z-0" />
             <div className="relative z-10">
               <h4 className="text-2xl font-serif font-bold text-white mb-6">Send an Enquiry</h4>
-              
+
               {status === "success" && (
                 <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -179,20 +179,20 @@ export function Contact({ data }: { data?: ContactData | null }) {
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Parent's Name</label>
-                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="John Doe" />
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="John Doe" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Phone Number</label>
-                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="+91 98765 43210" />
+                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="+91 98765 43210" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="contact-email" className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Email Address</label>
-                  <input id="contact-email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="john@example.com" />
+                  <input id="contact-email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors" placeholder="john@example.com" />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="contact-grade" className="text-[13px] font-bold text-slate-300 uppercase tracking-wide">Grade Applying For</label>
-                  <select id="contact-grade" value={formData.grade} onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors appearance-none">
+                  <select id="contact-grade" value={formData.grade} onChange={(e) => setFormData({ ...formData, grade: e.target.value })} className="w-full bg-white/5 border border-white/20 rounded-sm px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-primary transition-colors appearance-none">
                     <option className="bg-[var(--sidebar-bg)]">Pre-Primary</option>
                     <option className="bg-[var(--sidebar-bg)]">Primary (I-V)</option>
                     <option className="bg-[var(--sidebar-bg)]">Middle (VI-VIII)</option>
