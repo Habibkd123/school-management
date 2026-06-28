@@ -1,11 +1,17 @@
 // ─── Token Storage Helpers (localStorage) ────────────────────────
 // Ye helpers browser mein access_token aur refresh_token save/load karte hain
+// Keys are prefixed with the school ID to prevent collisions when multiple
+// school projects run in the same browser (same localhost origin).
+
+const _schoolId =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SCHOOL_ID) || "default";
+const _pfx = `${_schoolId}_`;
 
 const KEYS = {
-  ACCESS_TOKEN: "sm_access_token",
-  REFRESH_TOKEN: "sm_refresh_token",
-  USER: "sm_user",
-} as const;
+  ACCESS_TOKEN: `${_pfx}sm_access_token`,
+  REFRESH_TOKEN: `${_pfx}sm_refresh_token`,
+  USER: `${_pfx}sm_user`,
+};
 
 export interface StoredUser {
   id: string;

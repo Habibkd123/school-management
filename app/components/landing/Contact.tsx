@@ -157,7 +157,7 @@ export function Contact({ data }: { data?: ContactData | null }) {
           </div>
 
           {/* Right: Contact Form */}
-          <div className="bg-[var(--sidebar-bg)] p-10 rounded-sm shadow-2xl relative overflow-hidden h-[550px]">
+          <div className="bg-[var(--sidebar-bg)] p-10 rounded-sm shadow-2xl relative overflow-hidden h-[500px]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary rounded-full blur-[100px] opacity-20 -z-0" />
             <div className="relative z-10">
               <h4 className="text-2xl font-serif font-bold text-white mb-6">Send an Enquiry</h4>
