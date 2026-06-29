@@ -13,6 +13,16 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     const url = new URL(req.url);
     const teacher_assignment_id = url.searchParams.get("teacher_assignment_id");
+    const teacher_id = url.searchParams.get("teacher_id");
+
+    if (teacher_id && mongoose.Types.ObjectId.isValid(teacher_id)) {
+      const assignments = await TeacherAssignment.find({ teacher_id, school_id: schoolId }).distinct("_id");
+      const syllabi = await Syllabus.find({ teacher_assignment_id: { $in: assignments }, school_id: schoolId }).lean();
+      return NextResponse.json({
+        success: true,
+        data: syllabi,
+      });
+    }
 
     if (!teacher_assignment_id || !mongoose.Types.ObjectId.isValid(teacher_assignment_id)) {
       return NextResponse.json({ success: false, message: "Valid teacher_assignment_id is required" }, { status: 400 });
@@ -57,8 +67,8 @@ export async function POST(req: NextRequest) {
     }
 
     for (const ch of chapters) {
-      if (!ch.chapter_no || !ch.chapter_name || !ch.start_date || !ch.target_date) {
-        return NextResponse.json({ success: false, message: "Each chapter requires chapter_no, chapter_name, start_date, and target_date" }, { status: 400 });
+      if (!ch.chapter_no || !ch.chapter_name) {
+        return NextResponse.json({ success: false, message: "Each chapter requires chapter_no and chapter_name" }, { status: 400 });
       }
     }
 

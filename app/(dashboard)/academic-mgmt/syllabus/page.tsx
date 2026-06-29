@@ -8,15 +8,20 @@ import { useSyllabus, SyllabusChapter } from "@/app/hooks/useSyllabus";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useAuth } from "@/app/context/auth";
 import { useAppState } from "@/app/context/store";
+import { useTeachers } from "@/app/hooks/useTeachers";
 
 export default function SyllabusManagementPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
   const { academicYear } = useAppState();
   const { enableStreams, enableSections } = useAcademicConfig();
 
   const { assignments, isLoading: loadingAssignments, fetchAssignments } = useTeacherAssignment();
   const { syllabus, isLoading: loadingSyllabus, fetchSyllabus, saveSyllabus } = useSyllabus();
+  const isTeacher = user?.role === "teacher";
+  const { teachers } = useTeachers({ skip: !isTeacher });
+
+  const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
+  const isAuthorized = isAdmin || isTeacher;
 
   const [selectedAssignment, setSelectedAssignment] = useState<string>("");
   const [activeAssignment, setActiveAssignment] = useState<PopulatedTeacherAssignment | null>(null);
@@ -46,8 +51,18 @@ export default function SyllabusManagementPage() {
   };
 
   useEffect(() => {
-    fetchAssignments({ academic_year: academicYear, limit: 500 });
-  }, [fetchAssignments, academicYear]);
+    if (isTeacher) {
+      const currentTeacher = teachers.find(t => {
+        const tUserId = typeof t.user_id === "object" ? t.user_id?._id : t.user_id;
+        return tUserId === user?.id;
+      });
+      if (currentTeacher) {
+        fetchAssignments({ teacher_id: currentTeacher._id, academic_year: academicYear, limit: 500 });
+      }
+    } else {
+      fetchAssignments({ academic_year: academicYear, limit: 500 });
+    }
+  }, [fetchAssignments, academicYear, isTeacher, teachers, user]);
 
   useEffect(() => {
     if (selectedAssignment) {
@@ -100,8 +115,11 @@ export default function SyllabusManagementPage() {
     if (!syllabus) return;
     setSubmitting(true);
 
-    const newChapter = formChapter as SyllabusChapter;
-    let updatedChapters = [...syllabus.chapters];
+    const newChapter = { ...formChapter } as any;
+    if (!newChapter.start_date) delete newChapter.start_date;
+    if (!newChapter.target_date) delete newChapter.target_date;
+    
+    let updatedChapters = [...(syllabus?.chapters || [])];
 
     if (editingIndex !== null) {
       updatedChapters[editingIndex] = newChapter;
@@ -188,7 +206,7 @@ export default function SyllabusManagementPage() {
                 <User className="w-4 h-4 text-slate-400" /> Taught by <b>{activeAssignment.teacher_id?.name}</b>
               </p>
             </div>
-            {isAdmin && (
+            {isAuthorized && (
               <button onClick={handleAddChapter} className="px-4 py-2 bg-primary hover:bg-[var(--primary-hover)] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2 shrink-0">
                 <Plus className="w-4 h-4" /> Add Chapter
               </button>
@@ -212,8 +230,8 @@ export default function SyllabusManagementPage() {
                         </h4>
                         {ch.description && <p className="text-[13px] text-slate-500 mt-1 max-w-2xl">{ch.description}</p>}
                         <div className="flex items-center gap-4 mt-2 text-[12px] font-medium text-slate-400">
-                          <span>Start: <span className="text-slate-600 dark:text-slate-300">{new Date(ch.start_date).toLocaleDateString()}</span></span>
-                          <span>Target: <span className="text-slate-600 dark:text-slate-300">{new Date(ch.target_date).toLocaleDateString()}</span></span>
+                          <span>Start: <span className="text-slate-600 dark:text-slate-300">{ch.start_date ? new Date(ch.start_date).toLocaleDateString() : "Not set"}</span></span>
+                          <span>Target: <span className="text-slate-600 dark:text-slate-300">{ch.target_date ? new Date(ch.target_date).toLocaleDateString() : "Not set"}</span></span>
                         </div>
                       </div>
                     </div>
@@ -234,7 +252,7 @@ export default function SyllabusManagementPage() {
                         <option value="Completed">Completed</option>
                       </select>
 
-                      {isAdmin && (
+                      {isAuthorized && (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleEditChapter(idx, ch)} className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
                             <Edit2 className="w-4 h-4" />
@@ -252,7 +270,7 @@ export default function SyllabusManagementPage() {
               <div className="py-20 flex flex-col items-center justify-center text-slate-400">
                 <BookOpen className="w-12 h-12 opacity-20 mb-3" />
                 <p className="text-sm font-medium">No chapters added yet.</p>
-                {isAdmin && <button onClick={handleAddChapter} className="mt-3 text-sm text-blue-500 hover:underline font-medium">Add first chapter</button>}
+                {isAuthorized && <button onClick={handleAddChapter} className="mt-3 text-sm text-blue-500 hover:underline font-medium">Add first chapter</button>}
               </div>
             )}
           </div>
@@ -289,15 +307,15 @@ export default function SyllabusManagementPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold">Start Date <span className="text-red-500">*</span></label>
-              <input type="date" required
+              <label className="text-[13px] font-semibold">Start Date <span className="text-slate-400 text-[11px]">(optional)</span></label>
+              <input type="date"
                 value={formChapter.start_date ? new Date(formChapter.start_date).toISOString().split('T')[0] : ''} 
                 onChange={(e) => setFormChapter({...formChapter, start_date: e.target.value})}
                 className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold">Target Date <span className="text-red-500">*</span></label>
-              <input type="date" required
+              <label className="text-[13px] font-semibold">Target Date <span className="text-slate-400 text-[11px]">(optional)</span></label>
+              <input type="date"
                 value={formChapter.target_date ? new Date(formChapter.target_date).toISOString().split('T')[0] : ''} 
                 onChange={(e) => setFormChapter({...formChapter, target_date: e.target.value})}
                 className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary" />

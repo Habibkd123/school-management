@@ -17,6 +17,7 @@ import { getAuthHeaders, getStoredUser } from "@/lib/utils/session";
 import { useLeave } from "../../hooks/useLeave";
 import { useSubjects } from "../../hooks/useSubjects";
 import { useParent } from "../../hooks/useParent";
+import { useTeacherAssignment } from "../../hooks/useTeacherAssignment";
 import { ParentOverview } from "../../components/parent/ParentOverview";
 import { LineChart, BarChart, DoughnutChart } from "../../components/ui/charts";
 import { useThemeColors } from "../../components/SchoolThemeProvider";
@@ -83,12 +84,42 @@ export default function DashboardPage() {
   const { academicYear } = useAppState();
   // Parent portal only
   const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent({ skip: !isParent });
+  const { assignments: teacherAssignments, fetchAssignments: fetchTeacherAssignments } = useTeacherAssignment();
 
   const [attendanceTab, setAttendanceTab] = useState<'Students' | 'Teachers' | 'Staff'>('Students');
 
   const [superAdminSchools, setSuperAdminSchools] = useState<any[]>([]);
   const [loadingSchools, setLoadingSchools] = useState(false);
 
+  const [teacherSyllabi, setTeacherSyllabi] = useState<any[]>([]);
+
+  const currentTeacherProfile = useMemo(() => {
+    if (!isTeacher || teachers.length === 0) return null;
+    return teachers.find(t => {
+      const tUserId = typeof t.user_id === "object" ? t.user_id?._id : t.user_id;
+      return tUserId === user?.id;
+    });
+  }, [isTeacher, teachers, user?.id]);
+
+  React.useEffect(() => {
+    if (isTeacher) {
+      fetchTeacherAssignments({ academic_year: academicYear, limit: 500 });
+    }
+  }, [isTeacher, fetchTeacherAssignments, academicYear]);
+
+  React.useEffect(() => {
+    if (isTeacher && currentTeacherProfile) {
+      fetch(`/api/syllabus?teacher_id=${currentTeacherProfile._id}`, { headers: getAuthHeaders() })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setTeacherSyllabi(data.data);
+          }
+        })
+        .catch(err => console.error(err));
+    }
+  }, [isTeacher, currentTeacherProfile]);
+  
   React.useEffect(() => {
     if (user?.role === "super_admin") {
       setLoadingSchools(true);
@@ -277,12 +308,13 @@ export default function DashboardPage() {
   // ---------------------------------------------------------------------------
 
   // Assigned Classes & Subjects
-  const teacherSchedules = useMemo(() => schedules.filter(s => {
-    if (typeof s.teacher_id === 'object' && s.teacher_id !== null) {
-      return s.teacher_id._id === user?.id;
-    }
-    return s.teacher_id === user?.id;
-  }), [schedules, user?.id]);
+  const teacherSchedules = useMemo(() => {
+    if (!currentTeacherProfile) return [];
+    return schedules.filter(s => {
+      const tId = typeof s.teacher_id === 'object' && s.teacher_id !== null ? s.teacher_id._id : s.teacher_id;
+      return tId === currentTeacherProfile._id;
+    });
+  }, [schedules, currentTeacherProfile]);
 
   const uniqueClasses = useMemo(() => Array.from(new Set(teacherSchedules.map(s => {
     if (typeof s.class_id === 'object' && s.class_id !== null) {
@@ -299,9 +331,11 @@ export default function DashboardPage() {
   }))), [teacherSchedules]);
 
   // Today's classes
-  const todaysClasses = teacherSchedules
-    .filter(s => s.day === currentDayName)
-    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const todaysClasses = useMemo(() => {
+    return teacherSchedules
+      .filter(s => s.day === currentDayName)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  }, [teacherSchedules, currentDayName]);
 
   // Upcoming Events (combine holidays & notices)
   const upcomingEvents = [
@@ -345,10 +379,53 @@ export default function DashboardPage() {
     .slice(0, 3);
 
   // Leave Requests (For Attendance summary box)
-  const myLeaves = leaves.filter(l => {
-    if (typeof l.user_id === 'object') return l.user_id._id === user?.id;
-    return l.user_id === user?.id;
-  }).sort((a, b) => new Date(b.from_date).getTime() - new Date(a.from_date).getTime());
+  const myLeaves = useMemo(() => {
+    return leaves.filter(l => {
+      const lUserId = typeof l.user_id === 'object' ? l.user_id?._id : l.user_id;
+      return lUserId === user?.id;
+    }).sort((a, b) => new Date(b.from_date).getTime() - new Date(a.from_date).getTime());
+  }, [leaves, user?.id]);
+
+  const approvedLeaves = useMemo(() => myLeaves.filter(l => l.status === "approved").length, [myLeaves]);
+  const pendingLeaves = useMemo(() => myLeaves.filter(l => l.status === "pending").length, [myLeaves]);
+
+  const syllabusStats = useMemo(() => {
+    let total = 0;
+    let completed = 0;
+    const inProgressList: any[] = [];
+
+    teacherSyllabi.forEach(syl => {
+      // Find the assignment details from teacherSchedules
+      const matchingSchedule = teacherSchedules.find(s => {
+        // Match either class and subject OR teacher_assignment_id (if we have it, else match via metadata)
+        return true;
+      });
+
+      // Let's find assignment in teacherAssignments
+      const assignment = teacherAssignments.find(a => a._id === syl.teacher_assignment_id);
+      const className = assignment?.class_id?.name || "Class";
+      const subjectName = assignment?.subject_master_id?.name || "Subject";
+
+      (syl.chapters || []).forEach((ch: any) => {
+        total++;
+        if (ch.status === "Completed") completed++;
+        if (ch.status === "In Progress") {
+          inProgressList.push({
+            ...ch,
+            className,
+            subjectName
+          });
+        }
+      });
+    });
+
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return {
+      completionRate,
+      pendingRate: total > 0 ? 100 - completionRate : 0,
+      inProgressList
+    };
+  }, [teacherSyllabi, teacherAssignments]);
 
   // Calendar Generation
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -365,10 +442,7 @@ export default function DashboardPage() {
     d.setDate(d.getDate() + 1);
   }
 
-  // Pending leaves count
-  const pendingLeaves = myLeaves.filter(l => l.status === "pending").length;
-  // Approved leaves count
-  const approvedLeaves = myLeaves.filter(l => l.status === "approved").length;
+  
 
   return (
     <div className="space-y-6 max-w-full sm:w-[1600px] mx-auto">
@@ -1107,18 +1181,17 @@ export default function DashboardPage() {
               <div className="w-full sm:w-[80px] h-[80px] relative shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="var(--danger)" strokeWidth="16" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--primary)" strokeWidth="16" strokeDasharray="251.2" strokeDashoffset="12.56" />
-                  {/* ~95% filled */}
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--primary)" strokeWidth="16" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * syllabusStats.completionRate) / 100} />
                 </svg>
               </div>
               <div className="flex-1 ml-6">
                 <h3 className="text-[14px] font-bold text-slate-900 dark:text-white mb-3">Syllabus</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700 dark:text-slate-200">
-                    <span className="w-2 h-2 rounded-full bg-primary"></span> Completed : 95%
+                    <span className="w-2 h-2 rounded-full bg-primary"></span> Completed : {syllabusStats.completionRate}%
                   </div>
                   <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700 dark:text-slate-200">
-                    <span className="w-2 h-2 rounded-full bg-danger"></span> Pending : 5%
+                    <span className="w-2 h-2 rounded-full bg-danger"></span> Pending : {syllabusStats.pendingRate}%
                   </div>
                 </div>
               </div>
@@ -1174,6 +1247,38 @@ export default function DashboardPage() {
                 ) : (
                   <div className="text-[13px] text-slate-500 dark:text-slate-400 text-center py-6 border border-dashed border-border rounded-xl">
                     No classes scheduled for today
+                  </div>
+                )}
+              </div>
+
+              {/* In-Progress Chapters */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow text-left">
+                <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-amber-500" />
+                  In-Progress Chapters
+                </h3>
+                {syllabusStats.inProgressList.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {syllabusStats.inProgressList.map((ch, idx) => (
+                      <div key={idx} className="bg-[#F8FAFC] dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800/50">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                            CH {ch.chapter_no}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            {ch.className} • {ch.subjectName}
+                          </span>
+                        </div>
+                        <h4 className="text-[13px] font-bold text-slate-900 dark:text-white line-clamp-1">{ch.chapter_name}</h4>
+                        {ch.target_date && (
+                          <p className="text-[11px] text-slate-500 mt-1">Target: {new Date(ch.target_date).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[13px] text-slate-500 dark:text-slate-400 text-center py-6 border border-dashed border-border rounded-xl">
+                    No chapters currently in progress
                   </div>
                 )}
               </div>

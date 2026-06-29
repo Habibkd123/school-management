@@ -51,21 +51,18 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const { academic_year, class_id, stream_id, subject_master_id } = await req.json();
+    const body = await req.json();
+    const { academic_year, class_id, stream_id, subject_master_id, subject_master_ids } = body;
 
-    if (!academic_year?.trim() || !class_id || !subject_master_id) {
+    if (!academic_year?.trim() || !class_id) {
       return NextResponse.json(
-        { success: false, message: "academic_year, class_id, and subject_master_id are required" },
+        { success: false, message: "academic_year and class_id are required" },
         { status: 400 }
       );
     }
 
-    // Validate references
     const cls = await Class.findOne({ _id: class_id, school_id: schoolId }).lean();
     if (!cls) return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 });
-
-    const subject = await SubjectMaster.findOne({ _id: subject_master_id, school_id: schoolId }).lean();
-    if (!subject) return NextResponse.json({ success: false, message: "Subject not found" }, { status: 404 });
 
     const isHigherClass = cls.name.startsWith("Class 11") || cls.name.startsWith("Class 12");
     let finalStreamId = undefined;
@@ -76,28 +73,50 @@ export async function POST(req: NextRequest) {
       finalStreamId = stream_id;
     }
 
-    const assignment = await SubjectAssignment.create({
-      school_id: String(schoolId),
-      academic_year: academic_year.trim(),
-      class_id,
-      ...(finalStreamId ? { stream_id: finalStreamId } : {}),
-      subject_master_id,
-    });
+    const targetSubjectIds: string[] = [];
+    if (Array.isArray(subject_master_ids)) {
+      targetSubjectIds.push(...subject_master_ids);
+    } else if (subject_master_id) {
+      targetSubjectIds.push(subject_master_id);
+    }
 
-    const populated = await SubjectAssignment.findById((assignment as any)._id)
-      .populate("class_id", "name class_code section")
-      .populate("stream_id", "name")
-      .populate("subject_master_id", "name subject_code")
-      .lean();
-
-    return NextResponse.json({ success: true, data: populated }, { status: 201 });
-  } catch (err: any) {
-    if (err.code === 11000) {
+    if (targetSubjectIds.length === 0) {
       return NextResponse.json(
-        { success: false, message: "This subject is already assigned to this class/stream for the selected year" },
-        { status: 409 }
+        { success: false, message: "subject_master_id or subject_master_ids is required" },
+        { status: 400 }
       );
     }
+
+    const createdAssignments = [];
+    for (const subId of targetSubjectIds) {
+      const subject = await SubjectMaster.findOne({ _id: subId, school_id: schoolId }).lean();
+      if (!subject) continue;
+
+      try {
+        const assignment = await SubjectAssignment.create({
+          school_id: String(schoolId),
+          academic_year: academic_year.trim(),
+          class_id,
+          stream_id: finalStreamId || null,
+          subject_master_id: subId,
+        });
+        createdAssignments.push(assignment);
+      } catch (err: any) {
+        if (err.code === 11000) {
+          if (targetSubjectIds.length === 1) {
+            return NextResponse.json(
+              { success: false, message: "This subject is already assigned to this class/stream for the selected year" },
+              { status: 409 }
+            );
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    return NextResponse.json({ success: true, count: createdAssignments.length }, { status: 201 });
+  } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message || "Server error" }, { status: 500 });
   }
 }

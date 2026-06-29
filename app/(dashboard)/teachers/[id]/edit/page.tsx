@@ -506,8 +506,7 @@ export default function EditTeacherPage() {
       twitter_url: twitterUrl || undefined,
       photo_url: photoUrl || undefined,
       resume_url: resumeUrl || undefined,
-      joining_letter_url: joiningLetterUrl || undefined,
-      password: newPassword || undefined
+      joining_letter_url: joiningLetterUrl || undefined
     };
 
     if (editId) {
@@ -691,33 +690,6 @@ export default function EditTeacherPage() {
           </div>
         </div>
 
-        {/* 6. Hostel Information */}
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
-            <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Hostel Information</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            <InputGroup label="Hostel" type="select" value={hostelName} onChange={(e) => setHostelName(e.target.value)} options={["Select", "HI-Hostel", "Boys Hostel", "Girls Hostel"]} />
-            <InputGroup label="Room No" type="select" value={hostelRoomNo} onChange={(e) => setHostelRoomNo(e.target.value)} options={["Select", "Room 25", "Room 30", "Room 101", "Room 102"]} />
-          </div>
-        </div>
-
-        {/* 7. Social Media Links */}
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
-            <Share2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Social Media Links</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6 text-left">
-            <InputGroup label="Facebook" value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} />
-            <InputGroup label="Instagram" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} />
-            <InputGroup label="Linked In" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
-            <InputGroup label="Youtube" value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} />
-            <InputGroup label="Twitter URL" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} />
-          </div>
-        </div>
-
         {/* 8. Documents */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
           <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
@@ -727,18 +699,6 @@ export default function EditTeacherPage() {
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             <DocUploader label="Upload Resume" docUrl={resumeUrl} onChange={handleResumeUpload} uploading={uploadingResume} />
             <DocUploader label="Upload Joining Letter" docUrl={joiningLetterUrl} onChange={handleLetterUpload} uploading={uploadingLetter} />
-          </div>
-        </div>
-
-        {/* 9. Password Option */}
-        <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2 text-left">
-            <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-100">Change Password</h2>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            <InputGroup label="New Password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Only fill to reset password" />
-            <InputGroup label="Confirm Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat new password" />
           </div>
         </div>
 

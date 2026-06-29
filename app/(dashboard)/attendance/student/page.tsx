@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Loader2, AlertCircle, Save, Calendar, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useStudentAttendance, StudentAttendanceRecord } from "@/app/hooks/useStudentAttendance";
 import { useClasses } from "@/app/hooks/useClasses";
 import { useStreams } from "@/app/hooks/useStreams";
 import { useSections } from "@/app/hooks/useSections";
 import { useStudents } from "@/app/hooks/useStudents";
+import { useTeachers } from "@/app/hooks/useTeachers";
+import { useAuth } from "@/app/context/auth";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useAppState } from "@/app/context/store";
 
@@ -19,6 +21,29 @@ export default function StudentAttendancePage() {
   const { streams } = useStreams({ skip: !enableStreams });
   const { sections } = useSections({ skip: !enableSections });
   const { students, fetchStudents, isLoading: loadingStudents } = useStudents();
+
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher";
+  const { teachers } = useTeachers({ skip: !isTeacher });
+
+  const teacherProfile = useMemo(() => {
+    if (!isTeacher || teachers.length === 0) return null;
+    return teachers.find(t => {
+      const tUserId = typeof t.user_id === "object" ? t.user_id?._id : t.user_id;
+      return tUserId === user?.id;
+    });
+  }, [isTeacher, teachers, user]);
+
+  const filteredClasses = useMemo(() => {
+    if (isTeacher) {
+      if (!teacherProfile) return [];
+      return classes.filter(cls => {
+        const ctId = typeof cls.class_teacher_id === "object" ? cls.class_teacher_id?._id : cls.class_teacher_id;
+        return ctId === teacherProfile._id;
+      });
+    }
+    return classes;
+  }, [classes, isTeacher, teacherProfile]);
 
   // Filters
   const [filterYear, setFilterYear] = useState(academicYear);
@@ -152,7 +177,7 @@ export default function StudentAttendancePage() {
             <select value={filterClassId} onChange={(e) => setFilterClassId(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary bg-white dark:bg-slate-900 font-medium">
               <option value="">Select Class</option>
-              {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+              {filteredClasses.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
             </select>
           </div>
           {enableStreams && (

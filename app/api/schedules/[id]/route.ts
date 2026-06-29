@@ -83,6 +83,33 @@ export async function PUT(
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // ── Conflict check: same teacher, same day, overlapping time, excluding self ─────
+    if (timetable.teacher_id) {
+      const teacherConflicts = await Timetable.find({
+        school_id: new mongoose.Types.ObjectId(schoolId as string),
+        teacher_id: timetable.teacher_id,
+        day: checkDay,
+        _id: { $ne: new mongoose.Types.ObjectId(id) }, // exclude self
+      }).populate("class_id", "name section");
+
+      for (const entry of teacherConflicts) {
+        const eStart = parseTimeToMinutes(entry.start_time);
+        const eEnd   = parseTimeToMinutes(entry.end_time);
+        if (checkStart < eEnd && checkEnd > eStart) {
+          const cls = entry.class_id as any;
+          const className = cls?.name ? `${cls.name} - ${cls.section}` : "another class";
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Teacher is already assigned to ${className} on ${checkDay} from ${entry.start_time} to ${entry.end_time} which overlaps with this time slot.`,
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (subject) {
       const subjectDoc = await Subject.findOneAndUpdate(
         {

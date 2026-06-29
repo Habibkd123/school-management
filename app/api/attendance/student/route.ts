@@ -37,13 +37,9 @@ export async function GET(req: NextRequest) {
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
       }
-      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
       const teacherClassIds = await Class.find({
         school_id: schoolId,
-        $or: [
-          { class_teacher_id: teacher._id },
-          { _id: { $in: classIdsFromTimetable } }
-        ]
+        class_teacher_id: teacher._id
       }).distinct("_id");
 
       const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId);
@@ -115,13 +111,9 @@ export async function POST(req: NextRequest) {
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
       }
-      const classIdsFromTimetable = await Timetable.find({ teacher_id: teacher._id, school_id: schoolId }).distinct("class_id");
       const teacherClassIds = await Class.find({
         school_id: schoolId,
-        $or: [
-          { class_teacher_id: teacher._id },
-          { _id: { $in: classIdsFromTimetable } }
-        ]
+        class_teacher_id: teacher._id
       }).distinct("_id");
 
       const hasAccess = teacherClassIds.map(id => id.toString()).includes(classId);

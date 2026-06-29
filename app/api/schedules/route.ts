@@ -191,6 +191,32 @@ export async function POST(req: NextRequest) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // ── Conflict check: same teacher, same day, overlapping time ──────────────
+    if (teacherId && mongoose.Types.ObjectId.isValid(teacherId)) {
+      const existingForTeacher = await Timetable.find({
+        school_id: new mongoose.Types.ObjectId(schoolId as string),
+        teacher_id: new mongoose.Types.ObjectId(teacherId),
+        day: day.toLowerCase(),
+      }).populate("class_id", "name section").lean();
+
+      for (const entry of existingForTeacher) {
+        const eStart = parseTimeToMinutes(entry.start_time);
+        const eEnd   = parseTimeToMinutes(entry.end_time);
+        if (newStart < eEnd && newEnd > eStart) {
+          const cls = entry.class_id as any;
+          const className = cls?.name ? `${cls.name} - ${cls.section}` : "another class";
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Teacher is already assigned to ${className} on ${day} from ${entry.start_time} to ${entry.end_time} which overlaps with this time slot.`,
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const subjectDoc = await Subject.findOneAndUpdate(
       {
         school_id: new mongoose.Types.ObjectId(schoolId as string),

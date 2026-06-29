@@ -55,7 +55,6 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Syllabus", href: "/academic-mgmt/syllabus" },
         // { name: "Class Room", href: "/academic/class-room" },
         { name: "Class Routine", href: "/academic/class-routine" },
-        { name: "Time Table", href: "/academic/time-table" },
         { name: "Class Home Work", href: "/academic/class-home-work" },
         { name: "Progress & Grading", href: "/academic/progress" },
       ]
@@ -74,6 +73,7 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
         { name: "Student Attendance", href: "/attendance/student" },
         { name: "Teacher Attendance", href: "/attendance/teacher" },
+        { name: "Class Teacher Assignment", href: "/attendance/class-teacher" },
         { name: "Reports", href: "/attendance/reports" }
       ]
     },

@@ -65,8 +65,8 @@ export interface ISyllabusChapter {
   chapter_no: number;
   chapter_name: string;
   description?: string;
-  start_date: Date;
-  target_date: Date;
+  start_date?: Date;
+  target_date?: Date;
   status: "Not Started" | "In Progress" | "Completed";
 }
 
@@ -83,8 +83,8 @@ const syllabusChapterSchema = new Schema(
     chapter_no: { type: Number, required: true },
     chapter_name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
-    start_date: { type: Date, required: true },
-    target_date: { type: Date, required: true },
+    start_date: { type: Date },
+    target_date: { type: Date },
     status: { type: String, enum: ["Not Started", "In Progress", "Completed"], default: "Not Started" },
   },
   { _id: true }

@@ -8,6 +8,7 @@ import {
 import { Modal } from "@/app/components/ui/modal";
 import { DataTable, ColumnDef } from "@/app/components/ui/data-table";
 import { useTeacherAssignment, PopulatedTeacherAssignment } from "@/app/hooks/useTeacherAssignment";
+import { useSubjectAssignment } from "@/app/hooks/useSubjectAssignment";
 import { useSubjectMaster } from "@/app/hooks/useSubjectMaster";
 import { useStreams } from "@/app/hooks/useStreams";
 import { useSections } from "@/app/hooks/useSections";
@@ -26,11 +27,16 @@ export default function TeacherAssignmentPage() {
   const { enableStreams, enableSections } = useAcademicConfig();
 
   const { assignments, isLoading, error, fetchAssignments, createAssignment, deleteAssignment } = useTeacherAssignment();
+  const { assignments: subjectAssignments, fetchAssignments: fetchSubjectAssignments } = useSubjectAssignment();
   const { subjects: subjectList } = useSubjectMaster();
   const { streams } = useStreams({ skip: !enableStreams });
   const { sections } = useSections({ skip: !enableSections });
   const { classes } = useClasses({ filterByYear: true });
   const { teachers } = useTeachers();
+
+  useEffect(() => {
+    fetchSubjectAssignments({ academic_year: academicYear, limit: 500 });
+  }, [fetchSubjectAssignments, academicYear]);
 
   // Filter state
   const [filterClassId, setFilterClassId] = useState("");
@@ -141,18 +147,20 @@ export default function TeacherAssignmentPage() {
   }, [formClassId, classes, streams, enableStreams]);
 
   const filteredSubjectList = useMemo(() => {
-    const selectedClass = classes.find(c => c._id === formClassId);
-    const isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
+    if (!formClassId) return [];
 
-    if (!enableStreams || !formStreamId || !isHigherClass) return subjectList;
-
-    return subjectList.filter(s => {
-      // Common subject (not restricted to any stream)
-      if (!s.allowed_streams || s.allowed_streams.length === 0) return true;
-      // Stream-specific subject
-      return s.allowed_streams.includes(formStreamId);
+    const assignedForClass = subjectAssignments.filter(sa => {
+      const saClassId = typeof sa.class_id === "object" ? sa.class_id?._id : sa.class_id;
+      const saStreamId = sa.stream_id ? (typeof sa.stream_id === "object" ? sa.stream_id?._id : sa.stream_id) : "";
+      return saClassId === formClassId && (!formStreamId || saStreamId === formStreamId);
     });
-  }, [subjectList, formStreamId, enableStreams, formClassId, classes]);
+
+    const assignedSubjectMasterIds = new Set(assignedForClass.map(sa =>
+      typeof sa.subject_master_id === "object" ? sa.subject_master_id?._id : sa.subject_master_id
+    ));
+
+    return subjectList.filter(s => assignedSubjectMasterIds.has(s._id) && s.status === "Active");
+  }, [subjectList, subjectAssignments, formClassId, formStreamId]);
 
   const resetForm = () => {
     setFormYear(academicYear);

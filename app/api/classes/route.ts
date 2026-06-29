@@ -56,18 +56,34 @@ export async function GET(req: NextRequest) {
       query.$and = andFilters;
     }
 
-    const [classes, total] = await Promise.all([
-      Class.find(query)
-        .populate("class_teacher_id", "name employee_id")
-        .sort({ name: sortOrder, section: 1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-      Class.countDocuments(query),
-    ]);
+    const allMatchingClasses = await Class.find(query)
+      .populate("class_teacher_id", "name employee_id")
+      .lean();
+
+    const getWeight = (name: string): number => {
+      const n = name.toLowerCase().trim();
+      if (n.startsWith("nursery")) return 1;
+      if (n.startsWith("lkg")) return 2;
+      if (n.startsWith("ukg")) return 3;
+      const match = n.match(/class\s+(\d+)/);
+      if (match) {
+        return 10 + parseInt(match[1], 10);
+      }
+      return 100;
+    };
+
+    allMatchingClasses.sort((a: any, b: any) => {
+      const wA = getWeight(a.name);
+      const wB = getWeight(b.name);
+      if (wA !== wB) return (wA - wB) * sortOrder;
+      return a.section.localeCompare(b.section);
+    });
+
+    const total = allMatchingClasses.length;
+    const paginatedClasses = allMatchingClasses.slice((page - 1) * limit, page * limit);
 
     return NextResponse.json(
-      { success: true, data: { classes, total, page, limit, totalPages: Math.ceil(total / limit) } },
+      { success: true, data: { classes: paginatedClasses, total, page, limit, totalPages: Math.ceil(total / limit) } },
       { headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } }
     );
   } catch (err: unknown) {
@@ -85,7 +101,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { name, section, academic_year, class_teacher_id, capacity } = body;
+    const { name, section, academic_year, class_teacher_id, capacity, class_code, status } = body;
 
     if (!name || !academic_year) {
       return NextResponse.json(
@@ -98,6 +114,8 @@ export async function POST(req: NextRequest) {
       school_id: schoolId as string,
       name: name.trim(),
       section: section?.trim() || "",
+      class_code: class_code?.trim().toUpperCase() || undefined,
+      status: status || "Active",
       academic_year: academic_year.trim(),
       class_teacher_id: class_teacher_id || null,
       capacity: capacity ? parseInt(capacity) : 40,

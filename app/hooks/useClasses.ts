@@ -21,9 +21,11 @@ export interface ApiClass {
 export interface CreateClassInput {
   name: string;
   section?: string;
+  class_code?: string;
   academic_year: string;
   class_teacher_id?: string;
   capacity?: number;
+  status?: "Active" | "Inactive";
 }
 
 export interface FetchClassesParams {

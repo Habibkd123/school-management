@@ -56,7 +56,8 @@ export function useSubjectAssignment() {
     academic_year: string;
     class_id: string;
     stream_id?: string;
-    subject_master_id: string;
+    subject_master_id?: string;
+    subject_master_ids?: string[];
   }) => {
     try {
       const res = await fetch("/api/subject-assignment", {
@@ -70,6 +71,24 @@ export function useSubjectAssignment() {
     } catch { return { success: false, message: "Network error" }; }
   };
 
+  const updateAssignment = async (id: string, input: {
+    academic_year?: string;
+    class_id?: string;
+    stream_id?: string;
+    subject_master_id?: string;
+  }) => {
+    try {
+      const res = await fetch(`/api/subject-assignment/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(input),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to update" };
+      return { success: true, message: "Assignment updated", data: data.data };
+    } catch { return { success: false, message: "Network error" }; }
+  };
+
   const deleteAssignment = async (id: string) => {
     try {
       const res = await fetch(`/api/subject-assignment/${id}`, { method: "DELETE", headers: getAuthHeaders() });
@@ -80,5 +99,5 @@ export function useSubjectAssignment() {
     } catch { return { success: false, message: "Network error" }; }
   };
 
-  return { assignments, isLoading, error, total, totalPages, currentPage, fetchAssignments, createAssignment, deleteAssignment };
+  return { assignments, isLoading, error, total, totalPages, currentPage, fetchAssignments, createAssignment, updateAssignment, deleteAssignment };
 }
