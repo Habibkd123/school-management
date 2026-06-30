@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
-import { TeacherAssignment, Syllabus, SubjectMaster } from "@/lib/models/index";
+import { TeacherAssignment, Syllabus, SubjectMaster, ClassGroup } from "@/lib/models/index";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
@@ -37,11 +37,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: { chapters: [] } });
     }
 
-    // Find a TeacherAssignment for this class + subject master
+    // Find any Class Groups that contain this class
+    const matchingGroups = await ClassGroup.find({
+      school_id: schoolId,
+      "classes.class_id": class_id,
+    }).select("_id").lean();
+    const groupIds = matchingGroups.map(g => g._id);
+
+    // Find a TeacherAssignment for this class + subject master (either directly or via a class group)
     const assignment = await TeacherAssignment.findOne({
       school_id: schoolId,
-      class_id,
       subject_master_id: subjectMaster._id,
+      $or: [
+        { class_id },
+        { class_group_id: { $in: groupIds } }
+      ]
     }).lean();
 
     if (!assignment) {

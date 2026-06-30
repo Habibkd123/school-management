@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import { useAppState } from "../../context/store";
 import {
   Search,
@@ -50,6 +51,7 @@ export function CommandMenu() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const SHOW_FEES = !HIDE_FEES_FEATURE;
   const commands: CommandItem[] = [
     // Navigation
     { id: "nav-dash", title: "Go to Dashboard Overview", category: "Navigation", icon: <Zap className="w-4 h-4" />, action: () => { router.push("/dashboard"); setIsOpen(false); } },
@@ -66,7 +68,7 @@ export function CommandMenu() {
     { id: "role-adm", title: "Switch active role to Admin", category: "Role Selection", icon: <UserCheck className="w-4 h-4 text-indigo-500" />, action: () => { setRole("admin"); router.push("/dashboard"); setIsOpen(false); } },
     { id: "role-tea", title: "Switch active role to Teacher", category: "Role Selection", icon: <UserCheck className="w-4 h-4 text-emerald-500" />, action: () => { setRole("teacher"); router.push("/dashboard"); setIsOpen(false); } },
     { id: "role-stu", title: "Switch active role to Student", category: "Role Selection", icon: <UserCheck className="w-4 h-4 text-amber-500" />, action: () => { setRole("student"); router.push("/dashboard"); setIsOpen(false); } },
-  ];
+  ].filter(c => SHOW_FEES || c.id !== "nav-fee");
 
   // Dynamic additions based on search results for students/teachers
   const dynamicStudents: CommandItem[] = search.trim().length > 1

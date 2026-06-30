@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStudentAuth } from "../context/studentAuth";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -42,6 +43,8 @@ interface StudentSidebarProps {
 export function StudentSidebar({ isMobileOpen, onClose }: StudentSidebarProps) {
   const pathname = usePathname();
   const { user, studentProfile, logout } = useStudentAuth();
+  const SHOW_FEES = !HIDE_FEES_FEATURE;
+  const filteredNavItems = navItems.filter(item => SHOW_FEES || item.href !== "/student/fees");
 
   const classInfo =
     studentProfile?.class_id &&
@@ -131,7 +134,7 @@ export function StudentSidebar({ isMobileOpen, onClose }: StudentSidebarProps) {
 
         {/* ── Navigation ────────────────────────────────────────────── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-thin">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
 

@@ -43,23 +43,22 @@ export function Header({ onMenuClick }: HeaderProps) {
           );
           // Merge DB years with fallback years and filter to only allow 2026-2027
           const merged = Array.from(new Set([...dbYears, ...fallbackYears]))
-            .filter(year => year === "2026-2027");
+            .filter(year => year === "2026-2027") as string[];
           setAvailableYears(merged);
-          // Only auto-select if academicYear is completely empty (first load with no saved pref)
-          if (!academicYear) {
-            setAcademicYear(merged[0]);
+          // Auto-select if academicYear is completely empty or invalid
+          if (!academicYear || !merged.includes(academicYear)) {
+            setAcademicYear(merged[0] || "2026-2027");
           }
         } else {
           setAvailableYears(fallbackYears);
-          // Only auto-select if no year saved yet
-          if (!academicYear) {
+          if (!academicYear || !fallbackYears.includes(academicYear)) {
             setAcademicYear("2026-2027");
           }
         }
       } catch {
         // fallback to manual list if API fails
         setAvailableYears(fallbackYears);
-        if (!academicYear) {
+        if (!academicYear || !fallbackYears.includes(academicYear)) {
           setAcademicYear("2026-2027");
         }
       }

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import { useStudentAuth } from "../../context/studentAuth";
 import { useSchedules } from "../../../hooks/useSchedules";
 import { useHomework } from "../../../hooks/useHomework";
@@ -317,32 +318,39 @@ export default function StudentDashboardPage() {
           {/* Quick Links */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
             <h3 className="text-[15px] font-bold text-slate-900 dark:text-white mb-4">Quick Links</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {[
+            {(() => {
+              const SHOW_FEES = !HIDE_FEES_FEATURE;
+              const linksList = [
                 { href: "/student/results", icon: Award, label: "Results", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
                 { href: "/student/attendance", icon: UserCheck, label: "Attendance", color: "#6366f1", bg: "rgba(99,102,241,0.1)" },
                 { href: "/student/fees", icon: CreditCard, label: "Fees", color: "var(--primary)", bg: "rgba(245,158,11,0.1)" },
-              ].map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform"
-                      style={{ background: link.bg }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: link.color }} />
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                      {link.label}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+              ].filter(link => SHOW_FEES || link.href !== "/student/fees");
+
+              return (
+                <div className={`grid ${linksList.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
+                  {linksList.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                      >
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform"
+                          style={{ background: link.bg }}
+                        >
+                          <Icon className="w-5 h-5" style={{ color: link.color }} />
+                        </div>
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {link.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Leave Status */}

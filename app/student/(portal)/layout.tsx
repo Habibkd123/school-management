@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useStudentAuth } from "../context/studentAuth";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import { StudentSidebar } from "../components/StudentSidebar";
 import { StudentHeader } from "../components/StudentHeader";
 import { Loader2 } from "lucide-react";
@@ -16,11 +17,17 @@ export default function StudentPortalLayout({
   const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/student/login");
+      return;
     }
-  }, [isAuthenticated, isLoading, router]);
+    if (HIDE_FEES_FEATURE && !isLoading && isAuthenticated && pathname.startsWith("/student/fees")) {
+      router.replace("/student/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router, pathname]);
 
   if (isLoading) {
     return (

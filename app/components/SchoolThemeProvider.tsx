@@ -43,6 +43,9 @@ export function SchoolThemeProvider({
         } else if (source === "auth") {
           const token = getAccessToken();
           const user = getStoredUser();
+          const currentSchoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+          const isDifferentSchool = user && user.role !== "super_admin" && user.school_id !== currentSchoolId;
+
           // If super_admin, allow viewing a specific school via localStorage key
           // 'sm_view_school_id' which triggers /api/theme?school_id=xxxx
           if (token && user?.role === "super_admin") {
@@ -54,7 +57,7 @@ export function SchoolThemeProvider({
             }
           }
 
-          if (!cssVars && token && user?.role !== "super_admin") {
+          if (!cssVars && token && !isDifferentSchool && user?.role !== "super_admin") {
             cssVars = await fetchThemeEndpoint("/api/theme", {
               Authorization: `Bearer ${token}`,
             });
@@ -67,6 +70,9 @@ export function SchoolThemeProvider({
           // auto: try auth first, then public
           const token = getAccessToken();
           const user = getStoredUser();
+          const currentSchoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+          const isDifferentSchool = user && user.role !== "super_admin" && user.school_id !== currentSchoolId;
+
           if (token && user?.role === "super_admin") {
             const viewId = typeof window !== "undefined" ? localStorage.getItem("sm_view_school_id") : null;
             if (viewId) {
@@ -76,7 +82,7 @@ export function SchoolThemeProvider({
             }
           }
 
-          if (!cssVars && token && user?.role !== "super_admin") {
+          if (!cssVars && token && !isDifferentSchool && user?.role !== "super_admin") {
             cssVars = await fetchThemeEndpoint("/api/theme", {
               Authorization: `Bearer ${token}`,
             });

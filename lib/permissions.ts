@@ -2,6 +2,8 @@
 // Har role ke liye permissions yahan define hain.
 // Action types: "view" | "create" | "edit" | "delete" | "approve"
 
+export const HIDE_FEES_FEATURE = true;
+
 export type PermissionAction = "view" | "create" | "edit" | "delete" | "approve";
 
 export type PermissionModule =
@@ -130,6 +132,7 @@ export function hasPermission(
   module: PermissionModule,
   action: PermissionAction
 ): boolean {
+  if (HIDE_FEES_FEATURE && module === "fees") return false;
   const roleKey = role as AppRole;
   const rolePerms = ROLE_PERMISSIONS[roleKey];
   if (!rolePerms) return false;
@@ -146,7 +149,11 @@ export function getPermissions(role: string): RolePermissions {
 // ─── Helper: Get all allowed modules for a role ───────────────────────────
 export function getAllowedModules(role: string): PermissionModule[] {
   const perms = getPermissions(role);
-  return Object.keys(perms) as PermissionModule[];
+  const modules = Object.keys(perms) as PermissionModule[];
+  if (HIDE_FEES_FEATURE) {
+    return modules.filter((m) => m !== "fees");
+  }
+  return modules;
 }
 
 // ─── UI Role Labels & Metadata ────────────────────────────────────────────

@@ -20,8 +20,21 @@ export async function GET(req: NextRequest) {
 
     // Self-healing sync: Ensure all SubjectAssignment entries exist in Subject collection
     if (classId && mongoose.Types.ObjectId.isValid(classId)) {
-      const { SubjectAssignment } = require("@/lib/models/index");
-      const assignments = await SubjectAssignment.find({ school_id: schoolId, class_id: classId })
+      const { SubjectAssignment, ClassGroup } = require("@/lib/models/index");
+      
+      const matchingGroups = await ClassGroup.find({
+        school_id: schoolId,
+        "classes.class_id": classId
+      }).select("_id").lean();
+      const groupIds = matchingGroups.map((g: any) => g._id);
+
+      const assignments = await SubjectAssignment.find({
+        school_id: schoolId,
+        $or: [
+          { class_id: classId },
+          { class_group_id: { $in: groupIds } }
+        ]
+      })
         .populate("subject_master_id", "name subject_code")
         .lean();
 

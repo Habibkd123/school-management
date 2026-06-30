@@ -13,9 +13,37 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Invalid ID" }, { status: 400 });
     }
 
+    const oldBus = await Bus.findById(id);
     const updated = await Bus.findByIdAndUpdate(id, body, { new: true, runValidators: true });
     if (!updated) {
       return NextResponse.json({ success: false, error: "Bus not found" }, { status: 404 });
+    }
+
+    const { Route } = require("@/lib/models");
+    if (oldBus && oldBus.assignedRoute !== updated.assignedRoute) {
+      if (oldBus.assignedRoute && oldBus.assignedRoute !== "Not Assigned") {
+        await Route.findOneAndUpdate(
+          { school_id: oldBus.school_id, routeName: oldBus.assignedRoute, assignedBus: oldBus.busNumber },
+          { assignedBus: "Not Assigned" }
+        );
+      }
+      if (updated.assignedRoute && updated.assignedRoute !== "Not Assigned") {
+        await Bus.updateMany(
+          { school_id: oldBus.school_id, _id: { $ne: id }, assignedRoute: updated.assignedRoute },
+          { assignedRoute: "Not Assigned" }
+        );
+        await Route.findOneAndUpdate(
+          { school_id: oldBus.school_id, routeName: updated.assignedRoute },
+          { assignedBus: updated.busNumber }
+        );
+      }
+    }
+
+    if (oldBus && oldBus.busNumber !== updated.busNumber && updated.assignedRoute && updated.assignedRoute !== "Not Assigned") {
+      await Route.findOneAndUpdate(
+        { school_id: oldBus.school_id, routeName: updated.assignedRoute },
+        { assignedBus: updated.busNumber }
+      );
     }
 
     return NextResponse.json({ success: true, data: updated });
@@ -39,6 +67,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const deleted = await Bus.findByIdAndDelete(id);
     if (!deleted) {
       return NextResponse.json({ success: false, error: "Bus not found" }, { status: 404 });
+    }
+
+    const { Route } = require("@/lib/models");
+    if (deleted.assignedRoute && deleted.assignedRoute !== "Not Assigned") {
+      await Route.findOneAndUpdate(
+        { school_id: deleted.school_id, routeName: deleted.assignedRoute, assignedBus: deleted.busNumber },
+        { assignedBus: "Not Assigned" }
+      );
     }
 
     return NextResponse.json({ success: true, data: deleted });

@@ -71,10 +71,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedUser = getStoredUser();
     const token = getAccessToken();
     if (storedUser && token) {
-      setUser(storedUser);
-      // Restore must_change_password from persisted session
-      if (storedUser.must_change_password) {
-        setMustChangePassword(true);
+      const currentSchoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+      if (storedUser.role !== "super_admin" && storedUser.school_id !== currentSchoolId) {
+        clearSession();
+        setUser(null);
+      } else {
+        setUser(storedUser);
+        // Restore must_change_password from persisted session
+        if (storedUser.must_change_password) {
+          setMustChangePassword(true);
+        }
       }
     }
     setIsLoading(false);

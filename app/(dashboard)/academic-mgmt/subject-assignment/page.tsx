@@ -8,6 +8,7 @@ import {
 import { Modal } from "@/app/components/ui/modal";
 import { useSubjectAssignment, PopulatedAssignment } from "@/app/hooks/useSubjectAssignment";
 import { useSubjectMaster } from "@/app/hooks/useSubjectMaster";
+import { useClassGroups } from "@/app/hooks/useClassGroups";
 import { useStreams } from "@/app/hooks/useStreams";
 import { useClasses } from "@/app/hooks/useClasses";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
@@ -24,11 +25,13 @@ export default function SubjectAssignmentPage() {
 
   const { assignments, isLoading, error, fetchAssignments, createAssignment, updateAssignment, deleteAssignment } = useSubjectAssignment();
   const { subjects: subjectList } = useSubjectMaster();
+  const { groups: classGroups } = useClassGroups({ skip: false, academicYear });
   const { streams } = useStreams({ skip: !enableStreams });
   const { classes } = useClasses({ filterByYear: true });
 
   // Filter state
   const [filterClassId, setFilterClassId] = useState("");
+  const [filterClassGroupId, setFilterClassGroupId] = useState("");
   const [filterStreamId, setFilterStreamId] = useState("");
   const [filterYear, setFilterYear] = useState(academicYear);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +46,9 @@ export default function SubjectAssignmentPage() {
 
   // Add Form state
   const [formYear, setFormYear] = useState(academicYear);
+  const [assignmentType, setAssignmentType] = useState<"class" | "group">("class");
   const [formClassId, setFormClassId] = useState("");
+  const [formClassGroupId, setFormClassGroupId] = useState("");
   const [formStreamId, setFormStreamId] = useState("");
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [subjectSearch, setSubjectSearch] = useState("");
@@ -51,17 +56,19 @@ export default function SubjectAssignmentPage() {
   // Edit Form state
   const [editYear, setEditYear] = useState("");
   const [editClassId, setEditClassId] = useState("");
+  const [editClassGroupId, setEditClassGroupId] = useState("");
   const [editStreamId, setEditStreamId] = useState("");
   const [editSubjectId, setEditSubjectId] = useState("");
 
   const doFetch = useCallback(() => {
     fetchAssignments({
       class_id: filterClassId || undefined,
+      class_group_id: filterClassGroupId || undefined,
       stream_id: filterStreamId || undefined,
       academic_year: filterYear || undefined,
       limit: 500,
     });
-  }, [fetchAssignments, filterClassId, filterStreamId, filterYear]);
+  }, [fetchAssignments, filterClassId, filterClassGroupId, filterStreamId, filterYear]);
 
   useEffect(() => { doFetch(); }, [doFetch]);
 
@@ -69,7 +76,8 @@ export default function SubjectAssignmentPage() {
   useEffect(() => {
     if (selected) {
       setEditYear(selected.academic_year);
-      setEditClassId(typeof selected.class_id === "object" ? selected.class_id._id : selected.class_id);
+      setEditClassId(selected.class_id ? (typeof selected.class_id === "object" ? selected.class_id._id : selected.class_id) : "");
+      setEditClassGroupId(selected.class_group_id ? (typeof selected.class_group_id === "object" ? selected.class_group_id._id : selected.class_group_id) : "");
       setEditStreamId(selected.stream_id ? (typeof selected.stream_id === "object" ? selected.stream_id._id : selected.stream_id) : "");
       setEditSubjectId(typeof selected.subject_master_id === "object" ? selected.subject_master_id._id : selected.subject_master_id);
     }
@@ -77,7 +85,7 @@ export default function SubjectAssignmentPage() {
 
   // Auto stream selection on class select (for Add Modal)
   useEffect(() => {
-    if (!formClassId || !enableStreams) {
+    if (assignmentType !== "class" || !formClassId || !enableStreams) {
       setFormStreamId("");
       return;
     }
@@ -104,10 +112,10 @@ export default function SubjectAssignmentPage() {
       }
     }
     setFormStreamId(foundStreamId);
-  }, [formClassId, classes, streams, enableStreams]);
+  }, [formClassId, classes, streams, enableStreams, assignmentType]);
 
   const filteredStreams = useMemo(() => {
-    if (!enableStreams || !formClassId) return [];
+    if (assignmentType !== "class" || !enableStreams || !formClassId) return [];
     const selectedClass = classes.find(c => c._id === formClassId);
     if (!selectedClass) return [];
 
@@ -122,9 +130,13 @@ export default function SubjectAssignmentPage() {
     });
 
     return matchedStreams.length > 0 ? matchedStreams : activeStreams;
-  }, [formClassId, classes, streams, enableStreams]);
+  }, [formClassId, classes, streams, enableStreams, assignmentType]);
 
   const filteredSubjectList = useMemo(() => {
+    if (assignmentType === "group") {
+      return subjectList.filter(s => s.status === "Active");
+    }
+
     const selectedClass = classes.find(c => c._id === formClassId);
     const isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
 
@@ -135,11 +147,13 @@ export default function SubjectAssignmentPage() {
       if (!s.allowed_streams || s.allowed_streams.length === 0) return true;
       return s.allowed_streams.includes(formStreamId);
     });
-  }, [subjectList, formStreamId, enableStreams, formClassId, classes]);
+  }, [subjectList, formStreamId, enableStreams, formClassId, classes, assignmentType]);
 
   const resetForm = () => {
     setFormYear(academicYear);
+    setAssignmentType("class");
     setFormClassId("");
+    setFormClassGroupId("");
     setFormStreamId("");
     setSelectedSubjectIds([]);
     setSubjectSearch("");
@@ -148,8 +162,8 @@ export default function SubjectAssignmentPage() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formYear || !formClassId) {
-      setFormError("Academic year and class are required.");
+    if (!formYear || (assignmentType === "class" && !formClassId) || (assignmentType === "group" && !formClassGroupId)) {
+      setFormError("Academic year and class/group are required.");
       return;
     }
     if (selectedSubjectIds.length === 0) {
@@ -157,15 +171,19 @@ export default function SubjectAssignmentPage() {
       return;
     }
 
-    const selectedClass = classes.find(c => c._id === formClassId);
-    const isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
+    let isHigherClass = false;
+    if (assignmentType === "class") {
+      const selectedClass = classes.find(c => c._id === formClassId);
+      isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
+    }
 
     setSubmitting(true);
     setFormError("");
     const res = await createAssignment({
       academic_year: formYear,
-      class_id: formClassId,
-      stream_id: enableStreams && isHigherClass && formStreamId ? formStreamId : undefined,
+      class_id: assignmentType === "class" ? formClassId : undefined,
+      class_group_id: assignmentType === "group" ? formClassGroupId : undefined,
+      stream_id: assignmentType === "class" && enableStreams && isHigherClass && formStreamId ? formStreamId : undefined,
       subject_master_ids: selectedSubjectIds,
     });
     setSubmitting(false);
@@ -183,8 +201,8 @@ export default function SubjectAssignmentPage() {
     e.preventDefault();
     if (!selected) return;
 
-    if (!editYear || !editClassId || !editSubjectId) {
-      setFormError("Year, class, and subject are required.");
+    if (!editYear || (!editClassId && !editClassGroupId) || !editSubjectId) {
+      setFormError("Year, class/group, and subject are required.");
       return;
     }
 
@@ -192,8 +210,9 @@ export default function SubjectAssignmentPage() {
     setFormError("");
     const res = await updateAssignment(selected._id, {
       academic_year: editYear,
-      class_id: editClassId,
-      stream_id: editStreamId || undefined,
+      class_id: selected.class_group_id ? undefined : editClassId,
+      class_group_id: selected.class_group_id ? editClassGroupId : undefined,
+      stream_id: selected.class_group_id ? undefined : (editStreamId || undefined),
       subject_master_id: editSubjectId,
     });
     setSubmitting(false);
@@ -223,10 +242,11 @@ export default function SubjectAssignmentPage() {
     );
   };
 
-  // Group-by Class/Stream calculation
+  // Group-by Class/Stream/Group calculation
   const groupedAssignments = useMemo(() => {
     const groups: Record<string, {
-      class_id: string;
+      isGroup: boolean;
+      class_id?: string;
       className: string;
       section?: string;
       streamName?: string;
@@ -242,31 +262,51 @@ export default function SubjectAssignmentPage() {
     }> = {};
 
     assignments.forEach(a => {
-      const classId = typeof a.class_id === "object" ? a.class_id._id : a.class_id;
-      const className = typeof a.class_id === "object" ? a.class_id.name : "Class";
-      const section = typeof a.class_id === "object" ? a.class_id.section : "";
-      const streamId = a.stream_id ? (typeof a.stream_id === "object" ? a.stream_id._id : a.stream_id) : "";
-      const streamName = a.stream_id ? (typeof a.stream_id === "object" ? a.stream_id.name : "Stream") : "";
-      const year = a.academic_year;
+      let key = "";
+      let groupDetails: any = {};
 
-      const matchesSearch = !searchQuery || 
-        (typeof a.subject_master_id === "object" && a.subject_master_id?.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        className.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (streamName && streamName.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      if (!matchesSearch) return;
-
-      const key = `${classId}-${streamId}-${year}`;
-      if (!groups[key]) {
-        groups[key] = {
+      if (a.class_group_id) {
+        const groupId = typeof a.class_group_id === "object" ? a.class_group_id._id : a.class_group_id;
+        const groupName = typeof a.class_group_id === "object" ? a.class_group_id.name : "Group";
+        key = `group-${groupId}-${a.academic_year}`;
+        groupDetails = {
+          isGroup: true,
+          groupId,
+          className: groupName,
+          section: "",
+          stream_id: undefined,
+          streamName: undefined,
+          academic_year: a.academic_year,
+          subjects: [],
+        };
+      } else {
+        const classId = typeof a.class_id === "object" ? a.class_id?._id : a.class_id;
+        const className = typeof a.class_id === "object" ? a.class_id?.name : "Class";
+        const section = typeof a.class_id === "object" ? a.class_id?.section : "";
+        const streamId = a.stream_id ? (typeof a.stream_id === "object" ? a.stream_id._id : a.stream_id) : "";
+        const streamName = a.stream_id ? (typeof a.stream_id === "object" ? a.stream_id.name : "Stream") : "";
+        key = `${classId}-${streamId}-${a.academic_year}`;
+        groupDetails = {
+          isGroup: false,
           class_id: classId,
           className,
           section,
           stream_id: streamId || undefined,
           streamName: streamName || undefined,
-          academic_year: year,
+          academic_year: a.academic_year,
           subjects: [],
         };
+      }
+
+      const matchesSearch = !searchQuery || 
+        (typeof a.subject_master_id === "object" && a.subject_master_id?.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        groupDetails.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (groupDetails.streamName && groupDetails.streamName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      if (!matchesSearch) return;
+
+      if (!groups[key]) {
+        groups[key] = groupDetails;
       }
       groups[key].subjects.push({
         assignmentId: a._id,
@@ -297,7 +337,7 @@ export default function SubjectAssignmentPage() {
           </button>
           {isAdmin && (
             <button onClick={() => { resetForm(); setIsAddOpen(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors cursor-pointer">
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-[#d68600] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors cursor-pointer">
               <Plus className="w-4 h-4" /><span>Assign Subjects (Bulk)</span>
             </button>
           )}
@@ -307,22 +347,33 @@ export default function SubjectAssignmentPage() {
       {/* Filter & Search Bar */}
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5 min-w-[160px] text-left">
+          <div className="flex flex-col gap-1.5 min-w-[140px] text-left">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Academic Year</label>
             <div className="relative">
               <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                 <option value="">All Years</option>
                 {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
             </div>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[160px] text-left">
+          <div className="flex flex-col gap-1.5 min-w-[150px] text-left">
+            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Class Group</label>
+            <div className="relative">
+              <select value={filterClassGroupId} onChange={(e) => { setFilterClassGroupId(e.target.value); setFilterClassId(""); }}
+                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                <option value="">All Groups</option>
+                {classGroups.map(cg => <option key={cg._id} value={cg._id}>{cg.name}</option>)}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 min-w-[150px] text-left">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Class</label>
             <div className="relative">
-              <select value={filterClassId} onChange={(e) => setFilterClassId(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+              <select value={filterClassId} onChange={(e) => { setFilterClassId(e.target.value); setFilterClassGroupId(""); }}
+                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                 <option value="">All Classes</option>
                 {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
               </select>
@@ -330,11 +381,11 @@ export default function SubjectAssignmentPage() {
             </div>
           </div>
           {enableStreams && (
-            <div className="flex flex-col gap-1.5 min-w-[160px] text-left">
+            <div className="flex flex-col gap-1.5 min-w-[140px] text-left">
               <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Stream</label>
               <div className="relative">
                 <select value={filterStreamId} onChange={(e) => setFilterStreamId(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+                  className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                   <option value="">All Streams</option>
                   {streams.filter(s => s.status === "Active").map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
@@ -347,7 +398,7 @@ export default function SubjectAssignmentPage() {
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input type="text" placeholder="Search assigned subjects or classes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-3 py-2 border border-border rounded-lg text-[13px] outline-none w-full focus:border-primary transition-colors bg-[#F8FAFC] dark:bg-slate-800" />
+                className="pl-9 pr-3 py-2 border border-border rounded-lg text-[13px] outline-none w-full focus:border-[#10B981]/50 transition-colors bg-[#F8FAFC] dark:bg-slate-800" />
             </div>
           </div>
         </div>
@@ -367,7 +418,7 @@ export default function SubjectAssignmentPage() {
           <Link2 className="w-10 h-10 opacity-30" />
           <p className="text-[14px] font-medium">No subject assignments found</p>
           {isAdmin && (
-            <button onClick={() => { resetForm(); setIsAddOpen(true); }} className="px-4 py-2 text-[13px] font-bold bg-primary hover:bg-primary/95 text-white rounded-lg cursor-pointer">
+            <button onClick={() => { resetForm(); setIsAddOpen(true); }} className="px-4 py-2 text-[13px] font-bold bg-primary hover:bg-[#d68600] text-white rounded-lg cursor-pointer">
               Assign First Subject
             </button>
           )}
@@ -380,13 +431,20 @@ export default function SubjectAssignmentPage() {
                 {/* Header of group */}
                 <div className="p-4 border-b border-border bg-[#F8FAFC] dark:bg-slate-800/40 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
-                      <GraduationCap className="w-4 h-4 text-blue-500" />
+                    <div className={`w-7 h-7 ${group.isGroup ? "bg-indigo-500/10" : "bg-blue-500/10"} rounded-lg flex items-center justify-center shrink-0`}>
+                      {group.isGroup ? <Layers className="w-4 h-4 text-indigo-500" /> : <GraduationCap className="w-4 h-4 text-blue-500" />}
                     </div>
                     <div>
-                      <h4 className="font-bold text-[14px] text-slate-900 dark:text-white leading-tight">
-                        {group.className}{group.section ? ` - ${group.section}` : ""}
-                      </h4>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-bold text-[14px] text-slate-900 dark:text-white leading-tight">
+                          {group.className}{group.section ? ` - ${group.section}` : ""}
+                        </h4>
+                        {group.isGroup && (
+                          <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">
+                            Group
+                          </span>
+                        )}
+                      </div>
                       {group.streamName && (
                         <p className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 mt-0.5 flex items-center gap-1">
                           <Layers className="w-3 h-3" /> {group.streamName}
@@ -451,38 +509,67 @@ export default function SubjectAssignmentPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5 col-span-2">
+              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Assignment Method <span className="text-red-500">*</span></label>
+              <div className="flex gap-4">
+                <button type="button" onClick={() => { setAssignmentType("class"); setFormClassGroupId(""); setSelectedSubjectIds([]); }}
+                  className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold border transition-all duration-200 ${assignmentType === "class" ? "bg-primary border-primary text-white" : "border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
+                  Assign to Class
+                </button>
+                <button type="button" onClick={() => { setAssignmentType("group"); setFormClassId(""); setSelectedSubjectIds([]); }}
+                  className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold border transition-all duration-200 ${assignmentType === "group" ? "bg-primary border-primary text-white" : "border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
+                  Assign to Class Group
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Academic Year <span className="text-red-500">*</span></label>
               <div className="relative">
                 <select value={formYear} onChange={(e) => setFormYear(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                   <option value="">Select Year</option>
                   {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <select value={formClassId} onChange={(e) => setFormClassId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
-                  <option value="">Select Class</option>
-                  {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+
+            {assignmentType === "class" ? (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <select value={formClassId} onChange={(e) => setFormClassId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                    <option value="">Select Class</option>
+                    {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class Group <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <select value={formClassGroupId} onChange={(e) => setFormClassGroupId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                    <option value="">Select Class Group</option>
+                    {classGroups.map(cg => <option key={cg._id} value={cg._id}>{cg.name}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                </div>
+              </div>
+            )}
           </div>
 
-          {enableStreams && filteredStreams.length > 0 && (
+          {assignmentType === "class" && enableStreams && filteredStreams.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
                 Stream <span className="text-slate-400 text-[11px]">(optional — leave blank for all streams)</span>
               </label>
               <div className="relative">
                 <select value={formStreamId} onChange={(e) => setFormStreamId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                   <option value="">No specific stream</option>
                   {filteredStreams.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
@@ -533,7 +620,7 @@ export default function SubjectAssignmentPage() {
             <button type="button" onClick={() => { setIsAddOpen(false); resetForm(); }}
               className="px-5 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-foreground dark:text-slate-100 text-[14px] font-bold rounded-lg cursor-pointer">Cancel</button>
             <button type="submit" disabled={submitting}
-              className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-[14px] font-bold rounded-lg text-white shadow-sm transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer">
+              className="px-5 py-2.5 bg-primary hover:bg-[#d68600] text-[14px] font-bold rounded-lg text-white shadow-sm transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer">
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Bulk Assign
             </button>
           </div>
@@ -553,43 +640,58 @@ export default function SubjectAssignmentPage() {
             <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Academic Year <span className="text-red-500">*</span></label>
             <div className="relative">
               <select value={editYear} onChange={(e) => setEditYear(e.target.value)}
-                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                 {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <select value={editClassId} onChange={(e) => setEditClassId(e.target.value)}
-                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
-                {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
-            </div>
-          </div>
-
-          {enableStreams && streams.length > 0 && (
+          {selected?.class_group_id ? (
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Stream</label>
+              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class Group <span className="text-red-500">*</span></label>
               <div className="relative">
-                <select value={editStreamId} onChange={(e) => setEditStreamId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
-                  <option value="">No specific stream</option>
-                  {streams.filter(s => s.status === "Active").map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                <select value={editClassGroupId} onChange={(e) => setEditClassGroupId(e.target.value)} required
+                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                  {classGroups.map(cg => <option key={cg._id} value={cg._id}>{cg.name}</option>)}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
               </div>
             </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Class <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <select value={editClassId} onChange={(e) => setEditClassId(e.target.value)} required
+                    className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                    {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                </div>
+              </div>
+
+              {enableStreams && streams.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Stream</label>
+                  <div className="relative">
+                    <select value={editStreamId} onChange={(e) => setEditStreamId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
+                      <option value="">No specific stream</option>
+                      {streams.filter(s => s.status === "Active").map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Subject <span className="text-red-500">*</span></label>
             <div className="relative">
-              <select value={editSubjectId} onChange={(e) => setEditSubjectId(e.target.value)}
-                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 font-medium">
+              <select value={editSubjectId} onChange={(e) => setEditSubjectId(e.target.value)} required
+                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 appearance-none bg-white dark:bg-slate-900 font-medium">
                 {subjectList.filter(s => s.status === "Active").map(s => (
                   <option key={s._id} value={s._id}>{s.name}{s.subject_code ? ` (${s.subject_code})` : ""}</option>
                 ))}
@@ -602,7 +704,7 @@ export default function SubjectAssignmentPage() {
             <button type="button" onClick={() => { setIsEditOpen(false); setSelected(null); }}
               className="px-5 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-foreground dark:text-slate-100 text-[14px] font-bold rounded-lg cursor-pointer">Cancel</button>
             <button type="submit" disabled={submitting}
-              className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-[14px] font-bold rounded-lg text-white shadow-sm transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer">
+              className="px-5 py-2.5 bg-primary hover:bg-[#d68600] text-[14px] font-bold rounded-lg text-white shadow-sm transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer">
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Update Assignment
             </button>
           </div>

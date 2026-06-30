@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useClasses } from "@/app/hooks/useClasses";
 import { useTeachers } from "@/app/hooks/useTeachers";
@@ -19,6 +19,9 @@ export default function ClassTeacherAssignmentPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [selectedClassName, setSelectedClassName] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
 
   const handleTeacherChange = async (classId: string, teacherId: string) => {
     setSavingId(classId);
@@ -45,6 +48,39 @@ export default function ClassTeacherAssignmentPage() {
     }
     return classTeacher || "";
   };
+
+  const uniqueClassNames = useMemo(() => {
+    const names = new Set<string>();
+    classes.forEach(c => {
+      if (c.name) names.add(c.name);
+    });
+    return Array.from(names).sort();
+  }, [classes]);
+
+  const sectionsForSelectedClass = useMemo(() => {
+    if (!selectedClassName) return [];
+    const secs = new Set<string>();
+    classes.forEach(c => {
+      if (c.name === selectedClassName && c.section) {
+        secs.add(c.section);
+      }
+    });
+    return Array.from(secs).sort();
+  }, [classes, selectedClassName]);
+
+  const hasSections = sectionsForSelectedClass.length > 0;
+
+  const filteredClasses = useMemo(() => {
+    return classes.filter(cls => {
+      if (selectedClassName && cls.name !== selectedClassName) {
+        return false;
+      }
+      if (selectedClassName && hasSections && selectedSection && cls.section !== selectedSection) {
+        return false;
+      }
+      return true;
+    });
+  }, [classes, selectedClassName, hasSections, selectedSection]);
 
   const activeTeachers = teachers.filter(t => t.is_active !== false);
   const isLoading = loadingClasses || loadingTeachers;
@@ -89,6 +125,54 @@ export default function ClassTeacherAssignmentPage() {
         )}
       </div>
 
+      {/* Filters */}
+      <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow text-left">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1.5 min-w-[200px]">
+            <label className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Class</label>
+            <div className="relative">
+              <select
+                value={selectedClassName}
+                onChange={(e) => {
+                  setSelectedClassName(e.target.value);
+                  setSelectedSection("");
+                }}
+                className="w-full pl-3 pr-10 py-2.5 border border-border rounded-lg text-xs font-semibold outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 cursor-pointer text-slate-700 dark:text-slate-200"
+              >
+                <option value="">All Classes</option>
+                {uniqueClassNames.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <span>▾</span>
+              </div>
+            </div>
+          </div>
+
+          {selectedClassName && hasSections && (
+            <div className="flex flex-col gap-1.5 min-w-[200px] animate-in fade-in duration-200">
+              <label className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Section</label>
+              <div className="relative">
+                <select
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 border border-border rounded-lg text-xs font-semibold outline-none focus:border-primary appearance-none bg-white dark:bg-slate-900 cursor-pointer text-slate-700 dark:text-slate-200"
+                >
+                  <option value="">All Sections</option>
+                  {sectionsForSelectedClass.map(sec => (
+                    <option key={sec} value={sec}>{sec}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <span>▾</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Table Card */}
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl card-shadow overflow-hidden text-left">
         <div className="p-5 border-b border-border">
@@ -113,6 +197,11 @@ export default function ClassTeacherAssignmentPage() {
             <Users className="w-12 h-12 opacity-20" />
             <p className="text-[14px] font-medium">No classes set up yet</p>
           </div>
+        ) : filteredClasses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+            <Users className="w-12 h-12 opacity-20" />
+            <p className="text-[14px] font-medium">No classes found matching the selected filters</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13.5px]">
@@ -126,7 +215,7 @@ export default function ClassTeacherAssignmentPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {classes.map((cls) => {
+                {filteredClasses.map((cls) => {
                   const assignedTeacherId = getTeacherId(cls.class_teacher_id);
                   const isSaving = savingId === cls._id;
 
@@ -171,3 +260,4 @@ export default function ClassTeacherAssignmentPage() {
     </div>
   );
 }
+

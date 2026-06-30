@@ -15,6 +15,7 @@ import { useAppState } from "@/app/context/store";
 import { useSections } from "@/app/hooks/useSections";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useStreams } from "@/app/hooks/useStreams";
+import { useAuthReady } from "@/lib/utils/session";
 
 const CLASS_OPTIONS = [
   "Nursery", "LKG", "UKG",
@@ -69,10 +70,13 @@ export default function AcademicClassesPage() {
     });
   }, [fetchClasses, searchQuery, sortOrder, page, academicYear]);
 
+  const authReady = useAuthReady();
+
   React.useEffect(() => {
+    if (!authReady) return;
     setPage(1);
     fetchClasses({ search: searchQuery, sort: sortOrder, page: 1, limit: PAGE_SIZE, academic_year: academicYear });
-  }, [fetchClasses, academicYear]);
+  }, [fetchClasses, academicYear, authReady]);
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val); setPage(1);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import School from "@/lib/models/School";
+import mongoose from "mongoose";
 import { requireAuth } from "@/lib/utils/auth";
 import {
   getPresetTheme,
@@ -15,6 +16,14 @@ type RouteContext = {
 
 const VALID_PRESETS: ThemePreset[] = ["cbse_saffron", "navy_blue", "emerald_green", "crimson_maroon", "modern_teal", "custom"];
 
+async function resolveSchoolId(id: string): Promise<string | null> {
+  if (mongoose.isValidObjectId(id)) {
+    return id;
+  }
+  const school = await School.findOne({ slug: id.toLowerCase() }).select("_id").lean();
+  return school ? school._id.toString() : null;
+}
+
 // GET /api/schools/[id]/theme
 export async function GET(request: NextRequest, context: RouteContext) {
   const auth = requireAuth(request, ["super_admin"]);
@@ -24,7 +33,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
-    const resolved = await getSchoolThemeById(id);
+    const schoolId = await resolveSchoolId(id);
+    if (!schoolId) {
+      return NextResponse.json({ success: false, message: "School not found" }, { status: 404 });
+    }
+    const resolved = await getSchoolThemeById(schoolId);
     if (!resolved) {
       return NextResponse.json({ success: false, message: "School not found" }, { status: 404 });
     }
@@ -52,8 +65,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
+    const schoolId = await resolveSchoolId(id);
+    if (!schoolId) {
+      return NextResponse.json({ success: false, message: "School not found" }, { status: 404 });
+    }
     const body = await request.json();
-    const school = await School.findById(id);
+    const school = await School.findById(schoolId);
     if (!school) {
       return NextResponse.json({ success: false, message: "School not found" }, { status: 404 });
     }
@@ -84,7 +101,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     await school.save();
 
-    const resolved = await getSchoolThemeById(id);
+    const resolved = await getSchoolThemeById(schoolId);
     return NextResponse.json({
       success: true,
       message: "Theme updated successfully",

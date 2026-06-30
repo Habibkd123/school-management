@@ -1,12 +1,22 @@
 import connectDB from "@/lib/db";
 import { getSchoolThemeById } from "@/lib/themes/getSchoolTheme";
 import { resolveThemeConfig, themeColorsToCssVars } from "@/lib/themes/presets";
+import { headers } from "next/headers";
+import { resolveSchoolIdServer } from "@/lib/themes/resolveSchool";
 
 /** Inject school theme CSS variables on first HTML paint (before client JS). */
 export async function ServerThemeStyles() {
-  const schoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+  let schoolId: string | null = null;
+  try {
+    const headersList = await headers();
+    schoolId = await resolveSchoolIdServer(headersList);
+  } catch (err) {
+    // headers() might throw in static environments
+    schoolId = process.env.NEXT_PUBLIC_SCHOOL_ID || null;
+  }
+
   if (!schoolId) {
-    console.warn("[ServerThemeStyles] NEXT_PUBLIC_SCHOOL_ID not set");
+    console.warn("[ServerThemeStyles] schoolId not resolved");
     return null;
   }
 

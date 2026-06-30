@@ -8,6 +8,12 @@ export interface IAcademicConfig {
   enable_sections: boolean;
 }
 
+// ─── Login Config Sub-document ─────────────────────────────────────
+export interface ILoginConfig {
+  disable_student_login: boolean;
+  disable_teacher_login: boolean;
+}
+
 export interface IThemeConfig {
   preset: ThemePreset;
   colors: ThemeConfig["colors"];
@@ -26,6 +32,7 @@ export interface ISchool extends Document {
   is_active: boolean;
   academic_config: IAcademicConfig;
   theme_config: IThemeConfig;
+  login_config: ILoginConfig;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +73,14 @@ const themeConfigSchema = new Schema<IThemeConfig>(
   { _id: false }
 );
 
+const loginConfigSchema = new Schema<ILoginConfig>(
+  {
+    disable_student_login: { type: Boolean, default: false },
+    disable_teacher_login: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
 const schoolSchema = new Schema<ISchool>(
   {
     name: { type: String, required: [true, "School name is required"], trim: true },
@@ -79,6 +94,7 @@ const schoolSchema = new Schema<ISchool>(
     is_active: { type: Boolean, default: true },
     academic_config: { type: academicConfigSchema, default: () => ({ enable_streams: false, enable_sections: false }) },
     theme_config: { type: themeConfigSchema, default: () => getPresetTheme("navy_blue") },
+    login_config: { type: loginConfigSchema, default: () => ({ disable_student_login: false, disable_teacher_login: false }) },
   },
   { timestamps: true }
 );

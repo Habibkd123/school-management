@@ -3,6 +3,7 @@ import connectToDatabase from "@/lib/db";
 import { Attendance, Timetable } from "@/lib/models/index";
 import Class from "@/lib/models/Class";
 import Teacher from "@/lib/models/Teacher";
+import User from "@/lib/models/User";
 import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
@@ -146,11 +147,39 @@ export async function POST(req: NextRequest) {
     const utcToday = d.toISOString().split("T")[0];
     const isToday = (requestDateStr === localToday || requestDateStr === utcToday);
 
-    if (!existingRecord && !isToday && role !== "school_admin" && role !== "super_admin") {
-      return NextResponse.json(
-        { success: false, message: "Teachers can only mark attendance for today. Admins can mark past dates." },
-        { status: 400 }
-      );
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const localYesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayDate.getDate()).padStart(2, "0")}`;
+    const utcYesterday = yesterdayDate.toISOString().split("T")[0];
+    const isYesterday = (requestDateStr === localYesterday || requestDateStr === utcYesterday);
+
+    if (role === "teacher") {
+      if (isToday) {
+        if (existingRecord) {
+          return NextResponse.json(
+            { success: false, message: "Teachers can submit attendance only once. Today's attendance has already been submitted." },
+            { status: 400 }
+          );
+        }
+      } else if (isYesterday) {
+        if (existingRecord) {
+          // Verify if it is within 24 hours of first submission
+          const editWindowLimitMs = 24 * 60 * 60 * 1000;
+          const submittedAt = existingRecord.createdAt || existingRecord.updatedAt;
+          const elapsed = Date.now() - new Date(submittedAt).getTime();
+          if (elapsed > editWindowLimitMs) {
+            return NextResponse.json(
+              { success: false, message: "The edit window for yesterday's attendance has expired (max 24 hours from initial submission)." },
+              { status: 400 }
+            );
+          }
+        }
+      } else {
+        return NextResponse.json(
+          { success: false, message: "Teachers can only mark today's attendance or edit yesterday's attendance within the edit window." },
+          { status: 400 }
+        );
+      }
     }
 
     const formattedRecords = records.map((r: any) => ({
@@ -158,6 +187,73 @@ export async function POST(req: NextRequest) {
       status: r.status.toLowerCase(),
       note: r.note || null,
     }));
+
+    // Maintain Edit History / Audit Log for Admins & Principals
+    let auditLogEntry = null;
+    if (existingRecord && (role === "school_admin" || role === "super_admin")) {
+      const changes: any[] = [];
+      const oldRecordsMap = new Map();
+      existingRecord.records.forEach((r: any) => {
+        if (r.student_id) {
+          oldRecordsMap.set(r.student_id.toString(), r);
+        }
+      });
+
+      for (const r of formattedRecords) {
+        const studentIdStr = r.student_id.toString();
+        const oldRec = oldRecordsMap.get(studentIdStr);
+        if (oldRec) {
+          const oldStatus = oldRec.status;
+          const newStatus = r.status;
+          const oldNote = oldRec.note || "";
+          const newNote = r.note || "";
+          if (oldStatus !== newStatus || oldNote !== newNote) {
+            changes.push({
+              student_id: r.student_id,
+              student_name: "", // Will populate below
+              old_status: oldStatus,
+              new_status: newStatus,
+              old_note: oldNote,
+              new_note: newNote,
+            });
+          }
+        } else {
+          changes.push({
+            student_id: r.student_id,
+            student_name: "",
+            old_status: "not marked",
+            new_status: r.status,
+            old_note: "",
+            new_note: r.note || "",
+          });
+        }
+      }
+
+      if (changes.length > 0) {
+        const studentIds = changes.map(c => c.student_id);
+        const { Student } = require("@/lib/models/index");
+        const studentsList = await Student.find({ _id: { $in: studentIds } }).select("name").lean();
+        const studentNameMap = new Map();
+        studentsList.forEach((s: any) => {
+          studentNameMap.set(s._id.toString(), s.name);
+        });
+
+        changes.forEach(c => {
+          c.student_name = studentNameMap.get(c.student_id.toString()) || "Unknown Student";
+        });
+
+        const editor = await User.findById(userId).select("name").lean();
+        const editorName = editor?.name || "Admin/Principal";
+
+        auditLogEntry = {
+          edited_by: new mongoose.Types.ObjectId(userId as string),
+          edited_by_name: editorName,
+          edited_at: new Date(),
+          reason: body.reason || "No reason provided",
+          changes,
+        };
+      }
+    }
 
     const update: any = {
       $set: {
@@ -174,6 +270,10 @@ export async function POST(req: NextRequest) {
         type: "student",
       }
     };
+
+    if (auditLogEntry) {
+      update.$push = { edit_history: auditLogEntry };
+    }
 
     const attendanceRecord = await Attendance.findOneAndUpdate(filter, update, {
       upsert: true,

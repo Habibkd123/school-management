@@ -1,4 +1,5 @@
 import School from "@/lib/models/School";
+import mongoose from "mongoose";
 import { resolveThemeConfig, themeColorsToCssVars, type ThemeConfig } from "@/lib/themes/presets";
 
 export interface ResolvedSchoolTheme {
@@ -12,7 +13,12 @@ export interface ResolvedSchoolTheme {
 }
 
 export async function getSchoolThemeById(schoolId: string): Promise<ResolvedSchoolTheme | null> {
-  const school = await School.findById(schoolId).lean();
+  let school;
+  if (mongoose.isValidObjectId(schoolId)) {
+    school = await School.findById(schoolId).lean();
+  } else {
+    school = await School.findOne({ slug: schoolId.toLowerCase() }).lean();
+  }
   if (!school) return null;
 
   const theme = resolveThemeConfig(school.theme_config as ThemeConfig | undefined);

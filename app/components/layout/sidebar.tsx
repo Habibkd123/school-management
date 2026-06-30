@@ -49,6 +49,7 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Classes", href: "/academic-mgmt/classes" },
         ...(enableStreams ? [{ name: "Streams", href: "/academic-mgmt/streams" }] : []),
         ...(enableSections ? [{ name: "Sections", href: "/academic-mgmt/sections" }] : []),
+        { name: "Class Groups", href: "/academic-mgmt/class-groups" },
         { name: "Subjects", href: "/academic-mgmt/subjects" },
         { name: "Subject Assignment", href: "/academic-mgmt/subject-assignment" },
         { name: "Teacher Assignment", href: "/academic-mgmt/teacher-assignment" },

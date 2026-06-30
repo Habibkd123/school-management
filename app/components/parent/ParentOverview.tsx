@@ -5,6 +5,7 @@ import { useParent } from "@/app/hooks/useParent";
 import { ChildSelector } from "./ChildSelector";
 import Link from "next/link";
 import { Clock, DollarSign, ClipboardList, BookOpen, ChevronRight, User } from "lucide-react";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 
 export function ParentOverview() {
   const { children, selectedChild, selectedChildId, setSelectedChildId, isLoading, error } = useParent();
@@ -43,38 +44,43 @@ export function ParentOverview() {
         </div>
       )}
 
-      {selectedChild ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <QuickActionCard 
-            title="Attendance"
-            description="View daily and monthly attendance records"
-            icon={<Clock className="w-6 h-6 text-emerald-500" />}
-            href="/parent/attendance"
-            color="bg-emerald-50 dark:bg-emerald-500/10"
-          />
-          <QuickActionCard 
-            title="Fee Status"
-            description="Check pending dues and payment history"
-            icon={<DollarSign className="w-6 h-6 text-amber-500" />}
-            href="/parent/fees"
-            color="bg-amber-50 dark:bg-amber-500/10"
-          />
-          <QuickActionCard 
-            title="Exam Results"
-            description="Download report cards and view grades"
-            icon={<ClipboardList className="w-6 h-6 text-blue-500" />}
-            href="/parent/results"
-            color="bg-blue-50 dark:bg-blue-500/10"
-          />
-          <QuickActionCard 
-            title="Homework"
-            description="Track daily assignments and submissions"
-            icon={<BookOpen className="w-6 h-6 text-purple-500" />}
-            href="/parent/homework"
-            color="bg-purple-50 dark:bg-purple-500/10"
-          />
-        </div>
-      ) : (
+      {selectedChild ? (() => {
+        const SHOW_FEES = !HIDE_FEES_FEATURE;
+        return (
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${SHOW_FEES ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-6`}>
+            <QuickActionCard 
+              title="Attendance"
+              description="View daily and monthly attendance records"
+              icon={<Clock className="w-6 h-6 text-emerald-500" />}
+              href="/parent/attendance"
+              color="bg-emerald-50 dark:bg-emerald-500/10"
+            />
+            {SHOW_FEES && (
+              <QuickActionCard 
+                title="Fee Status"
+                description="Check pending dues and payment history"
+                icon={<DollarSign className="w-6 h-6 text-amber-500" />}
+                href="/parent/fees"
+                color="bg-amber-50 dark:bg-amber-500/10"
+              />
+            )}
+            <QuickActionCard 
+              title="Exam Results"
+              description="Download report cards and view grades"
+              icon={<ClipboardList className="w-6 h-6 text-blue-500" />}
+              href="/parent/results"
+              color="bg-blue-50 dark:bg-blue-500/10"
+            />
+            <QuickActionCard 
+              title="Homework"
+              description="Track daily assignments and submissions"
+              icon={<BookOpen className="w-6 h-6 text-purple-500" />}
+              href="/parent/homework"
+              color="bg-purple-50 dark:bg-purple-500/10"
+            />
+          </div>
+        );
+      })() : (
         !isLoading && (
           <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-border">
             <UsersPlaceholder />

@@ -18,6 +18,8 @@ export interface StudentAttendanceData {
   section_id?: string;
   date: string;
   records: StudentAttendanceRecord[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export function useStudentAttendance() {
@@ -67,6 +69,7 @@ export function useStudentAttendance() {
     streamId?: string;
     sectionId?: string;
     records: { student_id: string; status: string; note?: string }[];
+    reason?: string;
   }) => {
     setIsLoading(true);
     setError(null);

@@ -13,7 +13,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Invalid ID" }, { status: 400 });
     }
 
-    const updated = await TransportAllocation.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    const payload = { ...body };
+    if (!payload.bus_id) {
+      payload.bus_id = null;
+    }
+
+    const updated = await TransportAllocation.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
     if (!updated) {
       return NextResponse.json({ success: false, error: "Allocation not found" }, { status: 404 });
     }

@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Loader2, AlertCircle, Save, Calendar, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useStudentAttendance, StudentAttendanceRecord } from "@/app/hooks/useStudentAttendance";
 import { useClasses } from "@/app/hooks/useClasses";
 import { useStreams } from "@/app/hooks/useStreams";
-import { useSections } from "@/app/hooks/useSections";
 import { useStudents } from "@/app/hooks/useStudents";
 import { useTeachers } from "@/app/hooks/useTeachers";
 import { useAuth } from "@/app/context/auth";
@@ -13,13 +13,13 @@ import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useAppState } from "@/app/context/store";
 
 export default function StudentAttendancePage() {
+  const router = useRouter();
   const { academicYear } = useAppState();
   const { enableStreams, enableSections } = useAcademicConfig();
 
   const { attendance, isLoading: loadingAttendance, error, fetchAttendance, saveAttendance } = useStudentAttendance();
   const { classes } = useClasses({ filterByYear: true });
   const { streams } = useStreams({ skip: !enableStreams });
-  const { sections } = useSections({ skip: !enableSections });
   const { students, fetchStudents, isLoading: loadingStudents } = useStudents();
 
   const { user } = useAuth();
@@ -50,7 +50,6 @@ export default function StudentAttendancePage() {
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterClassId, setFilterClassId] = useState("");
   const [filterStreamId, setFilterStreamId] = useState("");
-  const [filterSectionId, setFilterSectionId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Attendance State
@@ -58,17 +57,82 @@ export default function StudentAttendancePage() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Reason & History Modal State
+  const [editReason, setEditReason] = useState("");
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Date permission helper info
+  const dateInfo = useMemo(() => {
+    if (!filterDate) return { isToday: false, isYesterday: false, isPast: false, elapsedMs: 0 };
+    const d = new Date();
+    const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const utcToday = d.toISOString().split("T")[0];
+    const isToday = (filterDate === localToday || filterDate === utcToday);
+
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const localYesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayDate.getDate()).padStart(2, "0")}`;
+    const utcYesterday = yesterdayDate.toISOString().split("T")[0];
+    const isYesterday = (filterDate === localYesterday || filterDate === utcYesterday);
+
+    const isPast = !isToday && !isYesterday;
+
+    let elapsedMs = 0;
+    if (attendance) {
+      const submittedAt = attendance.createdAt || attendance.updatedAt;
+      if (submittedAt) {
+        elapsedMs = Date.now() - new Date(submittedAt).getTime();
+      }
+    }
+
+    return { isToday, isYesterday, isPast, elapsedMs };
+  }, [filterDate, attendance]);
+
+  // Determine if user (especially teacher) can edit
+  const teacherPermission = useMemo(() => {
+    if (!isTeacher) return { canEdit: true, message: "" };
+
+    // If not submitted yet:
+    if (!attendance) {
+      if (dateInfo.isToday || dateInfo.isYesterday) {
+        return { canEdit: true, message: "" };
+      }
+      return { canEdit: false, message: "Teachers can only submit attendance for today or yesterday." };
+    }
+
+    // If already submitted:
+    if (dateInfo.isToday) {
+      return { canEdit: false, message: "Attendance has already been submitted for today." };
+    }
+
+    if (dateInfo.isYesterday) {
+      const editWindowLimitMs = 24 * 60 * 60 * 1000;
+      if (dateInfo.elapsedMs > editWindowLimitMs) {
+        return { canEdit: false, message: "The 24-hour edit window for yesterday's attendance has expired." };
+      }
+      return { canEdit: true, message: "" };
+    }
+
+    return { canEdit: false, message: "Teachers can only edit attendance for the previous 1 day (within 24 hours of submission)." };
+  }, [isTeacher, attendance, dateInfo]);
+
+  // Redirect teacher if today's attendance has already been submitted
+  useEffect(() => {
+    if (isTeacher && attendance && filterClassId && filterDate && dateInfo.isToday) {
+      router.push(`/attendance/student/confirmation?classId=${filterClassId}&date=${filterDate}${filterStreamId ? `&streamId=${filterStreamId}` : ""}`);
+    }
+  }, [attendance, isTeacher, filterClassId, filterDate, dateInfo.isToday, filterStreamId, router]);
+
   // Auto-fetch students when filters change
   useEffect(() => {
     if (filterClassId) {
       fetchStudents({
         classId: filterClassId,
         streamId: filterStreamId || undefined,
-        sectionId: filterSectionId || undefined,
         limit: 500,
       });
     }
-  }, [filterClassId, filterStreamId, filterSectionId, fetchStudents]);
+  }, [filterClassId, filterStreamId, fetchStudents]);
 
   // Fetch existing attendance
   useEffect(() => {
@@ -78,10 +142,14 @@ export default function StudentAttendancePage() {
         date: filterDate,
         classId: filterClassId,
         streamId: filterStreamId || undefined,
-        sectionId: filterSectionId || undefined,
       });
     }
-  }, [filterYear, filterDate, filterClassId, filterStreamId, filterSectionId, fetchAttendance]);
+  }, [filterYear, filterDate, filterClassId, filterStreamId, fetchAttendance]);
+
+  // Reset reason field when date/class changes
+  useEffect(() => {
+    setEditReason("");
+  }, [filterClassId, filterDate]);
 
   // Sync state when attendance changes
   useEffect(() => {
@@ -119,10 +187,11 @@ export default function StudentAttendancePage() {
 
   const handleSave = async () => {
     if (!filterClassId || !filterDate || !filterYear) return;
-    
+    if (!teacherPermission.canEdit) return;
+
     setSubmitting(true);
     setSuccessMsg("");
-    
+
     const recordsToSave = Object.keys(attendanceRecords).map(student_id => ({
       student_id,
       status: attendanceRecords[student_id].status,
@@ -134,14 +203,21 @@ export default function StudentAttendancePage() {
       date: filterDate,
       classId: filterClassId,
       streamId: filterStreamId || undefined,
-      sectionId: filterSectionId || undefined,
       records: recordsToSave,
+      reason: !isTeacher ? editReason : undefined,
     });
 
     setSubmitting(false);
     if (res.success) {
       setSuccessMsg("Attendance saved successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      setEditReason("");
+      
+      // Redirect to confirmation page if same day
+      if (dateInfo.isToday) {
+        router.push(`/attendance/student/confirmation?classId=${filterClassId}&date=${filterDate}${filterStreamId ? `&streamId=${filterStreamId}` : ""}`);
+      } else {
+        setTimeout(() => setSuccessMsg(""), 3000);
+      }
     }
   };
 
@@ -167,12 +243,12 @@ export default function StudentAttendancePage() {
       {/* Filters */}
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <div className="flex flex-col gap-1.5 min-w-[140px] text-left">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Date</label>
             <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary bg-white dark:bg-slate-900 font-medium" />
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <div className="flex flex-col gap-1.5 min-w-[140px] text-left">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Class</label>
             <select value={filterClassId} onChange={(e) => setFilterClassId(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary bg-white dark:bg-slate-900 font-medium">
@@ -181,7 +257,7 @@ export default function StudentAttendancePage() {
             </select>
           </div>
           {enableStreams && (
-            <div className="flex flex-col gap-1.5 min-w-[140px]">
+            <div className="flex flex-col gap-1.5 min-w-[140px] text-left">
               <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Stream</label>
               <select value={filterStreamId} onChange={(e) => setFilterStreamId(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary bg-white dark:bg-slate-900 font-medium">
@@ -190,18 +266,19 @@ export default function StudentAttendancePage() {
               </select>
             </div>
           )}
-          {enableSections && (
-            <div className="flex flex-col gap-1.5 min-w-[140px]">
-              <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Section</label>
-              <select value={filterSectionId} onChange={(e) => setFilterSectionId(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-primary bg-white dark:bg-slate-900 font-medium">
-                <option value="">All Sections</option>
-                {sections.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Permission message banner */}
+      {!teacherPermission.canEdit && filterClassId && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 flex items-start gap-3 text-left">
+          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold text-amber-800 dark:text-amber-400 text-sm">Attendance View-Only</h4>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{teacherPermission.message}</p>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl card-shadow overflow-hidden">
@@ -226,11 +303,24 @@ export default function StudentAttendancePage() {
           </div>
         ) : (
           <div>
-            <div className="p-4 border-b border-border bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex gap-2">
-                <button onClick={() => markAll("present")} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded">Mark All Present</button>
-                <button onClick={() => markAll("absent")} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 rounded">Mark All Absent</button>
-                <button onClick={() => markAll("leave")} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded">Mark All Leave</button>
+            <div className="p-4 border-b border-border bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+              <div className="flex flex-wrap items-center gap-2">
+                {teacherPermission.canEdit && (
+                  <>
+                    <button onClick={() => markAll("present")} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded cursor-pointer">Mark All Present</button>
+                    <button onClick={() => markAll("absent")} className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 rounded cursor-pointer">Mark All Absent</button>
+                    <button onClick={() => markAll("leave")} className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded cursor-pointer">Mark All Leave</button>
+                  </>
+                )}
+                {attendance && (attendance as any).edit_history && (attendance as any).edit_history.length > 0 && (
+                  <button
+                    onClick={() => setIsHistoryOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 dark:text-indigo-400 text-xs font-bold rounded cursor-pointer transition-colors"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>View Edit History ({(attendance as any).edit_history.length})</span>
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2" />
@@ -258,6 +348,7 @@ export default function StudentAttendancePage() {
                         <select
                           value={attendanceRecords[student._id]?.status || "present"}
                           onChange={(e) => handleStatusChange(student._id, e.target.value)}
+                          disabled={!teacherPermission.canEdit || submitting}
                           className={`w-full px-3 py-1.5 rounded-lg text-xs font-bold outline-none border-0 appearance-none bg-no-repeat bg-[right_10px_center] ${
                             attendanceRecords[student._id]?.status === 'present' ? 'bg-emerald-100 text-emerald-700' :
                             attendanceRecords[student._id]?.status === 'absent' ? 'bg-red-100 text-red-700' :
@@ -274,10 +365,11 @@ export default function StudentAttendancePage() {
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <input type="text" placeholder="Add note..."
+                        <input type="text" placeholder={teacherPermission.canEdit ? "Add note..." : ""}
                           value={attendanceRecords[student._id]?.note || ""}
                           onChange={(e) => handleNoteChange(student._id, e.target.value)}
-                          className="w-full px-3 py-1.5 border border-transparent hover:border-border focus:border-primary rounded text-[13px] outline-none bg-transparent focus:bg-white dark:focus:bg-slate-900 transition-colors" />
+                          disabled={!teacherPermission.canEdit || submitting}
+                          className="w-full px-3 py-1.5 border border-transparent hover:border-border focus:border-primary rounded text-[13px] outline-none bg-transparent focus:bg-white dark:focus:bg-slate-900 transition-colors disabled:opacity-50" />
                       </td>
                     </tr>
                   ))}
@@ -285,19 +377,144 @@ export default function StudentAttendancePage() {
               </table>
             </div>
 
-            <div className="p-4 border-t border-border flex items-center justify-between">
+            <div className="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
               <div>
                 {successMsg && <span className="text-emerald-500 text-[13px] font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> {successMsg}</span>}
               </div>
-              <button onClick={handleSave} disabled={submitting}
-                className="px-6 py-2.5 bg-primary hover:bg-[var(--primary-hover)] text-white text-[14px] font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save Attendance
-              </button>
+              <div className="flex flex-wrap items-end gap-4 w-full sm:w-auto justify-end">
+                {!isTeacher && attendance && (
+                  <div className="flex flex-col gap-1 text-left w-full sm:w-[240px]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reason for Edit</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Corrected entry error"
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-border rounded-lg text-xs font-semibold outline-none focus:border-primary bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                    />
+                  </div>
+                )}
+                {teacherPermission.canEdit && (
+                  <button onClick={handleSave} disabled={submitting}
+                    className="px-6 py-2.5 bg-primary hover:bg-[var(--primary-hover)] text-white text-[14px] font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Attendance
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* ── ATTENDANCE EDIT HISTORY MODAL ── */}
+      {isHistoryOpen && attendance && (attendance as any).edit_history && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-50 shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-left">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-indigo-500" />
+                  <span>Attendance Edit History Audit Log</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Audit log of all changes made to this register after first submission.</p>
+              </div>
+              <button
+                onClick={() => setIsHistoryOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-450 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              {[...((attendance as any).edit_history || [])].reverse().map((entry: any, index: number) => {
+                const entryDate = new Date(entry.edited_at).toLocaleString("en-US", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                });
+                return (
+                  <div key={index} className="border border-border/80 rounded-xl overflow-hidden shadow-sm">
+                    {/* Header */}
+                    <div className="bg-slate-50 dark:bg-slate-800/40 px-4 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-500">
+                          {entry.edited_by_name?.charAt(0) || "A"}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {entry.edited_by_name || "Admin/Principal"}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-400">{entryDate}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 space-y-3.5">
+                      {/* Reason */}
+                      <div className="text-[12.5px] bg-slate-50/50 dark:bg-slate-800/20 px-3 py-2 rounded-lg border border-border/50 italic text-slate-600 dark:text-slate-300">
+                        <span className="font-semibold not-italic text-slate-500 mr-1.5">Reason:</span>
+                        {entry.reason || "No reason provided"}
+                      </div>
+
+                      {/* Changes Table */}
+                      <div className="overflow-x-auto border border-border/60 rounded-lg">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-[#F8FAFC] dark:bg-slate-800/60 text-slate-500 border-b border-border/60 font-semibold">
+                            <tr>
+                              <th className="px-3 py-2 w-1/3">Student</th>
+                              <th className="px-3 py-2">Previous Status</th>
+                              <th className="px-3 py-2">Updated Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/40 font-medium">
+                            {entry.changes?.map((change: any, cIdx: number) => (
+                              <tr key={cIdx} className="hover:bg-slate-50/30">
+                                <td className="px-3 py-2 text-slate-800 dark:text-slate-200 font-bold">
+                                  {change.student_name || "Student"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="capitalize text-slate-400 dark:text-slate-400 line-through">
+                                    {change.old_status}
+                                  </span>
+                                  {change.old_note && (
+                                    <span className="block text-[10px] text-slate-400 italic">Note: "{change.old_note}"</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className={`capitalize px-2 py-0.5 rounded text-[11px] font-bold ${
+                                    change.new_status === "present" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400" :
+                                    change.new_status === "absent" ? "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400" :
+                                    "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400"
+                                  }`}>
+                                    {change.new_status}
+                                  </span>
+                                  {change.new_note && (
+                                    <span className="block text-[10px] text-slate-500 italic mt-0.5">Note: "{change.new_note}"</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-6 border-t border-border bg-slate-50 dark:bg-slate-800/40 flex justify-end">
+              <button
+                onClick={() => setIsHistoryOpen(false)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+              >
+                Close History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

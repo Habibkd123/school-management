@@ -1,19 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { getSchoolThemeById } from "@/lib/themes/getSchoolTheme";
 import { resolveThemeConfig } from "@/lib/themes/presets";
+import { resolveSchoolIdServer } from "@/lib/themes/resolveSchool";
 
 // GET /api/public/theme — theme for public website (env-bound school)
-export async function GET() {
-  const schoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
-  if (!schoolId) {
-    return NextResponse.json(
-      { success: false, message: "NEXT_PUBLIC_SCHOOL_ID is not configured" },
-      { status: 500 }
-    );
-  }
-
+export async function GET(request: NextRequest) {
   try {
+    const schoolId = await resolveSchoolIdServer(request.headers, request.url);
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, message: "School ID not resolved" },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
     const resolved = await getSchoolThemeById(schoolId);
     if (!resolved) {

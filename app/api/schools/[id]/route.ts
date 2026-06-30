@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import School from "@/lib/models/School";
 import User from "@/lib/models/User";
+import mongoose from "mongoose";
 import { requireAuth } from "@/lib/utils/auth";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+async function resolveSchoolId(id: string): Promise<string | null> {
+  if (mongoose.isValidObjectId(id)) {
+    return id;
+  }
+  const school = await School.findOne({ slug: id.toLowerCase() }).select("_id").lean();
+  return school ? school._id.toString() : null;
+}
 
 // GET /api/schools/[id] - Fetch a single school
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -17,7 +26,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
-    const school = await School.findById(id);
+    const schoolId = await resolveSchoolId(id);
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, message: "School not found" },
+        { status: 404 }
+      );
+    }
+    const school = await School.findById(schoolId);
     if (!school) {
       return NextResponse.json(
         { success: false, message: "School not found" },
@@ -44,9 +60,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
+    const schoolId = await resolveSchoolId(id);
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, message: "School not found" },
+        { status: 404 }
+      );
+    }
     const body = await request.json();
 
-    const school = await School.findById(id);
+    const school = await School.findById(schoolId);
     if (!school) {
       return NextResponse.json(
         { success: false, message: "School not found" },
@@ -87,8 +110,15 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
+    const schoolId = await resolveSchoolId(id);
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, message: "School not found" },
+        { status: 404 }
+      );
+    }
 
-    const school = await School.findById(id);
+    const school = await School.findById(schoolId);
     if (!school) {
       return NextResponse.json(
         { success: false, message: "School not found" },
@@ -96,7 +126,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const linkedUsers = await User.countDocuments({ school_id: id });
+    const linkedUsers = await User.countDocuments({ school_id: schoolId });
     if (linkedUsers > 0) {
       return NextResponse.json(
         {
@@ -107,7 +137,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    await School.findByIdAndDelete(id);
+    await School.findByIdAndDelete(schoolId);
 
     return NextResponse.json({
       success: true,

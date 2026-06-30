@@ -13,7 +13,9 @@ export default function DailyAttendanceReportPage() {
   const { students } = useStudents();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date(Date.now() - 86400000).toISOString().split("T")[0]
+  );
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   const filteredClasses = useMemo(() => {
@@ -114,9 +116,21 @@ export default function DailyAttendanceReportPage() {
           <h2 className="text-[16px] font-bold text-slate-800 dark:text-slate-100">Daily Class Stats</h2>
         </div>
 
-        <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50">
-          <span className="text-[13px] text-slate-500 dark:text-slate-400">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredClasses.length}</span> classes</span>
-          <div className="relative">
+        <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50 text-left">
+          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+            <span className="text-[13px] text-slate-500 dark:text-slate-400">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredClasses.length}</span> classes</span>
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Report Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                max={new Date(Date.now() - 86400000).toISOString().split("T")[0]}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-1.5 border border-border rounded-lg text-xs font-semibold outline-none focus:border-primary bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              />
+            </div>
+          </div>
+          <div className="relative w-full sm:w-auto">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input type="text" placeholder="Search class…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-primary transition-colors" />
           </div>

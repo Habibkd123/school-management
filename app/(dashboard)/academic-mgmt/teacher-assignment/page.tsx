@@ -3,15 +3,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus, Search, RefreshCcw, Trash2, Loader2, AlertCircle,
-  Link2, ChevronDown, Filter, BookOpen, Layers, GraduationCap, User
+  BookOpen, Layers, GraduationCap, User
 } from "lucide-react";
 import { Modal } from "@/app/components/ui/modal";
 import { DataTable, ColumnDef } from "@/app/components/ui/data-table";
 import { useTeacherAssignment, PopulatedTeacherAssignment } from "@/app/hooks/useTeacherAssignment";
+import { useClassGroups } from "@/app/hooks/useClassGroups";
 import { useSubjectAssignment } from "@/app/hooks/useSubjectAssignment";
 import { useSubjectMaster } from "@/app/hooks/useSubjectMaster";
 import { useStreams } from "@/app/hooks/useStreams";
-import { useSections } from "@/app/hooks/useSections";
 import { useClasses } from "@/app/hooks/useClasses";
 import { useTeachers } from "@/app/hooks/useTeachers";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
@@ -27,10 +27,10 @@ export default function TeacherAssignmentPage() {
   const { enableStreams, enableSections } = useAcademicConfig();
 
   const { assignments, isLoading, error, fetchAssignments, createAssignment, deleteAssignment } = useTeacherAssignment();
+  const { groups: classGroups } = useClassGroups({ skip: false, academicYear });
   const { assignments: subjectAssignments, fetchAssignments: fetchSubjectAssignments } = useSubjectAssignment();
   const { subjects: subjectList } = useSubjectMaster();
   const { streams } = useStreams({ skip: !enableStreams });
-  const { sections } = useSections({ skip: !enableSections });
   const { classes } = useClasses({ filterByYear: true });
   const { teachers } = useTeachers();
 
@@ -40,8 +40,8 @@ export default function TeacherAssignmentPage() {
 
   // Filter state
   const [filterClassId, setFilterClassId] = useState("");
+  const [filterClassGroupId, setFilterClassGroupId] = useState("");
   const [filterStreamId, setFilterStreamId] = useState("");
-  const [filterSectionId, setFilterSectionId] = useState("");
   const [filterTeacherId, setFilterTeacherId] = useState("");
   const [filterYear, setFilterYear] = useState(academicYear);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,38 +53,37 @@ export default function TeacherAssignmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // Form
+  // Form State
   const [formYear, setFormYear] = useState(academicYear);
   const [formTeacherId, setFormTeacherId] = useState("");
+  const [assignmentType, setAssignmentType] = useState<"class" | "group">("class");
   const [formClassId, setFormClassId] = useState("");
+  const [formClassGroupId, setFormClassGroupId] = useState("");
   const [formStreamId, setFormStreamId] = useState("");
-  const [formSectionId, setFormSectionId] = useState("");
   const [formSubjectId, setFormSubjectId] = useState("");
 
   const doFetch = useCallback(() => {
     fetchAssignments({
       class_id: filterClassId || undefined,
+      class_group_id: filterClassGroupId || undefined,
       stream_id: filterStreamId || undefined,
-      section_id: filterSectionId || undefined,
       teacher_id: filterTeacherId || undefined,
       academic_year: filterYear || undefined,
       limit: 200,
     });
-  }, [fetchAssignments, filterClassId, filterStreamId, filterSectionId, filterTeacherId, filterYear]);
+  }, [fetchAssignments, filterClassId, filterClassGroupId, filterStreamId, filterTeacherId, filterYear]);
 
   useEffect(() => { doFetch(); }, [doFetch]);
 
-  // Trigger auto stream and section selection on class select
+  // Trigger auto stream select on class select
   useEffect(() => {
-    if (!formClassId) {
+    if (assignmentType !== "class" || !formClassId) {
       setFormStreamId("");
-      setFormSectionId("");
       return;
     }
     const selectedClass = classes.find(c => c._id === formClassId);
     if (!selectedClass) {
       setFormStreamId("");
-      setFormSectionId("");
       return;
     }
 
@@ -109,22 +108,10 @@ export default function TeacherAssignmentPage() {
     } else {
       setFormStreamId("");
     }
-
-    // Auto section selection based on class section
-    if (enableSections && selectedClass.section) {
-      const matchedSec = sections.find(s => s.name.toLowerCase() === selectedClass.section.toLowerCase());
-      if (matchedSec) {
-        setFormSectionId(matchedSec._id);
-      } else {
-        setFormSectionId("");
-      }
-    } else {
-      setFormSectionId("");
-    }
-  }, [formClassId, classes, streams, enableStreams, sections, enableSections]);
+  }, [formClassId, classes, streams, enableStreams, assignmentType]);
 
   const filteredStreams = useMemo(() => {
-    if (!enableStreams || !formClassId) return [];
+    if (assignmentType !== "class" || !enableStreams || !formClassId) return [];
 
     const selectedClass = classes.find(c => c._id === formClassId);
     if (!selectedClass) return [];
@@ -144,9 +131,30 @@ export default function TeacherAssignmentPage() {
     }
 
     return activeStreams;
-  }, [formClassId, classes, streams, enableStreams]);
+  }, [formClassId, classes, streams, enableStreams, assignmentType]);
 
   const filteredSubjectList = useMemo(() => {
+    if (assignmentType === "group") {
+      if (!formClassGroupId) return [];
+      const selectedGroup = classGroups.find(g => g._id === formClassGroupId);
+      if (!selectedGroup) return [];
+      
+      const classIdsInGroup = selectedGroup.classes.map((c: any) => 
+        typeof c.class_id === "object" ? c.class_id._id : c.class_id
+      );
+
+      const groupSubjectAssignments = subjectAssignments.filter(sa => {
+        const saClassId = typeof sa.class_id === "object" ? sa.class_id?._id : sa.class_id;
+        return classIdsInGroup.includes(saClassId);
+      });
+
+      const assignedSubjectMasterIds = new Set(groupSubjectAssignments.map(sa =>
+        typeof sa.subject_master_id === "object" ? sa.subject_master_id?._id : sa.subject_master_id
+      ));
+
+      return subjectList.filter(s => assignedSubjectMasterIds.has(s._id) && s.status === "Active");
+    }
+
     if (!formClassId) return [];
 
     const assignedForClass = subjectAssignments.filter(sa => {
@@ -160,33 +168,38 @@ export default function TeacherAssignmentPage() {
     ));
 
     return subjectList.filter(s => assignedSubjectMasterIds.has(s._id) && s.status === "Active");
-  }, [subjectList, subjectAssignments, formClassId, formStreamId]);
+  }, [subjectList, subjectAssignments, formClassId, formStreamId, assignmentType, formClassGroupId, classGroups]);
 
   const resetForm = () => {
     setFormYear(academicYear);
     setFormTeacherId("");
+    setAssignmentType("class");
     setFormClassId("");
+    setFormClassGroupId("");
     setFormStreamId("");
-    setFormSectionId("");
     setFormSubjectId("");
     setFormError("");
   };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formYear || !formTeacherId || !formClassId || !formSubjectId) {
-      setFormError("Academic year, teacher, class, and subject are all required."); return;
+    if (!formYear || !formTeacherId || !formSubjectId || (assignmentType === "class" && !formClassId) || (assignmentType === "group" && !formClassGroupId)) {
+      setFormError("Academic year, teacher, class/group, and subject are all required."); return;
     }
-    const selectedClass = classes.find(c => c._id === formClassId);
-    const isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
+
+    let isHigherClass = false;
+    if (assignmentType === "class") {
+      const selectedClass = classes.find(c => c._id === formClassId);
+      isHigherClass = selectedClass ? (selectedClass.name.startsWith("Class 11") || selectedClass.name.startsWith("Class 12")) : false;
+    }
 
     setSubmitting(true);
     const res = await createAssignment({
       academic_year: formYear,
       teacher_id: formTeacherId,
-      class_id: formClassId,
-      stream_id: enableStreams && isHigherClass && formStreamId ? formStreamId : undefined,
-      section_id: enableSections && formSectionId ? formSectionId : undefined,
+      class_id: assignmentType === "class" ? formClassId : undefined,
+      class_group_id: assignmentType === "group" ? formClassGroupId : undefined,
+      stream_id: assignmentType === "class" && enableStreams && isHigherClass && formStreamId ? formStreamId : undefined,
       subject_master_id: formSubjectId,
     });
     setSubmitting(false);
@@ -213,8 +226,9 @@ export default function TeacherAssignmentPage() {
       a.teacher_id?.name?.toLowerCase().includes(q) ||
       a.subject_master_id?.name?.toLowerCase().includes(q) ||
       a.class_id?.name?.toLowerCase().includes(q) ||
+      a.class_group_id?.name?.toLowerCase().includes(q) ||
       (a.stream_id?.name?.toLowerCase().includes(q) ?? false) ||
-      (a.section_id?.name?.toLowerCase().includes(q) ?? false)
+      (a.class_id?.section?.toLowerCase().includes(q) ?? false)
     );
   });
 
@@ -233,12 +247,23 @@ export default function TeacherAssignmentPage() {
       )
     },
     {
-      header: "Class", accessorKey: "class_id", render: (a) => (
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-500/10 rounded flex items-center justify-center"><GraduationCap className="w-3.5 h-3.5 text-blue-500" /></div>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">{a.class_id?.name || "—"}</span>
-        </div>
-      )
+      header: "Class / Group", accessorKey: "class_id", render: (a) => {
+        if (a.class_group_id) {
+          return (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-indigo-500/10 rounded flex items-center justify-center"><Layers className="w-3.5 h-3.5 text-indigo-500" /></div>
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{a.class_group_id.name}</span>
+              <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase">Group</span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-blue-500/10 rounded flex items-center justify-center"><GraduationCap className="w-3.5 h-3.5 text-blue-500" /></div>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">{a.class_id?.name || "—"}</span>
+          </div>
+        );
+      }
     },
     ...(enableStreams ? [{
       header: "Stream", accessorKey: "stream_id",
@@ -247,11 +272,11 @@ export default function TeacherAssignmentPage() {
       ) : <span className="text-slate-400 text-[13px] italic">—</span>,
     } as ColumnDef<PopulatedTeacherAssignment>] : []),
     ...(enableSections ? [{
-      header: "Section", accessorKey: "section_id",
-      render: (a: PopulatedTeacherAssignment) => a.section_id ? (
-        <span className="font-medium text-slate-700 dark:text-slate-300">{a.section_id.name}</span>
+      header: "Section", accessorKey: "class_id" as any,
+      render: (a: PopulatedTeacherAssignment) => a.class_id?.section ? (
+        <span className="font-medium text-slate-700 dark:text-slate-300">{a.class_id.section}</span>
       ) : <span className="text-slate-400 text-[13px] italic">—</span>,
-    } as ColumnDef<PopulatedTeacherAssignment>] : []),
+    } as unknown as ColumnDef<PopulatedTeacherAssignment>] : []),
     {
       header: "Subject", accessorKey: "subject_master_id", render: (a) => (
         <div className="flex items-center gap-2">
@@ -300,7 +325,7 @@ export default function TeacherAssignmentPage() {
       {/* Filter Bar */}
       <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 card-shadow">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <div className="flex flex-col gap-1.5 min-w-[120px]">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Year</label>
             <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium">
@@ -317,30 +342,28 @@ export default function TeacherAssignmentPage() {
             </select>
           </div>
           <div className="flex flex-col gap-1.5 min-w-[140px]">
+            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Class Group</label>
+            <select value={filterClassGroupId} onChange={(e) => { setFilterClassGroupId(e.target.value); setFilterClassId(""); }}
+              className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium">
+              <option value="">All Groups</option>
+              {classGroups.map(cg => <option key={cg._id} value={cg._id}>{cg.name}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5 min-w-[140px]">
             <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Class</label>
-            <select value={filterClassId} onChange={(e) => setFilterClassId(e.target.value)}
+            <select value={filterClassId} onChange={(e) => { setFilterClassId(e.target.value); setFilterClassGroupId(""); }}
               className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium">
               <option value="">All Classes</option>
               {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
             </select>
           </div>
           {enableStreams && (
-            <div className="flex flex-col gap-1.5 min-w-[140px]">
+            <div className="flex flex-col gap-1.5 min-w-[120px]">
               <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Stream</label>
               <select value={filterStreamId} onChange={(e) => setFilterStreamId(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium">
                 <option value="">All Streams</option>
                 {streams.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
-            </div>
-          )}
-          {enableSections && (
-            <div className="flex flex-col gap-1.5 min-w-[140px]">
-              <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">Section</label>
-              <select value={filterSectionId} onChange={(e) => setFilterSectionId(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium">
-                <option value="">All Sections</option>
-                {sections.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
               </select>
             </div>
           )}
@@ -387,7 +410,7 @@ export default function TeacherAssignmentPage() {
       </div>
 
       {/* Add Assignment Modal */}
-      <Modal isOpen={isAddOpen} onClose={() => { setIsAddOpen(false); resetForm(); }} title="Assign Teacher">
+      <Modal isOpen={isAddOpen} onClose={() => { setIsAddOpen(false); resetForm(); }} title="Assign Teacher" size="lg">
         <form onSubmit={handleAdd} className="space-y-5 text-left">
           {formError && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[13px] font-medium">
@@ -413,44 +436,58 @@ export default function TeacherAssignmentPage() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Class <span className="text-red-500">*</span></label>
-              <select value={formClassId} onChange={(e) => setFormClassId(e.target.value)} required
-                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
-                <option value="">Select Class</option>
-                {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
-              </select>
+            <div className="flex flex-col gap-1.5 md:col-span-2">
+              <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Assignment Method <span className="text-red-500">*</span></label>
+              <div className="flex gap-4">
+                <button type="button" onClick={() => { setAssignmentType("class"); setFormClassGroupId(""); setFormSubjectId(""); }}
+                  className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold border transition-all duration-200 ${assignmentType === "class" ? "bg-primary border-primary text-white" : "border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
+                  Assign by Class
+                </button>
+                <button type="button" onClick={() => { setAssignmentType("group"); setFormClassId(""); setFormSubjectId(""); }}
+                  className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold border transition-all duration-200 ${assignmentType === "group" ? "bg-primary border-primary text-white" : "border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
+                  Assign by Class Group
+                </button>
+              </div>
             </div>
+
+            {assignmentType === "class" ? (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Class <span className="text-red-500">*</span></label>
+                <select value={formClassId} onChange={(e) => setFormClassId(e.target.value)} required
+                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
+                  <option value="">Select Class</option>
+                  {classes.map(c => <option key={c._id} value={c._id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Class Group <span className="text-red-500">*</span></label>
+                <select value={formClassGroupId} onChange={(e) => setFormClassGroupId(e.target.value)} required
+                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
+                  <option value="">Select Class Group</option>
+                  {classGroups.map(cg => <option key={cg._id} value={cg._id}>{cg.name}</option>)}
+                </select>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Subject <span className="text-red-500">*</span></label>
               <select value={formSubjectId} onChange={(e) => setFormSubjectId(e.target.value)} required
                 className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
                 <option value="">Select Subject</option>
-                {filteredSubjectList.filter(s => s.status === "Active").map(s => (
+                {filteredSubjectList.map(s => (
                   <option key={s._id} value={s._id}>{s.name}</option>
                 ))}
               </select>
             </div>
 
-            {enableStreams && filteredStreams.length > 0 && (
+            {assignmentType === "class" && enableStreams && filteredStreams.length > 0 && (
               <div className="flex flex-col gap-1.5" style={{ display: "none" }}>
                 <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Stream</label>
                 <select value={formStreamId} onChange={(e) => setFormStreamId(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
                   <option value="">No Stream</option>
                   {filteredStreams.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                </select>
-              </div>
-            )}
-
-            {enableSections && (
-              <div className="flex flex-col gap-1.5" style={{ display: "none" }}>
-                <label className="text-[13px] font-semibold text-slate-900 dark:text-white font-medium">Section</label>
-                <select value={formSectionId} onChange={(e) => setFormSectionId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-[#10B981]/50 bg-white dark:bg-slate-900 font-medium shadow-sm">
-                  <option value="">No Section</option>
-                  {sections.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
               </div>
             )}
@@ -472,7 +509,9 @@ export default function TeacherAssignmentPage() {
         <div className="space-y-5 text-left">
           <p className="text-[14px] text-slate-600 dark:text-slate-300">
             Remove teacher <span className="font-bold text-red-500">{selected?.teacher_id?.name}</span> from {" "}
-            <span className="font-bold text-foreground dark:text-white">{selected?.class_id?.name} - {selected?.subject_master_id?.name}</span>?
+            <span className="font-bold text-foreground dark:text-white">
+              {selected?.class_group_id ? selected.class_group_id.name : selected?.class_id?.name} - {selected?.subject_master_id?.name}
+            </span>?
             <br /><br />
             <span className="text-red-500 font-bold bg-red-50 p-2 rounded block">Warning: This will also delete any Syllabus created for this assignment!</span>
           </p>

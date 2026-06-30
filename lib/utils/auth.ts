@@ -82,6 +82,22 @@ export async function requirePermission(
   const authResult = requireAuth(request);
   if (authResult.error) return authResult;
 
+  if (module === "fees") {
+    const { HIDE_FEES_FEATURE } = require("@/lib/permissions");
+    if (HIDE_FEES_FEATURE) {
+      return {
+        user: null,
+        userId: null,
+        role: null,
+        schoolId: null,
+        error: NextResponse.json(
+          { success: false, message: "Student Fee feature is temporarily disabled." },
+          { status: 403 }
+        ),
+      };
+    }
+  }
+
   try {
     await connectDB();
     const dbPerm = await RolePermission.findOne({ school_id: authResult.schoolId, role: authResult.role }).lean();

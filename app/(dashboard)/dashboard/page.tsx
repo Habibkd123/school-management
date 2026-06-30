@@ -9,6 +9,7 @@ import { useFeePayments } from "../../hooks/useFees";
 import { useNotices } from "../../hooks/useNotices";
 import { useHomework } from "../../hooks/useHomework";
 import { useAuth } from "../../context/auth";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import { useAppState } from "../../context/store";
 import { useSchedules } from "../../hooks/useSchedules";
 import { useHolidays } from "../../hooks/useHolidays";
@@ -48,6 +49,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const SHOW_FEES = !HIDE_FEES_FEATURE;
   // ── Synchronous role detection ──────────────────────────────────
   // getStoredUser() reads from localStorage synchronously (no effect needed)
   // so we can determine the role on the very first render and skip
@@ -2280,7 +2282,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Grid: 4 Columns (Leave, Exam, Fees, Syllabus) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              <div className={`grid grid-cols-1 md:grid-cols-2 ${SHOW_FEES ? "xl:grid-cols-4" : "xl:grid-cols-3"} gap-6`}>
 
                 {/* Leave Status */}
                 <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
@@ -2378,37 +2380,39 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Fees — Recent Payments */}
-                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Recent Payments</h3>
-                    <Link href={activeRole === "parent" ? "/parent/fees" : "/fees"} className="text-[12px] font-semibold text-primary">View All</Link>
-                  </div>
+                {SHOW_FEES && (
+                  <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Recent Payments</h3>
+                      <Link href={activeRole === "parent" ? "/parent/fees" : "/fees"} className="text-[12px] font-semibold text-primary">View All</Link>
+                    </div>
 
-                  <div className="space-y-3 flex-1">
-                    {payments.filter(p => {
-                      const sid = typeof (p as any).student_id === 'object' ? (p as any).student_id?._id : (p as any).student_id;
-                      return sid === displayStudentId;
-                    }).slice(0, 5).length > 0 ? payments.filter(p => {
-                      const sid = typeof (p as any).student_id === 'object' ? (p as any).student_id?._id : (p as any).student_id;
-                      return sid === displayStudentId;
-                    }).slice(0, 5).map((p, i) => (
-                      <div key={(p as any)._id || i} className="flex items-center justify-between">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center">
-                            <DollarSign className="w-4 h-4" />
+                    <div className="space-y-3 flex-1">
+                      {payments.filter(p => {
+                        const sid = typeof (p as any).student_id === 'object' ? (p as any).student_id?._id : (p as any).student_id;
+                        return sid === displayStudentId;
+                      }).slice(0, 5).length > 0 ? payments.filter(p => {
+                        const sid = typeof (p as any).student_id === 'object' ? (p as any).student_id?._id : (p as any).student_id;
+                        return sid === displayStudentId;
+                      }).slice(0, 5).map((p, i) => (
+                        <div key={(p as any)._id || i} className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center">
+                              <DollarSign className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-[12px] font-bold text-slate-900 dark:text-white">{(p as any).fee_type || 'Fee Payment'}</h4>
+                              <p className="text-[10px] text-slate-500 mt-0.5 dark:text-slate-400">{new Date((p as any).transaction_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-[12px] font-bold text-slate-900 dark:text-white">{(p as any).fee_type || 'Fee Payment'}</h4>
-                            <p className="text-[10px] text-slate-500 mt-0.5 dark:text-slate-400">{new Date((p as any).transaction_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                          </div>
+                          <span className="text-[12px] font-black text-emerald-600">${(p as any).amount_paid?.toLocaleString()}</span>
                         </div>
-                        <span className="text-[12px] font-black text-emerald-600">${(p as any).amount_paid?.toLocaleString()}</span>
-                      </div>
-                    )) : (
-                      <div className="text-center py-6 text-slate-500 text-xs dark:text-slate-400">No payment history found.</div>
-                    )}
+                      )) : (
+                        <div className="text-center py-6 text-slate-500 text-xs dark:text-slate-400">No payment history found.</div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Exam Performance Per Subject */}
                 <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex flex-col">

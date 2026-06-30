@@ -406,47 +406,49 @@ export default function ClassesPage() {
           <div className="flex flex-wrap items-center gap-3">
 
             {/* Filter */}
-            <div className="relative">
-              <button
-                onClick={() => { setIsFilterOpen(!isFilterOpen); setPendingSection(filterSection); }}
-                className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-[13px] font-medium shadow-sm transition-colors ${filterSection ? "border-primary bg-primary/10 text-[var(--primary-hover)]" : "border-border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Filter{filterSection ? `: ${filterSection}` : ""}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-              {isFilterOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 text-left">
-                    <div className="p-4 border-b border-border">
-                      <h3 className="text-[15px] font-bold text-foreground dark:text-slate-100">Filter Classes</h3>
-                    </div>
-                    <div className="p-4 space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Section</label>
-                        <div className="relative">
-                          <select
-                            value={pendingSection}
-                            onChange={(e) => setPendingSection(e.target.value)}
-                            className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
-                          >
-                            <option value="">All Sections</option>
-                            {["A", "B", "C", "D", "E"].map(s => <option key={s}>{s}</option>)}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+            {enableSections && (
+              <div className="relative">
+                <button
+                  onClick={() => { setIsFilterOpen(!isFilterOpen); setPendingSection(filterSection); }}
+                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-[13px] font-medium shadow-sm transition-colors ${filterSection ? "border-primary bg-primary/10 text-[var(--primary-hover)]" : "border-border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Filter{filterSection ? `: ${filterSection}` : ""}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+                {isFilterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 text-left">
+                      <div className="p-4 border-b border-border">
+                        <h3 className="text-[15px] font-bold text-foreground dark:text-slate-100">Filter Classes</h3>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Section</label>
+                          <div className="relative">
+                            <select
+                              value={pendingSection}
+                              onChange={(e) => setPendingSection(e.target.value)}
+                              className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+                            >
+                              <option value="">All Sections</option>
+                              {["A", "B", "C", "D", "E"].map(s => <option key={s}>{s}</option>)}
+                            </select>
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
+                      <div className="p-4 flex justify-end gap-3 pt-2">
+                        <button onClick={handleResetFilter} className="px-5 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-foreground dark:text-slate-100 text-[13px] font-bold rounded-lg transition-colors">Reset</button>
+                        <button onClick={handleApplyFilter} className="px-5 py-2.5 bg-primary hover:bg-[var(--primary-hover)] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors">Apply</button>
+                      </div>
                     </div>
-                    <div className="p-4 flex justify-end gap-3 pt-2">
-                      <button onClick={handleResetFilter} className="px-5 py-2.5 bg-[#F1F5F9] dark:bg-slate-800 text-foreground dark:text-slate-100 text-[13px] font-bold rounded-lg transition-colors">Reset</button>
-                      <button onClick={handleApplyFilter} className="px-5 py-2.5 bg-primary hover:bg-[var(--primary-hover)] text-white text-[13px] font-bold rounded-lg shadow-sm transition-colors">Apply</button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Sort */}
             <div className="relative">

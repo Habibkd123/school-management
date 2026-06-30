@@ -29,12 +29,49 @@ const subjectSchema = new Schema<ISubject>(
 
 subjectSchema.index({ school_id: 1, class_id: 1, name: 1 }, { unique: true });
 
+// ─── Class Group ───────────────────────────────────────────────────
+export interface IClassGroup extends Document {
+  school_id: mongoose.Types.ObjectId;
+  name: string;
+  academic_year: string;
+  classes: Array<{
+    class_id: mongoose.Types.ObjectId;
+    stream_id?: mongoose.Types.ObjectId | null;
+    section_id?: mongoose.Types.ObjectId | null;
+  }>;
+  sub_groups?: mongoose.Types.ObjectId[];
+  status: "Active" | "Inactive";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const classGroupSchema = new Schema<IClassGroup>(
+  {
+    school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    academic_year: { type: String, required: true, trim: true },
+    classes: [
+      {
+        class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+        stream_id: { type: mongoose.Schema.Types.ObjectId, ref: "Stream", default: null },
+        section_id: { type: mongoose.Schema.Types.ObjectId, ref: "Section", default: null },
+      }
+    ],
+    sub_groups: [{ type: mongoose.Schema.Types.ObjectId, ref: "ClassGroup", default: [] }],
+    status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+  },
+  { timestamps: true }
+);
+
+classGroupSchema.index({ school_id: 1, academic_year: 1, name: 1 }, { unique: true });
+
 // ─── Teacher Assignment ─────────────────────────────────────────────
 export interface ITeacherAssignment extends Document {
   school_id: mongoose.Types.ObjectId;
   academic_year: string;
   teacher_id: mongoose.Types.ObjectId;
-  class_id: mongoose.Types.ObjectId;
+  class_id?: mongoose.Types.ObjectId;
+  class_group_id?: mongoose.Types.ObjectId;
   stream_id?: mongoose.Types.ObjectId;
   section_id?: mongoose.Types.ObjectId;
   subject_master_id: mongoose.Types.ObjectId;
@@ -47,7 +84,8 @@ const teacherAssignmentSchema = new Schema<ITeacherAssignment>(
     school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
     academic_year: { type: String, required: true, trim: true },
     teacher_id: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true },
-    class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+    class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: false, default: null },
+    class_group_id: { type: mongoose.Schema.Types.ObjectId, ref: "ClassGroup", default: null },
     stream_id: { type: mongoose.Schema.Types.ObjectId, ref: "Stream", default: null },
     section_id: { type: mongoose.Schema.Types.ObjectId, ref: "Section", default: null },
     subject_master_id: { type: mongoose.Schema.Types.ObjectId, ref: "SubjectMaster", required: true },
@@ -59,6 +97,12 @@ teacherAssignmentSchema.index(
   { school_id: 1, academic_year: 1, class_id: 1, stream_id: 1, section_id: 1, subject_master_id: 1 },
   { unique: true }
 );
+
+teacherAssignmentSchema.index(
+  { school_id: 1, academic_year: 1, class_group_id: 1, subject_master_id: 1 },
+  { unique: true, partialFilterExpression: { class_group_id: { $gt: null } } }
+);
+
 
 // ─── Syllabus ──────────────────────────────────────────────────────
 export interface ISyllabusChapter {
@@ -140,6 +184,23 @@ const attendanceRecordSchema = new Schema(
   { _id: false }
 );
 
+export interface IAttendanceHistoryChange {
+  student_id: mongoose.Types.ObjectId;
+  student_name: string;
+  old_status: string;
+  new_status: string;
+  old_note?: string;
+  new_note?: string;
+}
+
+export interface IAttendanceHistoryEntry {
+  edited_by: mongoose.Types.ObjectId;
+  edited_by_name: string;
+  edited_at: Date;
+  reason?: string;
+  changes: IAttendanceHistoryChange[];
+}
+
 export interface IAttendance extends Document {
   school_id: mongoose.Types.ObjectId;
   academic_year: string;
@@ -150,9 +211,33 @@ export interface IAttendance extends Document {
   date: Date;
   type: "student" | "teacher";
   records: Array<{ student_id?: mongoose.Types.ObjectId; teacher_id?: mongoose.Types.ObjectId; status: string; note?: string }>;
+  edit_history?: IAttendanceHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const attendanceHistoryChangeSchema = new Schema(
+  {
+    student_id: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
+    student_name: { type: String, required: true },
+    old_status: { type: String, required: true },
+    new_status: { type: String, required: true },
+    old_note: { type: String, default: "" },
+    new_note: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const attendanceHistorySchema = new Schema(
+  {
+    edited_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    edited_by_name: { type: String, required: true },
+    edited_at: { type: Date, default: Date.now },
+    reason: { type: String, default: "" },
+    changes: [attendanceHistoryChangeSchema]
+  },
+  { _id: false }
+);
 
 const attendanceSchema = new Schema<IAttendance>(
   {
@@ -165,6 +250,7 @@ const attendanceSchema = new Schema<IAttendance>(
     date: { type: Date, required: true },
     type: { type: String, enum: ["student", "teacher"], default: "student" },
     records: [attendanceRecordSchema],
+    edit_history: { type: [attendanceHistorySchema], default: [] },
   },
   { timestamps: true }
 );
@@ -467,6 +553,7 @@ roomSchema.index({ school_id: 1, room_no: 1 }, { unique: true });
 
 // ─── Export all models (with cache check for Next.js hot reload) ──
 export const Subject: Model<ISubject> = mongoose.models.Subject || mongoose.model("Subject", subjectSchema);
+export const ClassGroup: Model<IClassGroup> = mongoose.models.ClassGroup || mongoose.model("ClassGroup", classGroupSchema);
 export const TeacherAssignment: Model<ITeacherAssignment> = mongoose.models.TeacherAssignment || mongoose.model("TeacherAssignment", teacherAssignmentSchema);
 export const Syllabus: Model<ISyllabus> =
   mongoose.models.Syllabus && Object.keys(mongoose.models.Syllabus.schema.paths).includes("teacher_assignment_id")
@@ -523,7 +610,8 @@ export const SubjectMaster: Model<ISubjectMaster> =
 export interface ISubjectAssignment extends Document {
   school_id: mongoose.Types.ObjectId;
   academic_year: string;
-  class_id: mongoose.Types.ObjectId;
+  class_id?: mongoose.Types.ObjectId;
+  class_group_id?: mongoose.Types.ObjectId;
   stream_id?: mongoose.Types.ObjectId;
   subject_master_id: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -534,7 +622,8 @@ const subjectAssignmentSchema = new Schema<ISubjectAssignment>(
   {
     school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
     academic_year: { type: String, required: true },
-    class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+    class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: false, default: null },
+    class_group_id: { type: mongoose.Schema.Types.ObjectId, ref: "ClassGroup", default: null },
     stream_id: { type: mongoose.Schema.Types.ObjectId, ref: "Stream", default: null },
     subject_master_id: { type: mongoose.Schema.Types.ObjectId, ref: "SubjectMaster", required: true },
   },
@@ -545,6 +634,11 @@ const subjectAssignmentSchema = new Schema<ISubjectAssignment>(
 subjectAssignmentSchema.index(
   { school_id: 1, academic_year: 1, class_id: 1, stream_id: 1, subject_master_id: 1 },
   { unique: true }
+);
+
+subjectAssignmentSchema.index(
+  { school_id: 1, academic_year: 1, class_group_id: 1, subject_master_id: 1 },
+  { unique: true, partialFilterExpression: { class_group_id: { $gt: null } } }
 );
 
 export const SubjectAssignment: Model<ISubjectAssignment> =
@@ -624,7 +718,7 @@ const transportAllocationSchema = new Schema<ITransportAllocation>(
     school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
     student_id: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
     route_id: { type: mongoose.Schema.Types.ObjectId, ref: "Route", required: true },
-    bus_id: { type: mongoose.Schema.Types.ObjectId, ref: "Bus", required: true },
+    bus_id: { type: mongoose.Schema.Types.ObjectId, ref: "Bus", required: false, default: null },
     pickupStop: { type: String, trim: true },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
   },

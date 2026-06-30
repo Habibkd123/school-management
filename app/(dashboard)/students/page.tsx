@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { useStudents, ApiStudent } from "@/app/hooks/useStudents";
 import { useClasses } from "@/app/hooks/useClasses";
+import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useAppState } from "@/app/context/store";
 import { Modal } from "@/app/components/ui/modal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CollectFeesModal } from "@/app/components/modals/CollectFeesModal";
+import { HIDE_FEES_FEATURE } from "@/lib/permissions";
 import { LoginDetailsModal } from "@/app/components/modals/LoginDetailsModal";
 import { ResetPasswordModal } from "@/app/components/modals/ResetPasswordModal";
 import { ConfirmModal } from "@/app/components/modals/ConfirmModal";
@@ -42,6 +44,7 @@ import { PaginationBar } from "@/app/components/ui/pagination-bar";
 
 export default function StudentsPage() {
   const { academicYear } = useAppState();
+  const { enableSections } = useAcademicConfig();
   const { students, total, isLoading, error, createStudent, updateStudent: updateStudentApi, deleteStudent: deleteStudentApi, fetchStudents } = useStudents({ skip: true });
   const { classes } = useClasses({ filterByYear: true });
 
@@ -235,9 +238,10 @@ export default function StudentsPage() {
 
   const getClassName = (student: ApiStudent) => {
     if (typeof student?.class_id === "object") {
-      return `${student.class_id?.name} ${student.class_id?.section}`;
+      return `${student.class_id?.name}${enableSections && student.class_id?.section ? ` - ${student.class_id.section}` : ""}`;
     }
-    return classes.find((c) => c._id === student.class_id)?.name || "Unknown";
+    const found = classes.find((c) => c._id === student.class_id);
+    return found ? `${found.name}${enableSections && found.section ? ` - ${found.section}` : ""}` : "Unknown";
   };
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -282,7 +286,7 @@ export default function StudentsPage() {
       )
     },
     { header: "Class", accessorKey: "classNameStr" },
-    { header: "Section", accessorKey: "section" },
+    ...(enableSections ? [{ header: "Section", accessorKey: "section" as const }] : []),
     { header: "Gender", accessorKey: "gender" },
     {
       header: "Status", accessorKey: "status", render: (s) => (
@@ -476,7 +480,9 @@ export default function StudentsPage() {
                         >
                           <option value="all">All Classes</option>
                           {classes.map((c) => (
-                            <option key={c._id} value={c._id}>{c.name} - {c.section}</option>
+                            <option key={c._id} value={c._id}>
+                              {c.name}{enableSections && c.section ? ` - ${c.section}` : ""}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -734,9 +740,11 @@ export default function StudentsPage() {
                         <button className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors dark:text-slate-400"><Phone className="w-3.5 h-3.5" /></button>
                         <button className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors dark:text-slate-400"><Mail className="w-3.5 h-3.5" /></button>
                       </div>
-                      <button onClick={() => { setSelectedStudent(student as unknown as ApiStudent); setIsCollectFeesOpen(true); }} className="px-3 py-1.5 rounded bg-[#F1F5F9] dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                        Add Fees
-                      </button>
+                      {!HIDE_FEES_FEATURE && (
+                        <button onClick={() => { setSelectedStudent(student as unknown as ApiStudent); setIsCollectFeesOpen(true); }} className="px-3 py-1.5 rounded bg-[#F1F5F9] dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                          Add Fees
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -794,7 +802,7 @@ export default function StudentsPage() {
               >
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>
-                    {c.name} - {c.section}
+                    {c.name}{enableSections && c.section ? ` - ${c.section}` : ""}
                   </option>
                 ))}
               </select>
@@ -895,7 +903,7 @@ export default function StudentsPage() {
               >
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>
-                    {c.name} - {c.section}
+                    {c.name}{enableSections && c.section ? ` - ${c.section}` : ""}
                   </option>
                 ))}
               </select>
@@ -996,15 +1004,17 @@ export default function StudentsPage() {
               >
                 Academics & Grades
               </button>
-              <button
-                onClick={() => setActiveTab("billing")}
-                className={`px-4 py-3 text-[13px] font-bold border-b-2 -mb-px transition-all cursor-pointer ${activeTab === "billing"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
-                  }`}
-              >
-                Invoices & Billing
-              </button>
+              {!HIDE_FEES_FEATURE && (
+                <button
+                  onClick={() => setActiveTab("billing")}
+                  className={`px-4 py-3 text-[13px] font-bold border-b-2 -mb-px transition-all cursor-pointer ${activeTab === "billing"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200"
+                    }`}
+                >
+                  Invoices & Billing
+                </button>
+              )}
             </div>
 
             {/* TAB: PROFILE */}
@@ -1105,7 +1115,7 @@ export default function StudentsPage() {
             )}
 
             {/* TAB: BILLING */}
-            {activeTab === "billing" && (
+            {activeTab === "billing" && !HIDE_FEES_FEATURE && (
               <div className="space-y-4 text-left">
                 <h4 className="text-[14px] font-semibold text-slate-900 dark:text-white">Financial Invoices</h4>
                 <div className="border border-border rounded-xl overflow-hidden shadow-sm">

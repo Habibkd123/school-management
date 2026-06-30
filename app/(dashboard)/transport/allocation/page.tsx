@@ -36,7 +36,11 @@ export default function AllocationPage() {
   const { allocations, isLoading, error, addAllocation, updateAllocation, deleteAllocation, fetchAllocations } = useAllocations();
   const { routes } = useRoutes();
   const { buses } = useBuses();
-  const { students } = useStudents();
+  const { students, fetchStudents } = useStudents();
+
+  useEffect(() => {
+    fetchStudents({ limit: 1000 });
+  }, [fetchStudents]);
 
   const dynamicRoutesMap = useMemo(() => {
     const map: Record<string, { bus: string; busId: string | null; stops: string[]; routeId: string }> = {};

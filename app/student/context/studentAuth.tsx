@@ -67,8 +67,14 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     const storedUser = getStoredUser();
     const token = getAccessToken();
     if (storedUser && token && storedUser.role === "student") {
-      setUser(storedUser);
-      fetchProfile();
+      const currentSchoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+      if (storedUser.school_id !== currentSchoolId) {
+        clearSession();
+        setUser(null);
+      } else {
+        setUser(storedUser);
+        fetchProfile();
+      }
     }
     setIsLoading(false);
   }, [fetchProfile]);

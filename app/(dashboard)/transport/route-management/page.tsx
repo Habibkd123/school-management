@@ -75,7 +75,11 @@ export default function RouteManagementPage() {
   const handleAdd = async () => {
     setIsSaving(true);
     try {
-      const res = await addRoute(form);
+      const payload = {
+        ...form,
+        assignedBus: form.assignedBus || "Not Assigned"
+      };
+      const res = await addRoute(payload);
       if (res.success) {
         setIsAddOpen(false);
         setForm(buildEmptyRoute() as any);
@@ -91,7 +95,11 @@ export default function RouteManagementPage() {
     if (!editRoute) return;
     setIsSaving(true);
     try {
-      const res = await updateRoute(editRoute.id, form);
+      const payload = {
+        ...form,
+        assignedBus: form.assignedBus || "Not Assigned"
+      };
+      const res = await updateRoute(editRoute.id, payload);
       if (res.success) {
         setEditRoute(null);
       } else {

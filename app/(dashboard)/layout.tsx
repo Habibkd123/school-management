@@ -7,7 +7,7 @@ import { Header } from "../components/layout/header";
 import { CommandMenu } from "../components/ui/command-menu";
 import { useAuth } from "../context/auth";
 import { Loader2 } from "lucide-react";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, HIDE_FEES_FEATURE } from "@/lib/permissions";
 import type { PermissionModule, AppRole } from "@/lib/permissions";
 import { ForceChangePasswordModal } from "../components/modals/ForceChangePasswordModal";
 
@@ -57,6 +57,18 @@ export default function DashboardLayout({
     // ── Route-level permission guard ────────────────────────────────
     // If a user navigates to a restricted route, redirect them to /dashboard
     if (!isLoading && isAuthenticated && user?.role) {
+      if (HIDE_FEES_FEATURE) {
+        const path = pathname.toLowerCase();
+        if (
+          path.startsWith("/fees") ||
+          path.startsWith("/fees-collection") ||
+          path.startsWith("/reports/fees-report") ||
+          path.startsWith("/parent/fees")
+        ) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
       const matchedRoute = ROUTE_MODULE_MAP.find((entry) =>
         pathname.startsWith(entry.prefix)
       );

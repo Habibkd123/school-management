@@ -24,6 +24,14 @@ export async function POST(request: Request) {
       ...body,
       school_id: DEFAULT_SCHOOL_ID
     });
+
+    if (newRoute.assignedBus && newRoute.assignedBus !== "Not Assigned") {
+      const { Bus } = require("@/lib/models");
+      await Bus.findOneAndUpdate(
+        { school_id: DEFAULT_SCHOOL_ID, busNumber: newRoute.assignedBus },
+        { assignedRoute: newRoute.routeName }
+      );
+    }
     
     return NextResponse.json({ success: true, data: newRoute }, { status: 201 });
   } catch (error: any) {

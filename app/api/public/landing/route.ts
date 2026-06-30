@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import LandingContent from "@/lib/models/LandingContent";
 import mongoose from "mongoose";
+import { resolveSchoolIdServer } from "@/lib/themes/resolveSchool";
 
 // GET /api/public/landing — fetch landing content for this school (no auth required)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const schoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
+    const schoolId = await resolveSchoolIdServer(request.headers, request.url);
     if (!schoolId) {
       return NextResponse.json(
         { success: false, message: "School not configured" },

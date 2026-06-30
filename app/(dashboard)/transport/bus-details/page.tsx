@@ -28,6 +28,15 @@ function buildEmptyBus(): Omit<BusRecord, "id" | "createdAt" | "_id"> {
   return { busNumber: "", busModel: "", driverName: "", driverPhone: "", capacity: 40, assignedRoute: "", status: "Active", registrationNo: "" };
 }
 
+// Field builder for modals (declared at module level to prevent remounting / focus loss)
+const FieldInput = ({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string }) => (
+  <div className="flex flex-col gap-1.5 text-left">
+    <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</label>
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm" />
+  </div>
+);
+
 // ─── Page ──────────────────────────────────────────────────────────────────
 export default function BusDetailsPage() {
   const { buses, isLoading, error, addBus, updateBus, deleteBus, fetchBuses } = useBuses();
@@ -67,7 +76,11 @@ export default function BusDetailsPage() {
   const handleAdd = async () => {
     setIsSaving(true);
     try {
-      const res = await addBus(form);
+      const payload = {
+        ...form,
+        assignedRoute: form.assignedRoute || "Not Assigned"
+      };
+      const res = await addBus(payload);
       if (res.success) {
         setIsAddOpen(false);
         setForm(buildEmptyBus() as any);
@@ -83,7 +96,11 @@ export default function BusDetailsPage() {
     if (!editBus) return;
     setIsSaving(true);
     try {
-      const res = await updateBus(editBus.id, form);
+      const payload = {
+        ...form,
+        assignedRoute: form.assignedRoute || "Not Assigned"
+      };
+      const res = await updateBus(editBus.id, payload);
       if (res.success) {
         setEditBus(null);
       } else {
@@ -116,14 +133,6 @@ export default function BusDetailsPage() {
   const triggerCls = (open: boolean) =>
     `flex items-center gap-2 px-3 py-1.5 border rounded-lg text-[13px] font-medium bg-white dark:bg-slate-900 shadow-sm transition-colors ${open ? "border-primary text-primary" : "border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"}`;
 
-  // Field builder for modals
-  const FieldInput = ({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string }) => (
-    <div className="flex flex-col gap-1.5 text-left">
-      <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm" />
-    </div>
-  );
 
   return (
     <div className="space-y-6 bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] min-h-screen -m-6 p-6" onClick={() => setActiveDropdown(null)}>

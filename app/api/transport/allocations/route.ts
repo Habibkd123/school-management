@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { TransportAllocation } from "@/lib/models";
+import Class from "@/lib/models/Class";
 import mongoose from "mongoose";
 
 const DEFAULT_SCHOOL_ID = new mongoose.Types.ObjectId("65f0a1b2c3d4e5f6a7b8c9d0");
@@ -9,28 +10,38 @@ export async function GET(request: Request) {
   try {
     await connectDB();
 
-    // Populate student, route, and bus details
     const allocations = await TransportAllocation.find({ school_id: DEFAULT_SCHOOL_ID })
-      .populate("student_id", "first_name last_name admission_no current_class")
+      .populate({
+        path: "student_id",
+        select: "name admission_no class_id",
+        populate: { path: "class_id", select: "name section" }
+      })
       .populate("route_id", "routeName")
       .populate("bus_id", "busNumber")
       .sort({ createdAt: -1 })
       .lean();
 
-    // Transform data to match frontend requirements
-    const transformed = allocations.map((alloc: any) => ({
-      _id: alloc._id,
-      id: alloc._id.toString(), // Mocked TA-XXX logic usually but keeping mongo id is safer
-      studentName: `${alloc.student_id?.first_name || ""} ${alloc.student_id?.last_name || ""}`.trim(),
-      studentId: alloc.student_id?._id,
-      admissionNo: alloc.student_id?.admission_no || "N/A",
-      className: alloc.student_id?.current_class || "N/A",
-      route: alloc.route_id?.routeName || "Unknown",
-      busNumber: alloc.bus_id?.busNumber || "Unknown",
-      pickupStop: alloc.pickupStop,
-      status: alloc.status,
-      createdAt: alloc.createdAt
-    }));
+    const transformed = allocations.map((alloc: any) => {
+      const student = alloc.student_id;
+      const classObj = student?.class_id;
+      const className = classObj ? `${classObj.name}${classObj.section ? ` - ${classObj.section}` : ""}` : "N/A";
+
+      return {
+        _id: alloc._id,
+        id: alloc._id.toString(),
+        studentName: student?.name || "Unknown Student",
+        studentId: student?._id ? student._id.toString() : "",
+        admissionNo: student?.admission_no || "N/A",
+        className: className,
+        route: alloc.route_id?.routeName || "Unknown",
+        route_id: alloc.route_id?._id ? alloc.route_id._id.toString() : "",
+        busNumber: alloc.bus_id?.busNumber || "Unknown",
+        bus_id: alloc.bus_id?._id ? alloc.bus_id._id.toString() : "",
+        pickupStop: alloc.pickupStop,
+        status: alloc.status,
+        createdAt: alloc.createdAt
+      };
+    });
 
     return NextResponse.json({ success: true, data: transformed });
   } catch (error: any) {
@@ -43,8 +54,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     await connectDB();
 
+    const payload = { ...body };
+    if (!payload.bus_id) {
+      payload.bus_id = null;
+    }
+
     const newAlloc = await TransportAllocation.create({
-      ...body,
+      ...payload,
       school_id: DEFAULT_SCHOOL_ID
     });
 

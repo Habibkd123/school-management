@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/context/auth";
 import { getAuthHeaders } from "@/lib/utils/session";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
+import { useLoginConfig } from "@/app/hooks/useLoginConfig";
 import RolesPermissionsPage from "../roles/page";
 import {
   RefreshCw, Upload, Edit, EyeOff, Eye, Save, X,
@@ -32,7 +33,7 @@ export default function ProfilePage() {
   const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
 
   // Tab control
-  const [activeTab, setActiveTab] = useState<"profile" | "roles" | "academic">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "roles" | "academic" | "login">("profile");
 
   // Profile state
   const [profile, setProfile] = useState<any | null>(null);
@@ -69,6 +70,12 @@ export default function ProfilePage() {
   const [savingConfig, setSavingConfig] = useState<"streams" | "sections" | null>(null);
   const [configSuccessMsg, setConfigSuccessMsg] = useState("");
   const [configErrorMsg, setConfigErrorMsg] = useState("");
+
+  // Login configuration state
+  const { config: loginConfig, isLoading: isLoginConfigLoading, updateConfig: updateLoginConfig, refetch: refetchLoginConfig } = useLoginConfig();
+  const [savingLoginConfig, setSavingLoginConfig] = useState<"student" | "teacher" | null>(null);
+  const [loginSuccessMsg, setLoginSuccessMsg] = useState("");
+  const [loginErrorMsg, setLoginErrorMsg] = useState("");
 
   // ── Load profile ─────────────────────────────────────────────────
   const loadProfile = async () => {
@@ -245,6 +252,23 @@ export default function ProfilePage() {
     }
   };
 
+  // ── Login Config toggling ─────────────────────────────────────────
+  const handleLoginConfigToggle = async (key: "disable_student_login" | "disable_teacher_login", value: boolean) => {
+    if (!isAdmin) return;
+    setSavingLoginConfig(key === "disable_student_login" ? "student" : "teacher");
+    setLoginSuccessMsg("");
+    setLoginErrorMsg("");
+    const result = await updateLoginConfig({ [key]: value });
+    setSavingLoginConfig(null);
+    if (result.success) {
+      setLoginSuccessMsg(`${key === "disable_student_login" ? "Student" : "Teacher"} login ${value ? "disabled" : "enabled"}.`);
+      setTimeout(() => setLoginSuccessMsg(""), 3000);
+    } else {
+      setLoginErrorMsg(result.message || "Failed to update.");
+      setTimeout(() => setLoginErrorMsg(""), 4000);
+    }
+  };
+
   const displayName = name || user?.name || "User";
   const displayPhoto = photoUrl || getAvatar(displayName);
 
@@ -253,6 +277,8 @@ export default function ProfilePage() {
       loadProfile();
     } else if (activeTab === "academic" && isAdmin) {
       refetchConfig();
+    } else if (activeTab === "login" && isAdmin) {
+      refetchLoginConfig();
     }
   };
 
@@ -271,7 +297,7 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              {activeTab === "profile" ? "Profile" : "Academic Settings"}
+              {activeTab === "profile" ? "Profile" : (activeTab === "academic" ? "Academic Settings" : "Login Settings")}
             </h1>
             <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 mt-1">
               <span>Dashboard</span>
@@ -279,7 +305,7 @@ export default function ProfilePage() {
               <span>Settings</span>
               <span>/</span>
               <span className="text-slate-900 dark:text-white font-medium">
-                {activeTab === "profile" ? "Profile" : "Academic Settings"}
+                {activeTab === "profile" ? "Profile" : (activeTab === "academic" ? "Academic Settings" : "Login Settings")}
               </span>
             </div>
           </div>
@@ -312,6 +338,12 @@ export default function ProfilePage() {
             className={`pb-3 text-[14px] font-semibold border-b-2 -mb-px transition-all cursor-pointer ${ activeTab === "academic" ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300" } dark:text-slate-400`}
           >
             Academic Settings
+          </button>
+          <button
+            onClick={() => setActiveTab("login")}
+            className={`pb-3 text-[14px] font-semibold border-b-2 -mb-px transition-all cursor-pointer ${ activeTab === "login" ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300" } dark:text-slate-400`}
+          >
+            Login Settings
           </button>
         </div>
       )}
@@ -369,6 +401,63 @@ export default function ProfilePage() {
                   >
                     {savingConfig === "sections" && <Loader2 className="absolute left-0 right-0 mx-auto w-3 h-3 animate-spin text-white" />}
                     <span className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-slate-900 shadow-sm transition-transform ${config.enable_sections ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : activeTab === "login" && isAdmin ? (
+        /* Login Settings Tab */
+        <div className="space-y-5 text-left max-w-lg">
+          {loginSuccessMsg && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-[13px] font-medium">
+              <CheckCircle2 className="w-4 h-4 shrink-0" /> {loginSuccessMsg}
+            </div>
+          )}
+          {loginErrorMsg && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[13px] font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {loginErrorMsg}
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-slate-900 border border-border rounded-xl divide-y divide-border shadow-sm">
+            {isLoginConfigLoading ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-[13px]">Loading…</span>
+              </div>
+            ) : (
+              <>
+                {/* Disable Student Login */}
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <p className="text-[13px] font-semibold text-slate-800 dark:text-white">Disable Student Login</p>
+                    <p className="text-[12px] text-slate-400 mt-0.5">Restrict student users from logging in</p>
+                  </div>
+                  <button
+                    onClick={() => handleLoginConfigToggle("disable_student_login", !loginConfig.disable_student_login)}
+                    disabled={savingLoginConfig !== null}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${loginConfig.disable_student_login ? "bg-primary" : "bg-slate-300 dark:bg-slate-700"}`}
+                  >
+                    {savingLoginConfig === "student" && <Loader2 className="absolute left-0 right-0 mx-auto w-3 h-3 animate-spin text-white" />}
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-slate-900 shadow-sm transition-transform ${loginConfig.disable_student_login ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                {/* Disable Teacher Login */}
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <p className="text-[13px] font-semibold text-slate-800 dark:text-white">Disable Teacher Login</p>
+                    <p className="text-[12px] text-slate-400 mt-0.5">Restrict teacher users from logging in</p>
+                  </div>
+                  <button
+                    onClick={() => handleLoginConfigToggle("disable_teacher_login", !loginConfig.disable_teacher_login)}
+                    disabled={savingLoginConfig !== null}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${loginConfig.disable_teacher_login ? "bg-primary" : "bg-slate-300 dark:bg-slate-700"}`}
+                  >
+                    {savingLoginConfig === "teacher" && <Loader2 className="absolute left-0 right-0 mx-auto w-3 h-3 animate-spin text-white" />}
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-slate-900 shadow-sm transition-transform ${loginConfig.disable_teacher_login ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                 </div>
               </>
