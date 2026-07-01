@@ -13,7 +13,7 @@ import { PaginationBar } from "@/app/components/ui/pagination-bar";
 import {
   Plus, Search, Filter, Eye, Edit, Trash2, CheckCircle, ClipboardList,
   Loader2, AlertCircle, BookOpen, BarChart2, RefreshCw, Printer, Download,
-  ChevronDown, Calendar, FileText, CheckCircle2, MoreVertical, List
+  ChevronDown, Calendar, FileText, CheckCircle2, MoreVertical, List, GraduationCap
 } from "lucide-react";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -713,7 +713,8 @@ export default function AssessmentsPage() {
         </div>
 
         {/* Grouped Class list */}
-        <div className="p-5 space-y-6">
+        {/* Grouped Class list */}
+        <div className="p-5">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -738,128 +739,151 @@ export default function AssessmentsPage() {
               )}
             </div>
           ) : (
-            paginatedGroups.map((group) => (
-              <div key={group.classId} className="space-y-3">
-                {/* Class Title Header strip */}
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 px-4 py-2.5 rounded-lg border border-border">
-                  <span className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
-                    🏫 {group.className}
-                  </span>
-                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    {group.tests.length} Test{group.tests.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+              {paginatedGroups.map((group) => (
+                <div key={group.classId} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6">
+                  
+                  {/* Outer Card Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#f0f4fc] dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <GraduationCap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-[16px] font-bold text-slate-800 dark:text-slate-100 capitalize tracking-wide">
+                          {group.className.toLowerCase()}
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded">
+                      2026-2027
+                    </span>
+                  </div>
 
-                {/* Sub-table for this class */}
-                <div className="overflow-x-auto border border-border/85 rounded-lg">
-                  <table className="w-full text-[13px] whitespace-nowrap">
-                    <thead className="bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] border-b border-border">
-                      <tr>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Assessment Title</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Subject</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Teacher</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Test Date</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Total Marks</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Passing Marks</th>
-                        <th className="px-5 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Status</th>
-                        <th className="px-5 py-3 text-center font-bold text-slate-700 dark:text-slate-200 w-20">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {group.tests.map((t) => {
-                        const statusStyle = STATUS_STYLES[t.computedStatus] || STATUS_STYLES.scheduled;
-                        return (
-                          <tr key={t._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                            <td className="px-5 py-3 font-bold text-primary">
-                              <Link href={`/assessments/${t._id}`} className="hover:underline">
-                                {t.title}
-                              </Link>
-                            </td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">
-                              {t.subject_id?.name || "—"}
-                            </td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300 font-medium">
-                              {t.teacher_id?.name || "—"}
-                            </td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">
-                              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {/* Separator Line */}
+                  <div className="h-[1px] bg-slate-100 dark:bg-slate-800/80 mb-4" />
+
+                  <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                    Assessments ({group.tests.length})
+                  </h4>
+
+                  {/* Inner Assessment Cards */}
+                  <div className="space-y-3">
+                    {group.tests.map((t) => {
+                      const statusStyle = STATUS_STYLES[t.computedStatus] || STATUS_STYLES.scheduled;
+                      return (
+                        <div key={t._id} className="border border-slate-100 dark:border-slate-800/60 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/20 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors relative flex flex-col gap-3">
+                          
+                          {/* Inner Card Header */}
+                          <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                            <span className="text-[14px] font-bold text-slate-850 dark:text-slate-200">
+                              {t.title}
+                            </span>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                            {statusStyle.label}
+                          </span>
+                        </div>
+
+                        {/* Inner Separator */}
+                        <div className="h-[1px] bg-slate-100 dark:bg-slate-800/80 my-0.5" />
+
+                        {/* Inner Card Details */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1.5 text-[13px] text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span className="font-bold text-slate-700 dark:text-slate-350 uppercase">
+                                {t.subject_id?.name || "—"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-500">
+                              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span>
                                 {new Date(t.test_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                                <span className="ml-1.5 text-[11px] text-slate-400">({t.start_time} – {t.end_time})</span>
                               </span>
-                              <span className="block text-[11px] text-slate-400 mt-0.5">{t.start_time} – {t.end_time}</span>
-                            </td>
-                            <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">
-                              {t.total_marks}
-                            </td>
-                            <td className="px-5 py-3 text-slate-600 dark:text-slate-300">
-                              {t.passing_marks}
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
-                                {statusStyle.label}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => setActionMenuId(actionMenuId === t._id ? null : t._id)}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === t._id ? "bg-primary text-white" : "hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}
-                              >
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                              {actionMenuId === t._id && (
-                                <>
-                                  <div className="fixed inset-0 z-45" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
-                                  <div className="absolute right-10 top-10 w-44 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
-                                    <Link href={`/assessments/${t._id}`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                      <Eye className="w-4 h-4 text-indigo-500" /> View Details
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-500">
+                              <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span>Marks: Total <span className="font-semibold text-slate-700 dark:text-slate-305">{t.total_marks}</span> | Passing <span className="font-semibold text-rose-500">{t.passing_marks}</span></span>
+                            </div>
+                            {isAdmin && t.teacher_id && (
+                              <div className="flex items-center gap-2 text-slate-500 text-[12px]">
+                                <span className="font-medium">Teacher:</span>
+                                <span>{t.teacher_id.name}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="relative animate-in fade-in" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setActionMenuId(actionMenuId === t._id ? null : t._id)}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === t._id ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800"}`}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            
+                            {actionMenuId === t._id && (
+                              <>
+                                <div className="fixed inset-0 z-45" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
+                                <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
+                                  <Link href={`/assessments/${t._id}`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
+                                    <Eye className="w-4 h-4 text-indigo-500" /> View Details
+                                  </Link>
+                                  
+                                  {(isAdmin || isTeacher) && (
+                                    <Link href={`/assessments/${t._id}/marks`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
+                                      <BookOpen className="w-4 h-4 text-emerald-500" /> Enter Marks
                                     </Link>
-                                    
-                                    {(isAdmin || isTeacher) && (
-                                      <Link href={`/assessments/${t._id}/marks`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                        <BookOpen className="w-4 h-4 text-emerald-500" /> Enter Marks
-                                      </Link>
-                                    )}
+                                  )}
 
-                                    <Link href={`/assessments/${t._id}/analytics`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                      <BarChart2 className="w-4 h-4 text-purple-500" /> Results / Analytics
+                                  <Link href={`/assessments/${t._id}/analytics`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
+                                    <BarChart2 className="w-4 h-4 text-purple-500" /> Results / Analytics
+                                  </Link>
+
+                                  {(isAdmin || isTeacher) && !t.is_published && t.computedStatus !== "draft" && t.computedStatus !== "scheduled" && (
+                                    <button
+                                      onClick={() => handlePublish(t._id)}
+                                      disabled={publishingId === t._id}
+                                      className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer disabled:opacity-50"
+                                    >
+                                      {publishingId === t._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-sky-500" />}
+                                      <span>Publish Results</span>
+                                    </button>
+                                  )}
+
+                                  {(isAdmin || isTeacher) && (
+                                    <Link href={`/assessments/create?edit=${t._id}`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer border-t border-border mt-1 pt-2">
+                                      <Edit className="w-4 h-4 text-amber-500" /> Edit Assessment
                                     </Link>
+                                  )}
 
-                                    {(isAdmin || isTeacher) && !t.is_published && t.computedStatus !== "draft" && t.computedStatus !== "scheduled" && (
-                                      <button
-                                        onClick={() => handlePublish(t._id)}
-                                        disabled={publishingId === t._id}
-                                        className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer disabled:opacity-50"
-                                      >
-                                        {publishingId === t._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-sky-500" />}
-                                        <span>Publish Results</span>
-                                      </button>
-                                    )}
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => { setDeleteId(t._id); setActionMenuId(null); }}
+                                      className="w-full px-4 py-2 text-[13px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-rose-600" /> Delete
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-                                    {(isAdmin || isTeacher) && (
-                                      <Link href={`/assessments/create?edit=${t._id}`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer border-t border-border mt-1 pt-2">
-                                        <Edit className="w-4 h-4 text-amber-500" /> Edit Assessment
-                                      </Link>
-                                    )}
-
-                                    {isAdmin && (
-                                      <button
-                                        onClick={() => { setDeleteId(t._id); setActionMenuId(null); }}
-                                        className="w-full px-4 py-2 text-[13px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2 font-medium transition-colors cursor-pointer"
-                                      >
-                                        <Trash2 className="w-4 h-4 text-rose-600" /> Delete
-                                      </button>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                      </div>
+                    );
+                  })}
                 </div>
+
               </div>
-            ))
+            ))}
+            </div>
           )}
         </div>
 

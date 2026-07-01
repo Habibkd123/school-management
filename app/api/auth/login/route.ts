@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/lib/models/User";
-import Student from "@/lib/models/Student";
-import Teacher from "@/lib/models/Teacher";
 import School from "@/lib/models/School";
 import { generateAccessToken, generateRefreshToken } from "@/lib/utils/jwt";
-import { validate, validationErrorResponse } from "@/lib/utils/validate";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Alias compatibility
     const usernameInput = (username || email || "").toLowerCase().trim();
 
-    // ─── School Username Format Validation ──────────────────────
+    // ─── Step 1: Basic Input Validation ─────────────────────────
     if (!usernameInput) {
       return NextResponse.json(
         { success: false, message: "Please enter your School Username." },
@@ -48,83 +45,151 @@ export async function POST(request: NextRequest) {
 
     const isSuperAdmin = is_super_admin === true || usernameInput.startsWith("superadmin.");
 
-    if (!isSuperAdmin && !school_id) {
-      return NextResponse.json(
-        { success: false, message: "School ID is required for non-superadmin login" },
-        { status: 400 }
-      );
-    }
-
-    // ─── Find user by username ──────────────────────────────────
-    let user;
-
+    // ─── Super Admin Fast Path ───────────────────────────────────
     if (isSuperAdmin) {
-      user = await User.findOne({
+      const user = await User.findOne({
         username: usernameInput,
         role: "super_admin",
       }).select("+password_hash");
-    } else {
-      user = await User.findOne({
-        username: usernameInput,
-        school_id,
-      }).select("+password_hash");
-    }
 
-    // Username existence check
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "School Username not found." },
-        { status: 401 }
-      );
-    }
-
-    // Account active check
-    if (user.is_active === false) {
-      return NextResponse.json(
-        { success: false, message: "Your user account has been disabled." },
-        { status: 403 }
-      );
-    }
-
-    // School active & role restrictions checks
-    if (!isSuperAdmin && user.school_id) {
-      const schoolDoc = await School.findById(user.school_id).select("is_active login_config").lean();
-      if (!schoolDoc || schoolDoc.is_active === false) {
+      if (!user) {
         return NextResponse.json(
-          { success: false, message: "This school account has been disabled." },
+          { success: false, message: "Invalid credentials." },
+          { status: 401 }
+        );
+      }
+
+      if (user.is_active === false) {
+        return NextResponse.json(
+          { success: false, message: "Your account has been disabled." },
           { status: 403 }
         );
       }
 
-      if (schoolDoc.login_config) {
-        const { disable_student_login, disable_teacher_login } = schoolDoc.login_config;
-        if (user.role === "student" && disable_student_login) {
-          return NextResponse.json(
-            { success: false, message: "Student login is currently disabled by the administrator. Please contact your school administrator for assistance." },
-            { status: 403 }
-          );
-        }
-        if (user.role === "teacher" && disable_teacher_login) {
-          return NextResponse.json(
-            { success: false, message: "Teacher login is currently disabled by the administrator. Please contact your school administrator for assistance." },
-            { status: 403 }
-          );
-        }
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return NextResponse.json(
+          { success: false, message: "Incorrect password." },
+          { status: 401 }
+        );
+      }
+
+      const tokenPayload = {
+        user_id: user._id.toString(),
+        school_id: null,
+        role: user.role,
+      };
+
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
+      await User.findByIdAndUpdate(user._id, { last_login: new Date() });
+
+      return NextResponse.json({
+        success: true,
+        message: "Login successful",
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            school_id: null,
+            must_change_password: user.must_change_password ?? false,
+          },
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        },
+      });
+    }
+
+    // ─── Step 2: School ID Required for Non-Super-Admin ─────────
+    if (!school_id) {
+      return NextResponse.json(
+        { success: false, message: "School ID is required." },
+        { status: 400 }
+      );
+    }
+
+    // ─── Step 3: Validate School First ──────────────────────────
+    // Check that the school exists and is active BEFORE looking up the user.
+    // This lets us give accurate "School not found" vs "Invalid credentials" errors.
+    const schoolDoc = await School.findById(school_id)
+      .select("is_active login_config")
+      .lean();
+
+    if (!schoolDoc) {
+      return NextResponse.json(
+        { success: false, message: "School not found." },
+        { status: 404 }
+      );
+    }
+
+    if (schoolDoc.is_active === false) {
+      return NextResponse.json(
+        { success: false, message: "This school account has been disabled." },
+        { status: 403 }
+      );
+    }
+
+    // ─── Step 4: Find User Within That School ───────────────────
+    const user = await User.findOne({
+      username: usernameInput,
+      school_id,
+    }).select("+password_hash");
+
+    // Generic "invalid credentials" — do NOT reveal whether the username
+    // exists, only show that the school was already verified.
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Invalid Student ID or Password." },
+        { status: 401 }
+      );
+    }
+
+    // ─── Step 5: Account Active Check ───────────────────────────
+    if (user.is_active === false) {
+      return NextResponse.json(
+        { success: false, message: "Your account is inactive. Please contact your school administrator." },
+        { status: 403 }
+      );
+    }
+
+    // ─── Step 6: Role-Specific Login Config Checks ──────────────
+    if (schoolDoc.login_config) {
+      const { disable_student_login, disable_teacher_login } = schoolDoc.login_config;
+
+      if (user.role === "student" && disable_student_login) {
+        return NextResponse.json(
+          { success: false, message: "Student login is currently disabled. Please contact your school administrator." },
+          { status: 403 }
+        );
+      }
+
+      if (user.role === "teacher" && disable_teacher_login) {
+        return NextResponse.json(
+          { success: false, message: "Teacher login is currently disabled. Please contact your school administrator." },
+          { status: 403 }
+        );
       }
     }
 
-    // ─── Verify password ─────────────────────────────────────────
+    // ─── Step 7: Verify Password ─────────────────────────────────
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      // Role-aware wrong-password message
+      if (user.role === "student") {
+        return NextResponse.json(
+          { success: false, message: "Invalid Student ID or Password." },
+          { status: 401 }
+        );
+      }
       return NextResponse.json(
         { success: false, message: "Incorrect password." },
         { status: 401 }
       );
     }
 
-
-
-    // ─── Generate tokens ──────────────────────────────────────────
+    // ─── Step 8: Generate Tokens & Respond ───────────────────────
     const tokenPayload = {
       user_id: user._id.toString(),
       school_id: user.school_id?.toString() ?? null,
@@ -134,7 +199,6 @@ export async function POST(request: NextRequest) {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    // ─── Update last login ────────────────────────────────────────
     await User.findByIdAndUpdate(user._id, { last_login: new Date() });
 
     return NextResponse.json(
