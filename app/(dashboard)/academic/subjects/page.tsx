@@ -10,6 +10,7 @@ import { Modal } from "../../../components/ui/modal";
 import { useSubjects } from "@/app/hooks/useSubjects";
 import { useClasses } from "../../../hooks/useClasses";
 import { usePagination, PaginationBar } from "@/app/components/ui/pagination-bar";
+import { validateSequential } from "@/lib/utils/formValidation";
 
 const DATE_RANGES = ["Today", "Yesterday", "Last 7 Days", "Last 30 Days", "This Year", "All Time", "Custom Range"] as const;
 
@@ -57,6 +58,8 @@ export default function SubjectsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
   
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
@@ -104,6 +107,8 @@ export default function SubjectsPage() {
     setFormCode("");
     setFormType("theory");
     setFormClassId("");
+    setValErrors({});
+    setFormError("");
     setIsAddOpen(true);
   };
 
@@ -113,6 +118,8 @@ export default function SubjectsPage() {
     setFormCode(subject.code || "");
     setFormType(subject.type === "practical" ? "practical" : "theory");
     setFormClassId(subject.class_id && typeof subject.class_id === "object" ? subject.class_id._id : subject.class_id || "");
+    setValErrors({});
+    setFormError("");
     setIsEditOpen(true);
     setActionMenuId(null);
   };
@@ -124,12 +131,26 @@ export default function SubjectsPage() {
     setActionMenuId(null);
   };
 
+  const validateSubjectForm = (): boolean => {
+    const fieldsToValidate = [
+      { id: "formClassId", value: formClassId, label: "Class" },
+      { id: "formName", value: formName, label: "Subject Name" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return false;
+    }
+    setValErrors({});
+    setFormError("");
+    return true;
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formClassId) {
-      alert("Please select a Class");
-      return;
-    }
+    if (!validateSubjectForm()) return;
     setSaving(true);
     await createSubject({ name: formName, code: formCode, type: formType, class_id: formClassId });
     setSaving(false);
@@ -139,10 +160,7 @@ export default function SubjectsPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubjectId) return;
-    if (!formClassId) {
-      alert("Please select a Class");
-      return;
-    }
+    if (!validateSubjectForm()) return;
     setSaving(true);
     await updateSubject(selectedSubjectId, { name: formName, code: formCode, type: formType, class_id: formClassId });
     setSaving(false);
@@ -507,16 +525,23 @@ export default function SubjectsPage() {
 
       {/* Add / Edit Modals */}
       <Modal isOpen={isAddOpen || isEditOpen} onClose={() => { setIsAddOpen(false); setIsEditOpen(false); }} title={isAddOpen ? "Add Subject" : "Edit Subject"}>
-        <form onSubmit={isAddOpen ? handleAddSubmit : handleEditSubmit} className="p-6 space-y-5 text-left">
+        <form onSubmit={isAddOpen ? handleAddSubmit : handleEditSubmit} noValidate className="p-6 space-y-5 text-left">
+          {formError && (
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
+            </div>
+          )}
           
           <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100 font-bold">Class <span className="text-rose-500">*</span></label>
+            <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Class <span className="text-rose-500">*</span></label>
             <div className="relative">
               <select 
+                id="formClassId"
                 value={formClassId}
                 onChange={(e) => setFormClassId(e.target.value)}
-                className="w-full px-4 py-2.5 text-[14px] bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
-                required
+                className={`w-full px-4 py-2.5 text-[14px] bg-white dark:bg-slate-900 border rounded-lg outline-none transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer ${
+                  valErrors.formClassId ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary"
+                }`}
               >
                 <option value="">Select Class</option>
                 {classes.map((cls) => (
@@ -527,18 +552,30 @@ export default function SubjectsPage() {
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+            {valErrors.formClassId && (
+              <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                ❌ {valErrors.formClassId}
+              </p>
+            )}
           </div>
-
-          <div className="space-y-1.5 font-bold">
-            <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Name</label>
+ 
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Name <span className="text-rose-500">*</span></label>
             <input 
+              id="formName"
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="w-full px-4 py-2.5 text-[14px] bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary transition-colors text-slate-700 dark:text-slate-200"
-              required
+              className={`w-full px-4 py-2.5 text-[14px] bg-white dark:bg-slate-900 border rounded-lg outline-none transition-colors text-slate-700 dark:text-slate-200 ${
+                valErrors.formName ? "border-rose-500 focus-border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary"
+              }`}
               placeholder="e.g. Mathematics"
             />
+            {valErrors.formName && (
+              <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                ❌ {valErrors.formName}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

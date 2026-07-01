@@ -148,14 +148,14 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
     // ── Always prefer live user data ───
     if (liveUser) {
       console.log("jhdsf", liveUser)
-      email = liveUser.email || "";
+      email = liveUser.username || liveUser.email || "";
       isActive = liveUser.is_active;
       mustChangePassword = !!liveUser.must_change_password;
       defaultPassword = liveUser.plain_password
         || getStudentDefaultPassword((student as any).dob);
     } else {
-      email = (student.user_id && typeof student.user_id === "object" && student.user_id.email)
-        ? student.user_id.email
+      email = (student.user_id && typeof student.user_id === "object")
+        ? ((student.user_id as any).username || student.user_id.email || "")
         : (student.email || "");
       const userPlainPassword = (student.user_id && typeof student.user_id === "object" && (student.user_id as any).plain_password);
       defaultPassword = userPlainPassword || getStudentDefaultPassword((student as any).dob);
@@ -177,13 +177,13 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
       showPasswordRow = userExists;
 
       if (liveUser) {
-        email = liveUser.email || "";
+        email = liveUser.username || liveUser.email || "";
         isActive = liveUser.is_active;
         mustChangePassword = !!liveUser.must_change_password;
         defaultPassword = liveUser.plain_password || "Parent@123";
       } else {
-        email = (parentObj.user_id && typeof parentObj.user_id === "object" && parentObj.user_id.email)
-          ? parentObj.user_id.email
+        email = (parentObj.user_id && typeof parentObj.user_id === "object")
+          ? ((parentObj.user_id as any).username || parentObj.user_id.email || "")
           : (parentObj.email || "");
         isActive = parentObj.user_id && typeof parentObj.user_id === "object"
           ? parentObj.user_id.is_active
@@ -208,13 +208,13 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
     showPasswordRow = userExists;
 
     if (liveUser) {
-      email = liveUser.email || "";
+      email = liveUser.username || liveUser.email || "";
       isActive = liveUser.is_active;
       mustChangePassword = !!liveUser.must_change_password;
       defaultPassword = liveUser.plain_password || "Master#2026";
     } else {
-      email = (teacher.user_id && typeof teacher.user_id === "object" && teacher.user_id.email)
-        ? teacher.user_id.email
+      email = (teacher.user_id && typeof teacher.user_id === "object")
+        ? ((teacher.user_id as any).username || teacher.user_id.email || "")
         : (teacher.email || "");
       const userPlainPassword = (teacher.user_id && typeof teacher.user_id === "object" && (teacher.user_id as any).plain_password);
       defaultPassword = userPlainPassword || "Master#2026";
@@ -290,18 +290,18 @@ export function LoginDetailsModal({ isOpen, onClose, student, parent, teacher, t
               <div className="space-y-3 text-[13px] border-t border-border pt-3">
                 {/* Email / Username */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium shrink-0">Username (Email)</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium shrink-0">School Username</span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-slate-900 dark:text-white font-mono break-all text-right text-[12px]">
                       {email || "—"}
                     </span>
                     {email && (
                       <button
-                        onClick={() => copyToClipboard(email, "email")}
+                        onClick={() => copyToClipboard(email, "username")}
                         className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 hover:text-primary transition-colors dark:text-slate-400"
-                        title="Copy email"
+                        title="Copy username"
                       >
-                        {copiedField === "email" ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedField === "username" ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                       </button>
                     )}
                   </div>

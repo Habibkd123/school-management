@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
           id: dbUser._id,
           name: dbUser.name,
           email: dbUser.email,
+          username: dbUser.username,
           role: dbUser.role,
           school_id: dbUser.school_id,
           is_active: dbUser.is_active,

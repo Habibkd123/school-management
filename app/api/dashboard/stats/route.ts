@@ -7,7 +7,7 @@ import Teacher from "@/lib/models/Teacher";
 import { Subject, SubjectMaster, Attendance } from "@/lib/models/index";
 
 export async function GET(req: NextRequest) {
-  const { schoolId, error } = requireAuth(req, ["school_admin", "super_admin"]);
+  const { schoolId, error } = requireAuth(req, ["school_admin", "super_admin", "teacher"]);
   if (error) return error;
 
   try {

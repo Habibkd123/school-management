@@ -1,7 +1,8 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 // Ensure Class model is registered before any schema that uses ref: "Class"
 import Class from "./Class";
-export { Class };
+import Student from "./Student";
+export { Class, Student };
 
 // ─── Subject ──────────────────────────────────────────────────────
 export interface ISubject extends Document {

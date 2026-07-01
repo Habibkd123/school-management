@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     await connectDB();
-    const user = await User.findById(id).select("name email role is_active plain_password must_change_password");
+    const user = await User.findById(id).select("name email username role is_active plain_password must_change_password");
     if (!user) {
       return NextResponse.json(
         { success: false, message: "User not found" },
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         _id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         is_active: user.is_active,
         plain_password: user.plain_password,

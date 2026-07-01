@@ -13,103 +13,90 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // ─── Check if this is a super_admin login (no school_id needed) ─────────
-    const isSuperAdminAttempt = body.is_super_admin === true;
-
-    // ─── Accept 'username' as an alias for 'email' ───────────────────
-    // Both field names work so that UI changes don't break the API
-    if (!body.email && body.username) {
-      body.email = body.username;
-    }
-
-    // ─── Strict Validation ──────────────────────────────────────
-    const errors = validate(body, {
-      email: { required: true },
-      password: { required: true, minLength: 6 },
-      // school_id required only for non-super_admin logins
-      ...(isSuperAdminAttempt ? {} : { school_id: { required: true, isMongoId: true } }),
-    });
-
-    if (errors.length > 0) return validationErrorResponse(errors);
-
-    const { email, password, school_id } = body as {
-      email: string;
-      password: string;
+    let { username, email, password, school_id, is_super_admin } = body as {
+      username?: string;
+      email?: string;
+      password?: string;
       school_id?: string;
+      is_super_admin?: boolean;
     };
 
-    // ─── Find user ────────────────────────────────────────────────────────────
-    let user;
+    // Alias compatibility
+    const usernameInput = (username || email || "").toLowerCase().trim();
 
-    if (isSuperAdminAttempt) {
-      // Super Admin: look up globally by email + role, no school scope
-      user = await User.findOne({
-        email: email.toLowerCase().trim(),
-        role: "super_admin",
-        is_active: true,
-      }).select("+password_hash");
-
-      if (!user) {
-        return NextResponse.json(
-          { success: false, message: "Invalid credentials or not a Super Admin account" },
-          { status: 401 }
-        );
-      }
-    } else {
-      // Regular login: scoped to school
-      const credential = email.toLowerCase().trim();
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credential);
-
-      if (isEmail) {
-        user = await User.findOne({
-          email: credential,
-          school_id,
-          is_active: true,
-        }).select("+password_hash");
-      } else {
-        // Find student with this admission_no
-        const studentDoc = await Student.findOne({
-          school_id,
-          admission_no: { $regex: new RegExp(`^${credential}$`, "i") }
-        }).select("user_id").lean();
-
-        if (studentDoc && studentDoc.user_id) {
-          user = await User.findOne({
-            _id: studentDoc.user_id,
-            school_id,
-            is_active: true,
-          }).select("+password_hash");
-        }
-
-        if (!user) {
-          // Find teacher with this employee_id
-          const teacherDoc = await Teacher.findOne({
-            school_id,
-            employee_id: { $regex: new RegExp(`^${credential}$`, "i") }
-          }).select("user_id").lean();
-
-          if (teacherDoc && teacherDoc.user_id) {
-            user = await User.findOne({
-              _id: teacherDoc.user_id,
-              school_id,
-              is_active: true,
-            }).select("+password_hash");
-          }
-        }
-      }
-
-      if (!user) {
-        return NextResponse.json(
-          { success: false, message: "Invalid username or password" },
-          { status: 401 }
-        );
-      }
+    // ─── School Username Format Validation ──────────────────────
+    if (!usernameInput) {
+      return NextResponse.json(
+        { success: false, message: "Please enter your School Username." },
+        { status: 400 }
+      );
     }
 
-    // ─── Check role login disable config ────────────────────────
-    if (!isSuperAdminAttempt && user.school_id) {
-      const schoolDoc = await School.findById(user.school_id).select("login_config").lean();
-      if (schoolDoc && schoolDoc.login_config) {
+    if (!usernameInput.endsWith(".myschoollife") || usernameInput.includes(" ") || usernameInput.includes("@")) {
+      return NextResponse.json(
+        { success: false, message: "Please enter a valid School Username." },
+        { status: 400 }
+      );
+    }
+
+    if (!password || password.length < 6) {
+      return NextResponse.json(
+        { success: false, message: "Password must be at least 6 characters." },
+        { status: 400 }
+      );
+    }
+
+    const isSuperAdmin = is_super_admin === true || usernameInput.startsWith("superadmin.");
+
+    if (!isSuperAdmin && !school_id) {
+      return NextResponse.json(
+        { success: false, message: "School ID is required for non-superadmin login" },
+        { status: 400 }
+      );
+    }
+
+    // ─── Find user by username ──────────────────────────────────
+    let user;
+
+    if (isSuperAdmin) {
+      user = await User.findOne({
+        username: usernameInput,
+        role: "super_admin",
+      }).select("+password_hash");
+    } else {
+      user = await User.findOne({
+        username: usernameInput,
+        school_id,
+      }).select("+password_hash");
+    }
+
+    // Username existence check
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "School Username not found." },
+        { status: 401 }
+      );
+    }
+
+    // Account active check
+    if (user.is_active === false) {
+      return NextResponse.json(
+        { success: false, message: "Your user account has been disabled." },
+        { status: 403 }
+      );
+    }
+
+    // School active & role restrictions checks
+    if (!isSuperAdmin && user.school_id) {
+      const schoolDoc = await School.findById(user.school_id).select("is_active login_config").lean();
+      if (!schoolDoc || schoolDoc.is_active === false) {
+        return NextResponse.json(
+          { success: false, message: "This school account has been disabled." },
+          { status: 403 }
+        );
+      }
+
+      if (schoolDoc.login_config) {
         const { disable_student_login, disable_teacher_login } = schoolDoc.login_config;
         if (user.role === "student" && disable_student_login) {
           return NextResponse.json(
@@ -130,7 +117,7 @@ export async function POST(request: NextRequest) {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return NextResponse.json(
-        { success: false, message: "Invalid username or password" },
+        { success: false, message: "Incorrect password." },
         { status: 401 }
       );
     }

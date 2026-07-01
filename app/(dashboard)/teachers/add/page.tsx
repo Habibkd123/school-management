@@ -9,8 +9,10 @@ import { useSubjectMaster } from "../../../hooks/useSubjectMaster";
 import { useUpload } from "../../../hooks/useUpload";
 import {
   User, Briefcase, Phone, GraduationCap,
-  XCircle, Loader2, ImageIcon, Copy, Check, KeyRound, Lock, ScanLine
+  XCircle, Loader2, ImageIcon, Copy, Check, KeyRound, Lock, ScanLine, AlertCircle
 } from "lucide-react";
+
+import { validateSequential } from "@/lib/utils/formValidation";
 
 // ─── Generic Image Uploader ────────────────────────────────────────
 function ImageUploader({
@@ -245,7 +247,7 @@ function SubjectSpecializationInput({
 
 // ─── Input group ───────────────────────────────────────────────────
 function InputGroup({
-  label, type = "text", placeholder, options, value, onChange, required, datalistOptions, disabled, hint,
+  label, type = "text", placeholder, options, value, onChange, required, datalistOptions, disabled, hint, error, id,
 }: {
   label: string;
   type?: "text" | "email" | "date" | "select" | "password" | "number" | "tel";
@@ -257,16 +259,23 @@ function InputGroup({
   required?: boolean;
   disabled?: boolean;
   hint?: string;
+  error?: string;
+  id?: string;
 }) {
+  const borderClass = error 
+    ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" 
+    : "border border-border focus:border-primary/50";
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 text-left">
       <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       {type === "select" ? (
         <div className="relative">
           <select
-            className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer disabled:opacity-60"
+            id={id}
+            className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all appearance-none cursor-pointer disabled:opacity-60 ${borderClass}`}
             value={value}
             onChange={onChange}
             disabled={disabled}
@@ -283,14 +292,14 @@ function InputGroup({
       ) : (
         <>
           <input
+            id={id}
             type={type}
             list={datalistOptions ? `${label.replace(/\s+/g, '-')}-list` : undefined}
             placeholder={placeholder}
             value={value}
             onChange={onChange}
-            required={required}
             disabled={disabled}
-            className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed ${borderClass}`}
           />
           {datalistOptions && (
             <datalist id={`${label.replace(/\s+/g, '-')}-list`}>
@@ -299,7 +308,13 @@ function InputGroup({
           )}
         </>
       )}
-      {hint && <p className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</p>}
+      {error ? (
+        <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+          ❌ {error}
+        </p>
+      ) : hint ? (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -327,6 +342,8 @@ function AddTeacherContent() {
   const { uploadFile } = useUpload();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingAadhaarFront, setUploadingAadhaarFront] = useState(false);
   const [uploadingAadhaarBack, setUploadingAadhaarBack] = useState(false);
@@ -439,13 +456,28 @@ function AddTeacherContent() {
   // ── Submit ────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
 
-    // Validation
-    if (!firstName.trim()) { alert("First Name is required."); return; }
-    if (gender === "Select") { alert("Gender is required."); return; }
-    if (!phone.trim()) { alert("Mobile Number is required."); return; }
-    if (!qualification.trim()) { alert("Highest Qualification is required."); return; }
-    if (!joinDate) { alert("Joining Date is required."); return; }
+    const fieldsToValidate = [
+      { id: "qualification", value: qualification, label: "Highest Qualification" },
+      { id: "firstName", value: firstName, label: "First Name" },
+      {
+        id: "gender",
+        value: gender,
+        label: "Gender",
+        customValidate: (val: any) => (!val || val === "Select" ? "Gender selection is mandatory." : true)
+      },
+      { id: "phone", value: phone, label: "Mobile Number" },
+      { id: "joinDate", value: joinDate, label: "Joining Date" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return;
+    }
+    setValErrors({});
 
     setIsSubmitting(true);
 
@@ -503,7 +535,14 @@ function AddTeacherContent() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* Validation Error Banner */}
+        {formError && (
+          <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-3 text-left animate-in fade-in">
+            <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-rose-600 dark:text-rose-400 font-semibold leading-snug">{formError}</p>
+          </div>
+        )}
 
         {/* 1. Professional Information */}
         <SectionCard icon={<GraduationCap className="w-4 h-4" />} title="Professional Information">
@@ -528,6 +567,8 @@ function AddTeacherContent() {
               required
               datalistOptions={["B.Ed", "M.Ed", "B.Sc", "M.Sc", "B.A", "M.A", "Ph.D", "B.Tech", "M.Tech", "Diploma"]}
               placeholder="e.g. M.Ed"
+              error={valErrors.qualification}
+              id="qualification"
             />
             <SubjectSpecializationInput
               selectedSubjects={specializations}
@@ -563,7 +604,7 @@ function AddTeacherContent() {
                 uploading={uploadingPhoto}
               />
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-5 text-left">
-                <InputGroup label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required placeholder="Enter first name" />
+                <InputGroup label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required placeholder="Enter first name" error={valErrors.firstName} id="firstName" />
                 <InputGroup label="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Enter last name" />
                 <InputGroup
                   label="Gender"
@@ -572,6 +613,8 @@ function AddTeacherContent() {
                   onChange={e => setGender(e.target.value)}
                   options={["Select", "Male", "Female", "Other"]}
                   required
+                  error={valErrors.gender}
+                  id="gender"
                 />
                 <InputGroup label="Date of Birth" type="date" value={dob} onChange={e => setDob(e.target.value)} />
               </div>
@@ -616,6 +659,8 @@ function AddTeacherContent() {
               value={phone}
               onChange={e => setPhone(e.target.value)}
               required
+              error={valErrors.phone}
+              id="phone"
             />
             <InputGroup
               label="Email"
@@ -645,6 +690,8 @@ function AddTeacherContent() {
               value={joinDate}
               onChange={e => setJoinDate(e.target.value)}
               required
+              error={valErrors.joinDate}
+              id="joinDate"
             />
             <InputGroup
               label="Status"

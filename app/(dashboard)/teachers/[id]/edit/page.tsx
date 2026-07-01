@@ -10,8 +10,10 @@ import { useSubjectMaster } from "../../../../hooks/useSubjectMaster";
 import { LoginDetailsModal } from "../../../../components/modals/LoginDetailsModal";
 import { ResetPasswordModal } from "../../../../components/modals/ResetPasswordModal";
 import {
-  User, Briefcase, Calendar, CreditCard, Bus, Building2, Share2, FileText, Lock, XCircle, Upload, Loader2, X
+  User, Briefcase, Calendar, CreditCard, Bus, Building2, Share2, FileText, Lock, XCircle, Upload, Loader2, X, AlertCircle
 } from "lucide-react";
+
+import { validateSequential } from "@/lib/utils/formValidation";
 
 // ─── Photo Uploader ────────────────────────────────────────────────
 function PhotoUploader({
@@ -247,6 +249,8 @@ export default function EditTeacherPage() {
   }, [apiSubjects]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
   const [teacherObj, setTeacherObj] = useState<any>(null);
   const [isLoginDetailsOpen, setIsLoginDetailsOpen] = useState(false);
   const [isResetPassModalOpen, setIsResetPassModalOpen] = useState(false);
@@ -446,9 +450,24 @@ export default function EditTeacherPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    const fieldsToValidate = [
+      { id: "employeeId", value: employeeId, label: "Teacher ID" },
+      { id: "firstName", value: firstName, label: "First Name" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return;
+    }
+    setValErrors({});
 
     if (newPassword && newPassword !== confirmPassword) {
-      alert("Passwords do not match!");
+      setFormError("Passwords do not match!");
+      setValErrors({ newPassword: "Passwords do not match!" });
       return;
     }
 
@@ -571,7 +590,15 @@ export default function EditTeacherPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* Validation Error Banner */}
+        {formError && (
+          <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-3 text-left animate-in fade-in">
+            <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-rose-600 dark:text-rose-400 font-semibold leading-snug">{formError}</p>
+          </div>
+        )}
+
         {/* 1. Personal Information */}
         <div className="bg-white dark:bg-slate-900 border border-border rounded-xl overflow-hidden card-shadow">
           <div className="bg-slate-50/80 dark:bg-slate-800/40 px-6 py-4 border-b border-border flex items-center gap-2">
@@ -591,8 +618,8 @@ export default function EditTeacherPage() {
 
               {/* Form Grid */}
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 text-left">
-                <InputGroup label="Teacher ID" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required />
-                <InputGroup label="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                <InputGroup label="Teacher ID" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required error={valErrors.employeeId} id="employeeId" />
+                <InputGroup label="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required error={valErrors.firstName} id="firstName" />
                 <InputGroup label="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 
                 <InputGroup 
@@ -741,30 +768,31 @@ export default function EditTeacherPage() {
 
 // Reusable input component for cleaner code
 function InputGroup({
-  label,
-  type = "text",
-  placeholder,
-  options,
-  value,
-  onChange,
-  required
+  label, type = "text", placeholder, options, value, onChange, required, error, id,
 }: {
-  label: string,
-  type?: "text" | "email" | "date" | "select" | "password" | "number",
-  placeholder?: string,
-  options?: (string | { label: string; value: string })[],
-  value?: string,
-  onChange?: (e: any) => void,
-  required?: boolean
+  label: string;
+  type?: "text" | "email" | "date" | "select" | "password" | "number";
+  placeholder?: string;
+  options?: (string | { label: string; value: string })[];
+  value?: string;
+  onChange?: (e: any) => void;
+  required?: boolean;
+  error?: string;
+  id?: string;
 }) {
+  const borderClass = error 
+    ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" 
+    : "border border-border focus:border-primary/50";
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 text-left">
       <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       {type === "select" ? (
         <select
-          className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
+          id={id}
+          className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all appearance-none cursor-pointer ${borderClass}`}
           value={value}
           onChange={onChange}
         >
@@ -776,13 +804,18 @@ function InputGroup({
         </select>
       ) : (
         <input
+          id={id}
           type={type}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          required={required}
-          className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all"
+          className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all ${borderClass}`}
         />
+      )}
+      {error && (
+        <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+          ❌ {error}
+        </p>
       )}
     </div>
   );

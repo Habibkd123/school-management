@@ -19,6 +19,7 @@ import { useLeave } from "../../hooks/useLeave";
 import { useSubjects } from "../../hooks/useSubjects";
 import { useParent } from "../../hooks/useParent";
 import { useTeacherAssignment } from "../../hooks/useTeacherAssignment";
+import { useDashboardStats } from "../../hooks/useDashboardStats";
 import { ParentOverview } from "../../components/parent/ParentOverview";
 import { LineChart, BarChart, DoughnutChart } from "../../components/ui/charts";
 import { useThemeColors } from "../../components/SchoolThemeProvider";
@@ -48,6 +49,42 @@ import {
   Loader2
 } from "lucide-react";
 
+const getScheduleProgress = (day: string, start: string, end: string) => {
+  try {
+    const now = new Date();
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    
+    const parseTimeToMinutes = (tStr: string) => {
+      const parts = tStr.trim().toLowerCase().match(/^(\d+):(\d+)\s*(am|pm)?$/);
+      if (!parts) return 0;
+      let hrs = parseInt(parts[1], 10);
+      const mins = parseInt(parts[2], 10);
+      const ampme = parts[3];
+      if (ampme === 'pm' && hrs < 12) hrs += 12;
+      if (ampme === 'am' && hrs === 12) hrs = 0;
+      return hrs * 60 + mins;
+    };
+
+    const startMinutes = parseTimeToMinutes(start);
+    const endMinutes = parseTimeToMinutes(end);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (day.toLowerCase() !== currentDay) {
+      const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const scheduleDayIdx = days.indexOf(day.toLowerCase());
+      const currentDayIdx = days.indexOf(currentDay);
+      if (scheduleDayIdx < currentDayIdx) return 100;
+      if (scheduleDayIdx > currentDayIdx) return 0;
+    }
+
+    if (currentMinutes < startMinutes) return 0;
+    if (currentMinutes > endMinutes) return 100;
+    return Math.round(((currentMinutes - startMinutes) / (endMinutes - startMinutes)) * 100);
+  } catch {
+    return 50;
+  }
+};
+
 export default function DashboardPage() {
   const SHOW_FEES = !HIDE_FEES_FEATURE;
   // ── Synchronous role detection ──────────────────────────────────
@@ -57,32 +94,34 @@ export default function DashboardPage() {
   const storedUser = getStoredUser();
   const storedRole = storedUser?.role ?? "school_admin";
 
-  const isAdmin      = storedRole === "school_admin";
-  const isTeacher    = storedRole === "teacher";
-  const isStudent    = storedRole === "student";
-  const isParent     = storedRole === "parent";
+  const isAdmin = storedRole === "school_admin";
+  const isTeacher = storedRole === "teacher";
+  const isStudent = storedRole === "student";
+  const isParent = storedRole === "parent";
   const isSuperAdmin = storedRole === "super_admin";
   const theme = useThemeColors();
   const { students, fetchStudents } = useStudents({ skip: isSuperAdmin });
   const { teachers } = useTeachers({ skip: isSuperAdmin || isStudent || isParent });
-  const { classes }  = useClasses({ skip: isSuperAdmin || isStudent || isParent });
+  const { classes } = useClasses({ skip: isSuperAdmin || isStudent || isParent });
   // Fees only used in admin dashboard — pass skip as second arg (studentId is first)
   const { payments } = useFeePayments(undefined, { skip: !isAdmin });
   // Notices needed by all roles
-  const { notices }  = useNotices();
+  const { notices } = useNotices();
   // Homework: teacher, student, parent — classId is first arg, options second
   const { homework } = useHomework(undefined, { skip: isSuperAdmin || isAdmin });
-  // Schedules: teacher, student, parent — classId/teacherId are first two args, options third
-  const { schedules } = useSchedules(undefined, undefined, { skip: isSuperAdmin || isAdmin });
   // Holidays: admin + teacher for calendar
-  const { holidays }  = useHolidays({ skip: isSuperAdmin || isStudent || isParent });
+  const { holidays } = useHolidays({ skip: isSuperAdmin || isStudent || isParent });
   // Results: admin, teacher, student
-  const { results }   = useResults({ skip: isSuperAdmin || isParent });
+  const { results } = useResults({ skip: isSuperAdmin || isParent });
   // Leave: admin (attendance tab), teacher — statusFilter/userId are first two args, options third
   const { leaveRequests: leaves } = useLeave(undefined, undefined, { skip: isSuperAdmin || isStudent || isParent });
+  // Dashboard stats (real-time school-wide attendance metrics)
+  const { stats: dashboardStats } = useDashboardStats({
+    skip: isSuperAdmin || isStudent || isParent
+  });
   // Subjects: admin only — classId is first arg, options second
-  const { subjects }  = useSubjects(undefined, { skip: !isAdmin });
-  const { user }      = useAuth();
+  const { subjects } = useSubjects(undefined, { skip: !isAdmin });
+  const { user } = useAuth();
   const { academicYear } = useAppState();
   // Parent portal only
   const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent({ skip: !isParent });
@@ -103,6 +142,10 @@ export default function DashboardPage() {
       return tUserId === user?.id;
     });
   }, [isTeacher, teachers, user?.id]);
+
+  // Schedules: loaded role-based. Admins see all, teachers see theirs.
+  const scheduleTeacherId = isTeacher ? currentTeacherProfile?._id : undefined;
+  const { schedules } = useSchedules(undefined, scheduleTeacherId, { skip: isSuperAdmin || isStudent || isParent });
 
   React.useEffect(() => {
     if (isTeacher && currentTeacherProfile) {
@@ -128,7 +171,7 @@ export default function DashboardPage() {
         .catch(err => console.error(err));
     }
   }, [isTeacher, currentTeacherProfile]);
-  
+
   React.useEffect(() => {
     if (user?.role === "super_admin") {
       setLoadingSchools(true);
@@ -149,7 +192,7 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // ── Memoized derived sets (rebuilt only when source arrays change) ─
   const studentIdsInYear = useMemo(() => new Set(students.map(s => s._id)), [students]);
-  const classIdsInYear   = useMemo(() => new Set(classes.map(c => c._id)), [classes]);
+  const classIdsInYear = useMemo(() => new Set(classes.map(c => c._id)), [classes]);
 
   const filteredSubjects = useMemo(() => subjects.filter(sub => {
     const classId = typeof (sub.class_id as any) === 'object' ? (sub.class_id as any)?._id : sub.class_id;
@@ -170,16 +213,21 @@ export default function DashboardPage() {
     return leaveUser?.role === activeTabRole;
   });
 
-  const emergencyLeaves = filteredLeaves.filter(l => l.leave_type === 'emergency').length;
-  const casualLeaves = filteredLeaves.filter(l => l.leave_type === 'casual').length;
-  const sickLeaves = filteredLeaves.filter(l => l.leave_type === 'sick').length;
-  const absentLeavesCount = casualLeaves + sickLeaves;
-  const lateCount = 0; // Placeholder for now
+  const emergencyLeaves = dashboardStats?.attendance?.marked 
+    ? (dashboardStats.attendance.leave ?? 0)
+    : 0;
+  const absentLeavesCount = dashboardStats?.attendance?.marked 
+    ? (dashboardStats.attendance.absent ?? 0)
+    : 0;
+  const lateCount = dashboardStats?.attendance?.marked 
+    ? (dashboardStats.attendance.late ?? 0)
+    : 0;
 
-  const totalCountForTab = attendanceTab === 'Students' ? totalStudents : (attendanceTab === 'Teachers' ? totalTeachers : 0);
-  const totalPresent = Math.max(0, totalCountForTab - emergencyLeaves - absentLeavesCount);
-  const totalMockAttendance = totalCountForTab > 0 ? totalCountForTab : (totalPresent + emergencyLeaves + absentLeavesCount);
-  const attendanceRateMock = totalMockAttendance > 0 ? ((totalPresent / totalMockAttendance) * 100).toFixed(1) : "0.0";
+  const attendanceRateMock = dashboardStats?.attendance?.marked && dashboardStats?.attendance?.percentage !== null
+    ? dashboardStats.attendance.percentage.toFixed(1)
+    : "0.0";
+  const attendanceRateVal = parseFloat(attendanceRateMock) || 0;
+  const attendanceGaugeLength = (125.66 * attendanceRateVal) / 100;
 
   const filteredResults = useMemo(() => results.filter(r => {
     const studentId = typeof r.student_id === 'object' ? r.student_id?._id : r.student_id;
@@ -192,13 +240,13 @@ export default function DashboardPage() {
       percentage: r.total_marks > 0 ? (r.marks_obtained / r.total_marks) * 100 : 0
     }))
     .sort((a, b) => b.percentage - a.percentage)
-  , [filteredResults]);
+    , [filteredResults]);
 
   const bestStudent = globalPerformers[0] || null;
   const starStudent = globalPerformers[1] || null;
 
-  const topCount      = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length,  [filteredResults]);
-  const avgCount      = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length, [filteredResults]);
+  const topCount = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.8).length, [filteredResults]);
+  const avgCount = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) >= 0.5 && (r.marks_obtained / r.total_marks) < 0.8).length, [filteredResults]);
   const belowAvgCount = useMemo(() => filteredResults.filter(r => r.total_marks > 0 && (r.marks_obtained / r.total_marks) < 0.5).length, [filteredResults]);
 
   const filteredPayments = useMemo(() => payments.filter(p => {
@@ -208,10 +256,10 @@ export default function DashboardPage() {
 
   const totalRevenue = useMemo(() =>
     filteredPayments.reduce((acc: number, curr) => acc + curr.amount_paid, 0)
-  , [filteredPayments]);
+    , [filteredPayments]);
 
   // Fee Quarters Calculation for Chart
-  const getQuarter    = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1}: ${date.getFullYear()}`;
+  const getQuarter = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1}: ${date.getFullYear()}`;
   const getQuarterKey = (date: Date) => `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`;
 
   const { feeQuarters, maxFee } = useMemo(() => {
@@ -567,7 +615,7 @@ export default function DashboardPage() {
     d.setDate(d.getDate() + 1);
   }
 
-  
+
 
   return (
     <div className="space-y-6 max-w-full sm:w-[1600px] mx-auto">
@@ -771,11 +819,10 @@ export default function DashboardPage() {
                           <td className="px-5 py-3 text-[13.5px] font-bold text-slate-900 dark:text-white">{school.name}</td>
                           <td className="px-5 py-3 text-[12.5px] font-semibold text-amber-600 dark:text-amber-400">{school.slug}</td>
                           <td className="px-5 py-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              school.is_active
-                                ? "bg-emerald-500/15 text-emerald-500"
-                                : "bg-rose-500/15 text-rose-500"
-                            }`}>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${school.is_active
+                              ? "bg-emerald-500/15 text-emerald-500"
+                              : "bg-rose-500/15 text-rose-500"
+                              }`}>
                               {school.is_active ? "ACTIVE" : "INACTIVE"}
                             </span>
                           </td>
@@ -1018,10 +1065,27 @@ export default function DashboardPage() {
                 {/* Attendance % gauge */}
                 <div className="flex-1 mt-6 flex flex-col items-center justify-end overflow-hidden relative min-h-[140px]">
                   <svg viewBox="0 0 100 50" className="w-full sm:w-[80%] h-auto drop-shadow-md">
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="var(--primary)" strokeWidth="20" />
-                    <path d="M 85 50 A 40 40 0 0 0 90 50" fill="none" stroke="var(--success)" strokeWidth="20" />
+                    {/* Background Arc */}
+                    <path
+                      d="M 10 50 A 40 40 0 0 1 90 50"
+                      fill="none"
+                      stroke="#E2E8F0"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      className="dark:stroke-slate-800"
+                    />
+                    {/* Dynamic Foreground Progress Arc */}
+                    <path
+                      d="M 10 50 A 40 40 0 0 1 90 50"
+                      fill="none"
+                      stroke="var(--success)"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray={`${attendanceGaugeLength} 125.66`}
+                      className="transition-all duration-500 ease-out"
+                    />
                   </svg>
-                  <div className="absolute bottom-5 text-white text-[11px] font-bold">{attendanceRateMock}%</div>
+                  <div className="absolute bottom-5 text-[12px] font-extrabold text-slate-800 dark:text-slate-200">{attendanceRateMock}%</div>
                 </div>
                 <div className="mt-4 flex justify-center">
                   <Link href="/attendance/student" className="bg-[#F1F3F5] dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-[12px] px-4 py-2 rounded-lg flex items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
@@ -1049,7 +1113,7 @@ export default function DashboardPage() {
               {/* Quick Links Card */}
               <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
                 <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white mb-5">Quick Links</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <Link href="/academic/class-routine" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[#E8F8E8] border border-[#BDE8B5] text-success flex items-center justify-center group-hover:scale-105 transition-transform">
                       <CalendarIcon className="w-5 h-5" />
@@ -1060,7 +1124,7 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 border border-[#C5D5FF] text-info flex items-center justify-center group-hover:scale-105 transition-transform">
                       <FileText className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 text-center leading-tight">Exam Result</span>
+                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 text-center leading-tight"> Result</span>
                   </Link>
                   <Link href="/attendance/student" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[var(--section-alt)] border border-[#FFE7B3] text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -1069,12 +1133,12 @@ export default function DashboardPage() {
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Attendance</span>
                   </Link>
                   {/* Fees quick link hidden (Issue 9) */}
-                  <Link href="/homework" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
+                  {/* <Link href="/homework" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[#FFEBF0] border border-[#FFCCD8] text-danger flex items-center justify-center group-hover:scale-105 transition-transform">
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 text-center leading-tight">Home work</span>
-                  </Link>
+                  </Link> */}
                   <Link href="/reports/student-report" className="flex flex-col items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group">
                     <div className="w-12 h-12 rounded-full bg-[#EAF9F5] border border-[#C4F0E4] text-success flex items-center justify-center group-hover:scale-105 transition-transform">
                       <FileText className="w-5 h-5" />
@@ -1097,24 +1161,29 @@ export default function DashboardPage() {
                   {schedules.length === 0 ? (
                     <p className="text-[13px] text-slate-400">No schedules found.</p>
                   ) : schedules.slice(0, 3).map((schedule, i) => {
-                    const classInfo = typeof schedule.class_id === 'object' ? `${schedule?.class_id?.name} ${schedule.class_id?.section}` : String(schedule?.class_id || '');
-                    const subjectInfo = typeof schedule.subject_id === 'object' ? schedule?.subject_id?.name : String(schedule?.subject_id || '');
-                    const teacherInfo = typeof schedule.teacher_id === 'object' ? schedule?.teacher_id : null;
+                    const classInfo = typeof schedule.class_id === 'object' ? `${(schedule.class_id as any)?.name} - ${(schedule.class_id as any)?.section}` : String(schedule?.class_id || '');
+                    const subjectInfo = typeof schedule.subject_id === 'object' ? (schedule?.subject_id as any)?.name : String(schedule?.subject_id || '');
+                    const teacherInfo = typeof schedule.teacher_id === 'object' ? (schedule?.teacher_id as any) : null;
                     const teacherName = teacherInfo?.name || 'Unknown Teacher';
                     const colors = [theme.primary, theme.warning, theme.success];
                     const avatars = ['/asset 12.webp', '/asset 14.webp', '/asset 13.webp'];
                     const teacherPhoto = teacherInfo?.photo_url || avatars[i % avatars.length];
+                    const progressVal = getScheduleProgress(schedule.day, schedule.start_time, schedule.end_time);
 
                     return (
                       <div key={schedule._id} className="border border-border rounded-xl p-3 flex gap-3 items-center">
                         <img src={teacherPhoto} alt={teacherName} className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" />
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1.5">
-                            <p className="text-[12px] text-slate-500 dark:text-slate-400 capitalize">{schedule.day} - {teacherName}</p>
-                            <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">{subjectInfo}</span>
+                            <p className="text-[12px] text-slate-500 dark:text-slate-400 capitalize">
+                              {schedule.day} ({schedule.start_time} - {schedule.end_time}) - {teacherName}
+                            </p>
+                            <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                              {subjectInfo} {classInfo && `(${classInfo})`}
+                            </span>
                           </div>
                           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                            <div className="h-1.5 rounded-full" style={{ width: '80%', backgroundColor: colors[i % colors.length] }}></div>
+                            <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${progressVal}%`, backgroundColor: colors[i % colors.length] }}></div>
                           </div>
                         </div>
                       </div>
@@ -1134,42 +1203,55 @@ export default function DashboardPage() {
           {/* ────────────────────────────────────────────────────
               BOTTOM ROW 1: Fees Collection chart hidden (Issue 16)
               ──────────────────────────────────────────────────── */}
-            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Leave Requests</h3>
-                <Link href="/leave/approve-leave-request" className="text-[12px] font-medium text-primary hover:text-[var(--primary-hover)]">View All</Link>
-              </div>
-              <div className="flex-1 space-y-4">
-                {leaves.filter(l => l.status === 'pending').slice(0, 3).length === 0 ? (
-                  <p className="text-[13px] text-slate-400">No pending leave requests.</p>
-                ) : leaves.filter(l => l.status === 'pending').slice(0, 3).map((leave) => {
-                  const leaveUser = typeof leave.user_id === 'object' ? leave.user_id : null;
-                  const leaveTypeName = typeof leave.leave_type === 'object' ? (leave.leave_type as any)?.name : (leave.leave_type || 'Leave');
-                  return (
-                    <div key={leave._id} className="border border-slate-100 dark:border-slate-800/50 rounded-xl p-4 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Leave Requests</h3>
+              <Link 
+                href={isAdmin ? "/leave/approve-leave-request" : "/leave/apply"} 
+                className="text-[12px] font-medium text-primary hover:text-[var(--primary-hover)]"
+              >
+                {isAdmin ? "View All" : "Apply Leave"}
+              </Link>
+            </div>
+            <div className="flex-1 space-y-4">
+              {leaves.filter(l => l.status === 'pending').slice(0, 3).length === 0 ? (
+                <p className="text-[13px] text-slate-400">No pending leave requests.</p>
+              ) : leaves.filter(l => l.status === 'pending').slice(0, 3).map((leave) => {
+                const leaveUser = typeof leave.user_id === 'object' ? (leave.user_id as any) : null;
+                const leaveTypeName = typeof leave.leave_type === 'object' ? (leave.leave_type as any)?.name : (leave.leave_type || 'Leave');
+                return (
+                  <div key={leave._id} className="border border-slate-100 dark:border-slate-800/50 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {leaveUser?.photo_url ? (
+                          <img 
+                            src={leaveUser.photo_url} 
+                            alt={leaveUser.name} 
+                            className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" 
+                          />
+                        ) : (
                           <div className="w-10 h-10 rounded bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
-                            {((leaveUser as any)?.name || 'U').charAt(0).toUpperCase()}
+                            {(leaveUser?.name || 'U').charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <h4 className="text-[13px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                              {(leaveUser as any)?.name || 'Unknown'}
-                              <span className="bg-[var(--section-alt)] text-primary text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">{leaveTypeName}</span>
-                            </h4>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{(leaveUser as any)?.role || ''}</p>
-                          </div>
+                        )}
+                        <div>
+                          <h4 className="text-[13px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            {leaveUser?.name || 'Unknown'}
+                            <span className="bg-[var(--section-alt)] text-primary text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">{leaveTypeName}</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 capitalize">{leaveUser?.role || ''}</p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] pt-3 border-t border-slate-100 dark:border-slate-800/50 text-slate-500 dark:text-slate-400">
-                        <span>Leave : <strong className="text-slate-800 dark:text-slate-100">{new Date(leave.from_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - {new Date(leave.to_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</strong></span>
-                        <span>Applied : <strong className="text-slate-800 dark:text-slate-100">{new Date(leave.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</strong></span>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex items-center justify-between text-[11px] pt-3 border-t border-slate-100 dark:border-slate-800/50 text-slate-500 dark:text-slate-400">
+                      <span>Leave : <strong className="text-slate-800 dark:text-slate-100">{new Date(leave.from_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - {new Date(leave.to_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</strong></span>
+                      <span>Applied : <strong className="text-slate-800 dark:text-slate-100">{new Date(leave.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</strong></span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
           {/* ----------------------------------------------------
               BOTTOM ROW 2: ACTION BUTTONS
@@ -1204,7 +1286,7 @@ export default function DashboardPage() {
               </div>
             </Link>
 
-          {/* ── Finance & Accounts button hidden (Issue 16) ────────────────
+            {/* ── Finance & Accounts button hidden (Issue 16) ────────────────
           <Link href="/fees-collection/collect-fees" ...>Finance & Accounts</Link>
           ─────────────────────────────────────────────────────────────── */}
           </div>
@@ -1222,15 +1304,33 @@ export default function DashboardPage() {
                 {notices.length === 0 ? (
                   <p className="text-[13px] text-slate-400 py-3">No recent notices.</p>
                 ) : notices.slice(0, 5).map((notice, i) => {
-                  const icons = [FileText, Megaphone, CalendarDays, BookOpen, Clock];
-                  const Icon = icons[i % icons.length];
-                  const bgColors = ['bg-primary/10', 'bg-[#E8F8E8]', 'bg-[#FFEBF0]', 'bg-info/10', 'bg-[var(--section-alt)]'];
-                  const textColors = ['text-info', 'text-success', 'text-danger', 'text-info', 'text-primary'];
+                  let Icon = FileText;
+                  let bgColor = 'bg-blue-500/15';
+                  let textColor = 'text-blue-500';
+
+                  const aud = String(notice.target_audience).toLowerCase();
+                  if (aud === 'all') {
+                    Icon = Megaphone;
+                    bgColor = 'bg-primary/15';
+                    textColor = 'text-primary';
+                  } else if (aud === 'teachers' || aud === 'staff') {
+                    Icon = Users;
+                    bgColor = 'bg-emerald-500/15';
+                    textColor = 'text-emerald-500';
+                  } else if (aud === 'students') {
+                    Icon = BookOpen;
+                    bgColor = 'bg-amber-500/15';
+                    textColor = 'text-amber-500';
+                  } else if (aud === 'parents') {
+                    Icon = Clock;
+                    bgColor = 'bg-purple-500/15';
+                    textColor = 'text-purple-500';
+                  }
 
                   return (
                     <div key={notice._id} className="py-3.5 first:pt-0 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`w-8 h-8 rounded-full ${bgColors[i % bgColors.length]} ${textColors[i % textColors.length]} flex items-center justify-center shrink-0`}>
+                        <div className={`w-8 h-8 rounded-full ${bgColor} ${textColor} flex items-center justify-center shrink-0`}>
                           <Icon className="w-3.5 h-3.5" />
                         </div>
                         <div>
@@ -1724,9 +1824,8 @@ export default function DashboardPage() {
                         <td className="py-3 px-4">{row.marks}</td>
                         <td className="py-3 px-4">{row.cgpa}</td>
                         <td className="py-3 px-4">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            row.status === "Pass" ? "bg-success text-white" : "bg-danger text-white"
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${row.status === "Pass" ? "bg-success text-white" : "bg-danger text-white"
+                            }`}>
                             {row.status}
                           </span>
                         </td>

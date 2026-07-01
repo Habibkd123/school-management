@@ -6,6 +6,7 @@ import { useStudents } from "../../hooks/useStudents";
 import { useHomework, ApiHomework } from "../../hooks/useHomework";
 import { useAuth } from "../../context/auth";
 import { Modal } from "../../components/ui/modal";
+import { validateSequential } from "@/lib/utils/formValidation";
 import {
   BookOpen, Plus, Calendar, ClipboardCheck, CheckCircle2,
   AlertCircle, FileText, User, GraduationCap, MessageSquare, Loader2
@@ -57,6 +58,8 @@ export default function HomeworkPage() {
 
   // Selection states
   const [selectedHwId, setSelectedHwId] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [submissionContent, setSubmissionContent] = useState("");
   const [grade, setGrade] = useState("A");
@@ -71,6 +74,24 @@ export default function HomeworkPage() {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    const fieldsToValidate = [
+      { id: "title", value: title, label: "Title" },
+      { id: "description", value: description, label: "Description" },
+      { id: "classId", value: classId, label: "Class Target" },
+      { id: "subject", value: subject, label: "Subject" },
+      { id: "dueDate", value: dueDate, label: "Due Date" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return;
+    }
+    setValErrors({});
+
     const res = await createHomework({
       title,
       description,
@@ -83,31 +104,60 @@ export default function HomeworkPage() {
       setDescription("");
       setIsAddOpen(false);
     } else {
-      alert(res.message || "Failed to assign homework");
+      setFormError(res.message || "Failed to assign homework");
     }
   };
 
   const handleSubmitWork = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     if (!activeStudent) return;
+
+    const fieldsToValidate = [
+      { id: "submissionContent", value: submissionContent, label: "Your Response / Essay" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return;
+    }
+    setValErrors({});
+
     const res = await submitHomework(selectedHwId, activeStudent._id, submissionContent);
     if (res.success) {
       setSubmissionContent("");
       setIsSubmitOpen(false);
     } else {
-      alert(res.message || "Failed to submit response");
+      setFormError(res.message || "Failed to submit response");
     }
   };
 
   const handleGradeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    const fieldsToValidate = [
+      { id: "grade", value: grade, label: "Award Grade" },
+      { id: "feedback", value: feedback, label: "Evaluation Comments" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return;
+    }
+    setValErrors({});
+
     const res = await gradeHomework(selectedHwId, selectedStudentId, grade, feedback);
     if (res.success) {
       setGrade("A");
       setFeedback("");
       setIsGradeOpen(false);
     } else {
-      alert(res.message || "Failed to submit evaluation");
+      setFormError(res.message || "Failed to submit evaluation");
     }
   };
 
@@ -288,38 +338,61 @@ export default function HomeworkPage() {
           CREATE ASSIGNMENT MODAL
           ---------------------------------------------------- */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="New Homework Assignment">
-        <form onSubmit={handleAddSubmit} className="space-y-4">
+        <form onSubmit={handleAddSubmit} noValidate className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Assignment Title</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Assignment Title *</label>
             <input
-              required
+              id="title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Shakespearean Drama Analysis"
-              className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+              className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all shadow-sm ${
+                valErrors.title ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+              }`}
             />
+            {valErrors.title && (
+              <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                ❌ {valErrors.title}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Task Details & Description</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Task Details & Description *</label>
             <textarea
-              required
+              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Provide a prompt, text readings, or instructions..."
-              className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm resize-none"
+              className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none ${
+                valErrors.description ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+              }`}
             />
+            {valErrors.description && (
+              <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                ❌ {valErrors.description}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Class Target</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Class Target *</label>
               <select
+                id="classId"
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] font-medium text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
+                className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] font-medium text-slate-900 dark:text-white outline-none transition-all shadow-sm cursor-pointer ${
+                  valErrors.classId ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                }`}
               >
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -327,27 +400,46 @@ export default function HomeworkPage() {
                   </option>
                 ))}
               </select>
+              {valErrors.classId && (
+                <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                  ❌ {valErrors.classId}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Subject</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Subject *</label>
               <input
-                required
+                id="subject"
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. English"
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all shadow-sm ${
+                  valErrors.subject ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                }`}
               />
+              {valErrors.subject && (
+                <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                  ❌ {valErrors.subject}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Due Date</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Due Date *</label>
               <input
-                required
+                id="dueDate"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm font-mono font-bold text-slate-600 dark:text-slate-300 cursor-pointer"
+                className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all font-mono font-bold text-slate-600 dark:text-slate-300 cursor-pointer shadow-sm ${
+                  valErrors.dueDate ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                }`}
               />
+              {valErrors.dueDate && (
+                <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                  ❌ {valErrors.dueDate}
+                </p>
+              )}
             </div>
           </div>
 
@@ -373,22 +465,35 @@ export default function HomeworkPage() {
           STUDENT WORK SUBMISSION MODAL
           ---------------------------------------------------- */}
       <Modal isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} title="Submit Assignment Response">
-        <form onSubmit={handleSubmitWork} className="space-y-4">
+        <form onSubmit={handleSubmitWork} noValidate className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
+            </div>
+          )}
+
           <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border text-left">
             <h4 className="font-semibold text-slate-900 dark:text-white text-[14px]">{activeHw?.title}</h4>
             <p className="mt-1.5 leading-relaxed text-[13px] text-slate-600 dark:text-slate-300">{activeHw?.description}</p>
           </div>
 
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Your Response / Essay</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Your Response / Essay *</label>
             <textarea
-              required
+              id="submissionContent"
               value={submissionContent}
               onChange={(e) => setSubmissionContent(e.target.value)}
               rows={6}
               placeholder="Write your assignment text here..."
-              className="px-3.5 py-3 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm resize-none leading-relaxed"
+              className={`px-3.5 py-3 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none leading-relaxed ${
+                valErrors.submissionContent ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+              }`}
             />
+            {valErrors.submissionContent && (
+              <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                ❌ {valErrors.submissionContent}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -514,7 +619,13 @@ export default function HomeworkPage() {
           EVALUATE / GRADE SUBMISSION MODAL
           ---------------------------------------------------- */}
       <Modal isOpen={isGradeOpen} onClose={() => setIsGradeOpen(false)} title="Evaluate Student Assignment">
-        <form onSubmit={handleGradeSubmit} className="space-y-4">
+        <form onSubmit={handleGradeSubmit} noValidate className="space-y-4">
+          {formError && (
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
+            </div>
+          )}
+
           <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border text-left space-y-1.5">
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Student Submission</p>
             <p className="font-bold text-[14px] text-slate-900 dark:text-white">
@@ -532,6 +643,7 @@ export default function HomeworkPage() {
             <div className="flex flex-col gap-1.5 text-left col-span-1">
               <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Award Grade</label>
               <select
+                id="grade"
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
                 className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] font-bold text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm cursor-pointer"
@@ -544,15 +656,22 @@ export default function HomeworkPage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5 text-left col-span-2">
-              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Evaluation Comments</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Evaluation Comments *</label>
               <input
-                required
+                id="feedback"
                 type="text"
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Good analytical structure..."
-                className="px-3.5 py-2.5 border border-border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+                className={`px-3.5 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-white outline-none transition-all shadow-sm ${
+                  valErrors.feedback ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                }`}
               />
+              {valErrors.feedback && (
+                <p className="text-[11px] text-rose-500 font-bold mt-0.5 animate-in slide-in-from-top-1">
+                  ❌ {valErrors.feedback}
+                </p>
+              )}
             </div>
           </div>
 

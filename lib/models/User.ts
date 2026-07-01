@@ -7,6 +7,7 @@ export interface IUser extends Document {
   school_id: mongoose.Types.ObjectId | null;
   name: string;
   email: string;
+  username: string;
   password_hash: string;
   plain_password?: string;
   role: UserRole;
@@ -30,6 +31,14 @@ const userSchema = new Schema<IUser>(
     },
     name: { type: String, required: [true, "Name is required"], trim: true },
     email: { type: String, required: [true, "Email is required"], lowercase: true, trim: true },
+    username: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      sparse: true,
+      index: true,
+    },
     password_hash: { type: String, required: true, select: false }, // Never returned by default
     plain_password: { type: String, default: null },
     role: {
@@ -46,8 +55,17 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// ─── Compound index: same email can't exist twice in same school ───
+// ─── Indexes ───────────────────────────────────────────────────────
 userSchema.index({ email: 1, school_id: 1 }, { unique: true });
+userSchema.index({ username: 1 }, { unique: true });
+
+// ─── Generate username if missing before validation ─────────────────
+userSchema.pre("validate", async function () {
+  if (!this.username && this.email) {
+    const { generateUsernameForUser } = await import("../utils/username");
+    this.username = await generateUsernameForUser(this.email, this.school_id);
+  }
+});
 
 // ─── Hash password before saving ──────────────────────────────────
 userSchema.pre("save", async function () {

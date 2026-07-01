@@ -45,11 +45,22 @@ export default function StudentLoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!username.trim()) { setError("Username is required"); return; }
-    if (!password) { setError("Password is required"); return; }
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setError("Please enter your School Username.");
+      return;
+    }
+    if (!trimmedUsername.endsWith(".myschoollife") || trimmedUsername.includes(" ") || trimmedUsername.includes("@")) {
+      setError("Please enter a valid School Username.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
 
     setIsLoading(true);
-    const result = await login(username.trim(), password);
+    const result = await login(trimmedUsername, password);
 
     if (result.success) {
       router.push("/student/dashboard");
@@ -217,7 +228,7 @@ export default function StudentLoginPage() {
                 {/* Username */}
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">
-                    Username
+                    School Username
                   </label>
                   <div className="relative">
                     <input
@@ -226,7 +237,7 @@ export default function StudentLoginPage() {
                       autoComplete="username"
                       value={username}
                       onChange={(e) => { setUsername(e.target.value); setError(""); }}
-                      placeholder="e.g., greenvalley.student01"
+                      placeholder="Enter your school username. Example: greenvalley.myschoollife"
                       className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[13px] outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">

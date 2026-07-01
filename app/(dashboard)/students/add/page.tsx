@@ -11,6 +11,8 @@ import {
   X, Loader2, ImageIcon, Copy, Check, Lock, KeyRound, AlertCircle
 } from "lucide-react";
 
+import { validateSequential } from "@/lib/utils/formValidation";
+
 // ─── Types ─────────────────────────────────────────────────────────
 interface DocFile { name: string; url: string; }
 
@@ -74,19 +76,29 @@ function PhotoUploader({
 }
 
 // ─── Input group ───────────────────────────────────────────────────
-function InputGroup({ label, type = "text", placeholder, options, value, onChange, required }: {
+function InputGroup({ label, type = "text", placeholder, options, value, onChange, required, error, id }: {
   label: string; type?: "text" | "email" | "date" | "select" | "number";
   placeholder?: string; options?: (string | { label: string; value: string })[];
   value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; required?: boolean;
+  error?: string; id?: string;
 }) {
+  const borderClass = error 
+    ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" 
+    : "border border-border focus:border-primary/50";
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5 text-left">
       <label className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       {type === "select" ? (
         <div className="relative">
-          <select className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer" value={value} onChange={onChange as any}>
+          <select 
+            id={id}
+            className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all appearance-none cursor-pointer ${borderClass}`} 
+            value={value} 
+            onChange={onChange as any}
+          >
             {options?.map(opt => {
               const isObj = typeof opt === "object" && opt !== null;
               const val = isObj ? opt.value : opt;
@@ -97,8 +109,19 @@ function InputGroup({ label, type = "text", placeholder, options, value, onChang
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
         </div>
       ) : (
-        <input type={type} placeholder={placeholder} value={value} onChange={onChange as any} required={required}
-          className="w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary/50 transition-all" />
+        <input 
+          id={id}
+          type={type} 
+          placeholder={placeholder} 
+          value={value} 
+          onChange={onChange as any} 
+          className={`w-full px-3.5 py-2.5 text-[13px] text-slate-900 dark:text-white bg-white dark:bg-slate-900 rounded-lg outline-none transition-all ${borderClass}`} 
+        />
+      )}
+      {error && (
+        <p className="text-[11px] text-rose-500 font-bold mt-0.5 text-left animate-in slide-in-from-top-1">
+          ❌ {error}
+        </p>
       )}
     </div>
   );
@@ -129,6 +152,7 @@ function AddStudentContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [formError, setFormError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
 
   // Upload states
   const [uploadingStudentPhoto, setUploadingStudentPhoto] = useState(false);
@@ -301,29 +325,52 @@ function AddStudentContent() {
     e.preventDefault();
     setFormError("");
 
-    if (!classId) {
-      setFormError("Class selection is mandatory.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    const fieldsToValidate = [
+      { id: "academicYear", value: academicYear, label: "Academic Year" },
+      { id: "admissionNo", value: admissionNo, label: "Admission Number" },
+      { id: "admissionDate", value: admissionDate, label: "Admission Date" },
+      {
+        id: "classId",
+        value: classId,
+        label: "Class",
+        customValidate: (val: any) => {
+          if (!val) return "Class selection is mandatory.";
+          const selectedClass = apiClasses.find(c => c._id === val);
+          if (!selectedClass) return "Selected class is invalid.";
+          
+          const sectionsExistForClass = apiClasses.some(
+            c => c.name.toLowerCase() === selectedClass.name.toLowerCase() && c.section && c.section.trim() !== ""
+          );
+          if (sectionsExistForClass && (!selectedClass.section || !selectedClass.section.trim())) {
+            return "Section selection is mandatory because sections exist for this class.";
+          }
+          return true;
+        }
+      },
+      { id: "firstName", value: firstName, label: "First Name" },
+      {
+        id: "gender",
+        value: gender,
+        label: "Gender",
+        customValidate: (val: any) => (!val || val === "Select" ? "Gender selection is mandatory." : true)
+      },
+      { id: "guardianName", value: guardianName, label: "Guardian Name" },
+      {
+        id: "guardianRelation",
+        value: guardianRelation,
+        label: "Guardian Relation",
+        customValidate: (val: any) => (!val || val === "Select" ? "Guardian Relation selection is mandatory." : true)
+      },
+      { id: "guardianPhone", value: guardianPhone, label: "Guardian Phone Number" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
       return;
     }
-
-    const selectedClass = apiClasses.find(c => c._id === classId);
-    if (!selectedClass) {
-      setFormError("Selected class is invalid.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-
-    // Check if sections exist in the school for this class name
-    const sectionsExistForClass = apiClasses.some(
-      c => c.name.toLowerCase() === selectedClass.name.toLowerCase() && c.section && c.section.trim() !== ""
-    );
-
-    if (sectionsExistForClass && (!selectedClass.section || !selectedClass.section.trim())) {
-      setFormError("Section selection is mandatory because sections exist for this class.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
+    setValErrors({});
 
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -408,7 +455,7 @@ function AddStudentContent() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Validation Error Banner */}
         {formError && (
           <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-3 text-left animate-in fade-in">
@@ -431,10 +478,10 @@ function AddStudentContent() {
               />
               {/* Form Grid */}
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-5 text-left">
-                <InputGroup label="Academic Year" type="select" value={academicYear} onChange={e => setAcademicYear(e.target.value)} options={["June 2024 - 2025", "June 2025 - 2026", "June 2026 - 2027"]} required />
-                <InputGroup label="Admission Number" placeholder="Enter Admission Number" value={admissionNo} onChange={e => setAdmissionNo(e.target.value)} required />
-                <InputGroup label="Admission Date" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
-                <InputGroup label="Class" type="select" value={classId} onChange={e => setClassId(e.target.value)} options={[{ label: "Select", value: "" }, ...classOptions]} required />
+                <InputGroup label="Academic Year" type="select" value={academicYear} onChange={e => setAcademicYear(e.target.value)} options={["June 2024 - 2025", "June 2025 - 2026", "June 2026 - 2027"]} required error={valErrors.academicYear} id="academicYear" />
+                <InputGroup label="Admission Number" placeholder="Enter Admission Number" value={admissionNo} onChange={e => setAdmissionNo(e.target.value)} required error={valErrors.admissionNo} id="admissionNo" />
+                <InputGroup label="Admission Date" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required error={valErrors.admissionDate} id="admissionDate" />
+                <InputGroup label="Class" type="select" value={classId} onChange={e => setClassId(e.target.value)} options={[{ label: "Select", value: "" }, ...classOptions]} required error={valErrors.classId} id="classId" />
 
                 {/* Section display (read-only) */}
                 <div className="flex flex-col gap-1.5">
@@ -451,10 +498,10 @@ function AddStudentContent() {
                 </div>
 
                 <InputGroup label="Roll Number" value={rollNo} onChange={e => setRollNo(e.target.value)} />
-                <InputGroup label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <InputGroup label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required error={valErrors.firstName} id="firstName" />
                 <InputGroup label="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} />
 
-                <InputGroup label="Gender" type="select" value={gender} onChange={e => setGender(e.target.value)} options={["Select", "Male", "Female", "Other"]} required />
+                <InputGroup label="Gender" type="select" value={gender} onChange={e => setGender(e.target.value)} options={["Select", "Male", "Female", "Other"]} required error={valErrors.gender} id="gender" />
                 <InputGroup label="Date of Birth" type="date" value={dob} onChange={e => setDob(e.target.value)} />
                 <InputGroup label="Mobile Number" value={primaryPhone} onChange={e => setPrimaryPhone(e.target.value)} />
                 <InputGroup label="Email Address (Optional)" type="email" value={email} onChange={e => setEmail(e.target.value)} />
@@ -514,9 +561,9 @@ function AddStudentContent() {
                   uploading={uploadingGuardianPhoto}
                 />
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 text-left">
-                  <InputGroup label="Guardian Name" value={guardianName} onChange={e => setGuardianName(e.target.value)} required />
-                  <InputGroup label="Guardian Relation" value={guardianRelation} onChange={e => setGuardianRelation(e.target.value)} required />
-                  <InputGroup label="Phone Number" value={guardianPhone} onChange={e => setGuardianPhone(e.target.value)} required />
+                  <InputGroup label="Guardian Name" value={guardianName} onChange={e => setGuardianName(e.target.value)} required error={valErrors.guardianName} id="guardianName" />
+                  <InputGroup label="Guardian Relation" value={guardianRelation} onChange={e => setGuardianRelation(e.target.value)} required error={valErrors.guardianRelation} id="guardianRelation" />
+                  <InputGroup label="Phone Number" value={guardianPhone} onChange={e => setGuardianPhone(e.target.value)} required error={valErrors.guardianPhone} id="guardianPhone" />
                   <InputGroup label="Email" type="email" value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)} />
                   <InputGroup label="Occupation" value={guardianOccupation} onChange={e => setGuardianOccupation(e.target.value)} />
                   <div className="col-span-1 md:col-span-2 xl:col-span-3">

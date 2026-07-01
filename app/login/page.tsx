@@ -35,12 +35,23 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!username.trim()) { setError("School username is required"); return; }
-    if (!password) { setError("Password is required"); return; }
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setError("Please enter your School Username.");
+      return;
+    }
+    if (!trimmedUsername.endsWith(".myschoollife") || trimmedUsername.includes(" ") || trimmedUsername.includes("@")) {
+      setError("Please enter a valid School Username.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
 
     setIsLoading(true);
 
-    const result = await login(username.trim(), password);
+    const result = await login(trimmedUsername, password);
 
     if (result.success) {
       router.push("/dashboard");
@@ -115,7 +126,7 @@ export default function LoginPage() {
                     autoComplete="username"
                     value={username}
                     onChange={(e) => { setUsername(e.target.value); setError(""); }}
-                    placeholder="e.g., greenvalley.myschoollife"
+                    placeholder="Enter your school username. Example: greenvalley.myschoollife"
                     className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-primary dark:focus:border-primary transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
@@ -145,13 +156,6 @@ export default function LoginPage() {
                     {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              {/* Forgot Password — visible on admin portal only */}
-              <div className="flex justify-end">
-                <Link href="/forget-password" className="text-[12px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
-                  Forgot Password?
-                </Link>
               </div>
 
               {/* Submit */}

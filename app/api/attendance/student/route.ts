@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/db";
-import { Attendance, Timetable } from "@/lib/models/index";
+import { Attendance, Timetable, Student } from "@/lib/models/index";
 import Class from "@/lib/models/Class";
 import Teacher from "@/lib/models/Teacher";
 import User from "@/lib/models/User";

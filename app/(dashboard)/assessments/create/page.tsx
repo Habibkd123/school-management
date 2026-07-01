@@ -7,6 +7,7 @@ import { getAuthHeaders } from "@/lib/utils/session";
 import {
   ArrowLeft, Save, ClipboardList, Loader2, AlertCircle, CheckCircle,
 } from "lucide-react";
+import { validateSequential } from "@/lib/utils/formValidation";
 
 const TITLE_PRESETS = [
   "Chapter 1 Test", "Chapter 2 Test", "Chapter 3 Test", "Weekly Test",
@@ -48,6 +49,7 @@ export default function CreateTestPage() {
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState("");
 
   // Load classes
@@ -78,7 +80,7 @@ export default function CreateTestPage() {
       try {
         const res = await fetch(`/api/subjects?class_id=${classId}&limit=100`, { headers: getAuthHeaders() });
         const data = await res.json();
-        if (data.success) setSubjects(data.data || []);
+        if (data.success) setSubjects(data.data.subjects || []);
         else setSubjects([]);
       } finally {
         setIsLoadingSubjects(false);
@@ -141,14 +143,38 @@ export default function CreateTestPage() {
     e.preventDefault();
     setError("");
 
-    if (!title.trim()) return setError("Test title is required");
-    if (!classId) return setError("Please select a class");
-    if (!subjectId) return setError("Please select a subject");
-    if (!testDate) return setError("Test date is required");
-    if (!startTime || !endTime) return setError("Start and end time are required");
-    if (!totalMarks || Number(totalMarks) < 1) return setError("Total marks must be at least 1");
-    if (passingMarks === "" || passingMarks === undefined) return setError("Passing marks are required");
-    if (Number(passingMarks) > Number(totalMarks)) return setError("Passing marks cannot exceed total marks");
+    const fieldsToValidate = [
+      { id: "title", value: title, label: "Test Title" },
+      { id: "classId", value: classId, label: "Class" },
+      { id: "subjectId", value: subjectId, label: "Subject" },
+      { id: "testDate", value: testDate, label: "Test Date" },
+      { id: "startTime", value: startTime, label: "Start Time" },
+      { id: "endTime", value: endTime, label: "End Time" },
+      {
+        id: "totalMarks",
+        value: totalMarks,
+        label: "Total Marks",
+        customValidate: (val: any) => (!val || Number(val) < 1 ? "Total marks must be at least 1." : true)
+      },
+      {
+        id: "passingMarks",
+        value: passingMarks,
+        label: "Passing Marks",
+        customValidate: (val: any) => {
+          if (val === "" || val === undefined || val === null) return "Passing marks are required.";
+          if (Number(val) > Number(totalMarks)) return "Passing marks cannot exceed total marks.";
+          return true;
+        }
+      }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setError(valResult.error!);
+      return;
+    }
+    setValErrors({});
 
     setIsSaving(true);
     try {
@@ -223,7 +249,7 @@ export default function CreateTestPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl p-6 shadow-sm space-y-5">
           <h2 className="text-[14px] font-bold text-slate-800 dark:text-slate-200 border-b border-border pb-3">
             Test Information
@@ -233,11 +259,17 @@ export default function CreateTestPage() {
           <div>
             <label className={labelClass}>Test Title <span className="text-rose-500">*</span></label>
             <input
+              id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Chapter 1 Test"
-              className={fieldClass}
+              className={`${fieldClass} ${valErrors.title ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
             />
+            {valErrors.title && (
+              <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                ❌ {valErrors.title}
+              </p>
+            )}
             <div className="flex flex-wrap gap-1.5 mt-2">
               {TITLE_PRESETS.map((preset) => (
                 <button
@@ -267,7 +299,12 @@ export default function CreateTestPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Class <span className="text-rose-500">*</span></label>
-              <select value={classId} onChange={(e) => setClassId(e.target.value)} className={`${fieldClass} cursor-pointer`}>
+              <select 
+                id="classId"
+                value={classId} 
+                onChange={(e) => setClassId(e.target.value)} 
+                className={`${fieldClass} cursor-pointer ${valErrors.classId ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
+              >
                 <option value="">{isLoadingClasses ? "Loading..." : "Select Class"}</option>
                 {classes.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -275,15 +312,31 @@ export default function CreateTestPage() {
                   </option>
                 ))}
               </select>
+              {valErrors.classId && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.classId}
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Subject <span className="text-rose-500">*</span></label>
-              <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} disabled={!classId} className={`${fieldClass} cursor-pointer disabled:opacity-60`}>
+              <select 
+                id="subjectId"
+                value={subjectId} 
+                onChange={(e) => setSubjectId(e.target.value)} 
+                disabled={!classId} 
+                className={`${fieldClass} cursor-pointer disabled:opacity-60 ${valErrors.subjectId ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
+              >
                 <option value="">{isLoadingSubjects ? "Loading..." : classId ? "Select Subject" : "Select class first"}</option>
                 {subjects.map((s) => (
                   <option key={s._id} value={s._id}>{s.name}{s.code ? ` (${s.code})` : ""}</option>
                 ))}
               </select>
+              {valErrors.subjectId && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.subjectId}
+                </p>
+              )}
             </div>
           </div>
 
@@ -325,15 +378,30 @@ export default function CreateTestPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Test Date <span className="text-rose-500">*</span></label>
-              <input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} className={fieldClass} />
+              <input id="testDate" type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} className={`${fieldClass} ${valErrors.testDate ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`} />
+              {valErrors.testDate && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.testDate}
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Start Time <span className="text-rose-500">*</span></label>
-              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={fieldClass} />
+              <input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={`${fieldClass} ${valErrors.startTime ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`} />
+              {valErrors.startTime && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.startTime}
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>End Time <span className="text-rose-500">*</span></label>
-              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={fieldClass} />
+              <input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={`${fieldClass} ${valErrors.endTime ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`} />
+              {valErrors.endTime && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.endTime}
+                </p>
+              )}
             </div>
           </div>
 
@@ -341,21 +409,33 @@ export default function CreateTestPage() {
             <div>
               <label className={labelClass}>Total Marks <span className="text-rose-500">*</span></label>
               <input
+                id="totalMarks"
                 type="number" min="1" value={totalMarks}
                 onChange={(e) => setTotalMarks(e.target.value ? Number(e.target.value) : "")}
                 placeholder="e.g., 100"
-                className={fieldClass}
+                className={`${fieldClass} ${valErrors.totalMarks ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
               />
+              {valErrors.totalMarks && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.totalMarks}
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Passing Marks <span className="text-rose-500">*</span></label>
               <input
+                id="passingMarks"
                 type="number" min="0" max={totalMarks || undefined}
                 value={passingMarks}
                 onChange={(e) => setPassingMarks(e.target.value ? Number(e.target.value) : "")}
                 placeholder="e.g., 35"
-                className={fieldClass}
+                className={`${fieldClass} ${valErrors.passingMarks ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
               />
+              {valErrors.passingMarks && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.passingMarks}
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Academic Year</label>

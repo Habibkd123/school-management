@@ -81,7 +81,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
 
   // ── Login ────────────────────────────────────────────────────────
   const login = async (
-    email: string,
+    username: string,
     password: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
@@ -93,7 +93,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, school_id: schoolId }),
+        body: JSON.stringify({ username, password, school_id: schoolId }),
       });
 
       const data = await res.json();

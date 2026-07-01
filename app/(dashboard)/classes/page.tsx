@@ -15,6 +15,7 @@ import { useAppState } from "@/app/context/store";
 import { useSections } from "@/app/hooks/useSections";
 import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import { useStreams } from "@/app/hooks/useStreams";
+import { validateSequential } from "@/lib/utils/formValidation";
 
 export default function ClassesPage() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export default function ClassesPage() {
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [valErrors, setValErrors] = useState<Record<string, string>>({});
 
   // ── Filter / pagination states ─────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,6 +154,7 @@ export default function ClassesPage() {
     setQuickSectionName("");
     setFormStreams([]);
     setFormStream("");
+    setValErrors({});
   };
 
   const openEdit = (cls: ApiClass) => {
@@ -172,6 +175,7 @@ export default function ClassesPage() {
     setFormTeacherId(cls.class_teacher_id?._id || "");
     setFormCapacity(String(cls.capacity));
     setFormError("");
+    setValErrors({});
     setIsEditClassOpen(true);
     setActionMenuId(null);
   };
@@ -182,12 +186,26 @@ export default function ClassesPage() {
     setActionMenuId(null);
   };
 
+  const validateClassForm = (): boolean => {
+    const fieldsToValidate = [
+      { id: "formName", value: formName, label: "Class Name" },
+      { id: "formAcademicYear", value: formAcademicYear, label: "Academic Year" }
+    ];
+
+    const valResult = validateSequential(fieldsToValidate);
+    if (!valResult.isValid) {
+      setValErrors({ [valResult.fieldId!]: valResult.error! });
+      setFormError(valResult.error!);
+      return false;
+    }
+    setValErrors({});
+    setFormError("");
+    return true;
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formAcademicYear.trim()) {
-      setFormError("Class name and academic year are required.");
-      return;
-    }
+    if (!validateClassForm()) return;
     setSubmitting(true);
     
     const isHigherClass = formName === "Class 11" || formName === "Class 12";
@@ -226,10 +244,7 @@ export default function ClassesPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClass) return;
-    if (!formName.trim() || !formAcademicYear.trim()) {
-      setFormError("Class name and academic year are required.");
-      return;
-    }
+    if (!validateClassForm()) return;
     setSubmitting(true);
     const isHigherClass = formName === "Class 11" || formName === "Class 12";
     const finalClassName = enableStreams && isHigherClass && formStream ? `${formName.trim()} ${formStream.trim()}` : formName.trim();
@@ -578,20 +593,25 @@ export default function ClassesPage() {
 
       {/* ── ADD CLASS MODAL ── */}
       <Modal isOpen={isAddClassOpen} onClose={() => { setIsAddClassOpen(false); resetForm(); }} title="Add Class">
-        <form onSubmit={handleAddSubmit} className="space-y-5 text-left">
+        <form onSubmit={handleAddSubmit} noValidate className="space-y-5 text-left font-bold">
           {formError && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[13px] font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {formError}
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
+              <label className="text-[13px] font-bold text-foreground dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
               <div className="relative">
-                <select value={formName} onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                <select 
+                  id="formName"
+                  value={formName} 
+                  onChange={(e) => setFormName(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm cursor-pointer ${
+                    valErrors.formName ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50"
+                  }`}
+                >
                   <option value="">Select Class</option>
                   {[
                     "Class 1", "Class 2", "Class 3", "Class 4", "Class 5",
@@ -601,6 +621,11 @@ export default function ClassesPage() {
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
               </div>
+              {valErrors.formName && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.formName}
+                </p>
+              )}
             </div>
           </div>
 
@@ -686,8 +711,14 @@ export default function ClassesPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Academic Year <span className="text-red-500">*</span></label>
               <div className="relative">
-                <select value={formAcademicYear} onChange={(e) => setFormAcademicYear(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                <select 
+                  id="formAcademicYear"
+                  value={formAcademicYear} 
+                  onChange={(e) => setFormAcademicYear(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm cursor-pointer ${
+                    valErrors.formAcademicYear ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50"
+                  }`}
+                >
                   <option value="">Select Year</option>
                   {[
                     "2026-2027"
@@ -695,6 +726,11 @@ export default function ClassesPage() {
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
               </div>
+              {valErrors.formAcademicYear && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.formAcademicYear}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Capacity</label>
@@ -719,20 +755,25 @@ export default function ClassesPage() {
 
       {/* ── EDIT CLASS MODAL ── */}
       <Modal isOpen={isEditClassOpen} onClose={() => { setIsEditClassOpen(false); resetForm(); }} title="Edit Class">
-        <form onSubmit={handleEditSubmit} className="space-y-5 text-left">
+        <form onSubmit={handleEditSubmit} noValidate className="space-y-5 text-left font-bold">
           {formError && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[13px] font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {formError}
+            <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-2.5 text-rose-600 dark:text-rose-400 text-[12px] font-semibold">
+              <span>⚠️ {formError}</span>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
+              <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Class Name <span className="text-red-500">*</span></label>
               <div className="relative">
-                <select value={formName} onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                <select 
+                  id="formName"
+                  value={formName} 
+                  onChange={(e) => setFormName(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm cursor-pointer ${
+                    valErrors.formName ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50"
+                  }`}
+                >
                   <option value="">Select Class</option>
                   {[
                     "Class 1", "Class 2", "Class 3", "Class 4", "Class 5",
@@ -742,6 +783,11 @@ export default function ClassesPage() {
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
               </div>
+              {valErrors.formName && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.formName}
+                </p>
+              )}
             </div>
             {enableSections && (
               <div className="flex flex-col gap-1.5">
@@ -780,8 +826,14 @@ export default function ClassesPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Academic Year <span className="text-red-500">*</span></label>
               <div className="relative">
-                <select value={formAcademicYear} onChange={(e) => setFormAcademicYear(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[13px] outline-none focus:border-primary/50 appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm">
+                <select 
+                  id="formAcademicYear"
+                  value={formAcademicYear} 
+                  onChange={(e) => setFormAcademicYear(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg text-[13px] outline-none appearance-none bg-white dark:bg-slate-900 font-medium shadow-sm cursor-pointer ${
+                    valErrors.formAcademicYear ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-border focus:border-primary/50"
+                  }`}
+                >
                   <option value="">Select Year</option>
                   {[
                     "2026-2027"
@@ -789,6 +841,11 @@ export default function ClassesPage() {
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
               </div>
+              {valErrors.formAcademicYear && (
+                <p className="text-[11px] text-rose-500 font-bold mt-1 text-left animate-in slide-in-from-top-1">
+                  ❌ {valErrors.formAcademicYear}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-semibold text-foreground dark:text-slate-100">Capacity</label>

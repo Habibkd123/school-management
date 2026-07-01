@@ -4,14 +4,14 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveSession } from "@/lib/utils/session";
 import {
-  Eye, EyeOff, Lock, Mail, Loader2, ShieldCheck,
+  Eye, EyeOff, Lock, User, Loader2, ShieldCheck,
   AlertCircle, ChevronRight
 } from "lucide-react";
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
 
-  const [email, setEmail]       = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw]     = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +20,18 @@ export default function SuperAdminLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) {
-      setError("Please enter your email and password.");
+
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
+      setError("Please enter your School Username.");
+      return;
+    }
+    if (!trimmedUsername.endsWith(".myschoollife") || trimmedUsername.includes(" ") || trimmedUsername.includes("@")) {
+      setError("Please enter a valid School Username.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
       return;
     }
 
@@ -30,7 +40,7 @@ export default function SuperAdminLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, is_super_admin: true }),
+        body: JSON.stringify({ username: trimmedUsername, password, is_super_admin: true }),
       });
 
       const data = await res.json();
@@ -176,20 +186,20 @@ export default function SuperAdminLoginPage() {
             </div>
           )}
 
-          {/* Email */}
+          {/* Username */}
           <div className="space-y-1.5">
             <label className="text-[11.5px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              Email Address
+              <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              School Username
             </label>
             <div className="relative">
               <input
-                id="sa-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                placeholder="superadmin@myschoollife.com"
+                id="sa-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => { setUsername(e.target.value); setError(""); }}
+                placeholder="Enter your school username. Example: superadmin.myschoollife"
                 className="w-full px-4 py-3 rounded-xl text-[13px] text-white placeholder:text-slate-600 outline-none transition-all"
                 style={{
                   background: "rgba(15,23,42,0.8)",

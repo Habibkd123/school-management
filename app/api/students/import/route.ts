@@ -18,7 +18,7 @@ function generateStudentLoginEmail(name: string, dob?: string): string {
     }
   }
   const slug = SCHOOL_SLUG.replace(/[\s-]+/g, "");
-  return `${firstName}${dobDay}.${slug}@gmail.com`;
+  return `${firstName}${dobDay}.${slug}.myschoollife`;
 }
 
 export async function POST(req: NextRequest) {
