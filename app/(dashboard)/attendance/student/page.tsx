@@ -161,18 +161,22 @@ export default function StudentAttendancePage() {
   // Sync state when attendance changes
   useEffect(() => {
     const newRecords: Record<string, { status: string; note: string }> = {};
+    
+    // First, set defaults for all students
+    students.forEach(s => {
+      newRecords[s._id] = { status: "present", note: "" };
+    });
+
+    // Then, overlay existing records from database
     if (attendance?.records) {
       attendance.records.forEach(r => {
-        if (r.student_id?._id) {
-          newRecords[r.student_id._id] = { status: r.status, note: r.note || "" };
+        const sId = typeof r.student_id === "object" && r.student_id ? r.student_id._id : r.student_id;
+        if (sId) {
+          newRecords[sId.toString()] = { status: r.status, note: r.note || "" };
         }
       });
       setMode("view");
     } else {
-      // Default all to Present
-      students.forEach(s => {
-        newRecords[s._id] = { status: "present", note: "" };
-      });
       setMode("take");
     }
     setAttendanceRecords(newRecords);

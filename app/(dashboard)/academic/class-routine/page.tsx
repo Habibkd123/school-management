@@ -68,7 +68,7 @@ export default function ClassRoutinePage() {
     });
     const uniqueClassIds = new Set<string>();
     const result: any[] = [];
-    
+
     assigned.forEach(a => {
       if (a.class_id) {
         const classObj = a.class_id;
@@ -221,9 +221,13 @@ export default function ClassRoutinePage() {
 
   const getClassName = (c: any) => {
     if (typeof c === "object" && c !== null) {
-      return `${c.name} - ${c.section}`;
+      return c.section ? `${c.name} - ${c.section}` : c.name;
     }
-    return classes.find(item => item._id === c)?.name || "N/A";
+    const found = classes.find(item => item._id === c);
+    if (found) {
+      return found.section ? `${found.name} - ${found.section}` : found.name;
+    }
+    return "N/A";
   };
 
   const getTeacherName = (t: any) => {
@@ -248,6 +252,46 @@ export default function ClassRoutinePage() {
 
     return sName.includes(search) || cName.includes(search) || tName.includes(search);
   });
+
+  // Group routines by class for the list view
+  const groupedRoutines = useMemo(() => {
+    const groups: Record<string, { classInfo: any; routines: any[] }> = {};
+
+    filteredRoutines.forEach((routine) => {
+      const classIdStr = typeof routine.class_id === "object" && routine.class_id !== null
+        ? routine.class_id._id
+        : routine.class_id;
+      if (!classIdStr) return;
+
+      if (!groups[classIdStr]) {
+        groups[classIdStr] = {
+          classInfo: routine.class_id,
+          routines: [],
+        };
+      }
+      groups[classIdStr].routines.push(routine);
+    });
+
+    // Sort routines within each class by day order and start time
+    const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    Object.values(groups).forEach((group) => {
+      group.routines.sort((a, b) => {
+        const dayA = dayOrder.indexOf(a.day.toLowerCase());
+        const dayB = dayOrder.indexOf(b.day.toLowerCase());
+        if (dayA !== dayB) return dayA - dayB;
+
+        // Compare start times
+        return a.start_time.localeCompare(b.start_time);
+      });
+    });
+
+    // Sort classes by name/section for consistency
+    return Object.values(groups).sort((a, b) => {
+      const nameA = getClassName(a.classInfo).toLowerCase();
+      const nameB = getClassName(b.classInfo).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [filteredRoutines, classes]);
 
   // Timetable grid structure for class selected
   const gridSchedules = useMemo(() => {
@@ -296,7 +340,7 @@ export default function ClassRoutinePage() {
           <button onClick={() => fetchSchedules()} className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors shadow-sm cursor-pointer">
             <RefreshCw className="w-4 h-4" />
           </button>
-          
+
           {viewMode === "grid" && (
             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-border rounded-lg px-3 py-1.5 text-[13px] shadow-sm">
               <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider dark:text-slate-400">Class:</span>
@@ -341,69 +385,95 @@ export default function ClassRoutinePage() {
             </div>
           </div>
 
-          <div className={`overflow-x-auto ${actionMenuId ? 'pb-28' : ''}`}>
+          <div className={`p-5 ${actionMenuId ? 'pb-28' : ''}`}>
             {isLoading ? (
               <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-2 dark:text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <span>Fetching class routines...</span>
               </div>
+            ) : groupedRoutines.length === 0 ? (
+              <div className="py-20 text-center text-slate-500 dark:text-slate-400 font-medium">
+                No routine items found.
+              </div>
             ) : (
-              <table className="w-full text-[13px]">
-                <thead className="bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] border-y border-border">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">ID</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Class</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Teacher</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Subject</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Day</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 font-mono">Start Time</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 font-mono">End Time</th>
-                    <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200 w-20">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredRoutines.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                        No routine items found.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRoutines.map((routine) => (
-                      <tr key={routine._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-6 py-4 font-semibold text-primary">{routine._id.substring(routine._id.length - 8)}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-bold">{getClassName(routine.class_id)}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{getTeacherName(routine.teacher_id)}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-semibold">{getSubjectName(routine.subject_id)}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300 capitalize">{routine.day}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono">{routine.start_time}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono">{routine.end_time}</td>
-                        <td className="px-6 py-4 text-center relative" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setActionMenuId(actionMenuId === routine._id ? null : routine._id)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === routine._id ? "bg-primary text-white" : "hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                          {actionMenuId === routine._id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
-                              <div className="absolute right-10 top-10 w-36 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
-                                <button onClick={() => openEditModal(routine)} className="w-full px-4 py-2 text-[13px] text-foreground dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                  <Edit className="w-4 h-4 text-foreground" /> Edit
-                                </button>
-                                <button onClick={() => handleDelete(routine._id)} className="w-full px-4 py-2 text-[13px] text-foreground dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
-                                  <Trash2 className="w-4 h-4 text-foreground" /> Delete
-                                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {groupedRoutines.map((group) => {
+                  const classLabel = getClassName(group.classInfo);
+                  const classIdVal = typeof group.classInfo === "object" && group.classInfo !== null ? group.classInfo._id : group.classInfo;
+
+                  return (
+                    <div key={classIdVal} className="bg-slate-50/50 dark:bg-slate-900 border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+                      {/* Header box */}
+                      <div className="bg-white dark:bg-slate-900/50 px-5 py-4 border-b border-border flex items-center justify-between">
+                        <h3 className="text-[14px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                          {classLabel}
+                        </h3>
+                        <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-[11px] font-bold rounded-full">
+                          {group.routines.length} {group.routines.length === 1 ? "Period" : "Periods"}
+                        </span>
+                      </div>
+
+                      {/* Body content */}
+                      <div className="p-4 space-y-3 flex-1">
+                        {group.routines.map((routine, idx) => (
+                          <div key={routine._id} className="bg-white dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 hover:shadow-sm transition-all duration-200 flex flex-row items-stretch justify-between gap-3 relative group/item">
+                            <div className="flex items-start gap-3">
+                              {/* Period Circle */}
+                              <div className="w-9 h-9 rounded-lg bg-primary/5 text-primary flex flex-col items-center justify-center font-bold text-[11px] shrink-0 border border-primary/10">
+                                <span className="text-[8px] uppercase tracking-wider leading-none text-slate-400 font-semibold">Per</span>
+                                <span className="leading-none mt-0.5 text-[13px]">{idx + 1}</span>
                               </div>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+
+                              <div className="text-left">
+                                <h4 className="text-[14px] font-bold text-slate-900 dark:text-white leading-tight">
+                                  {getSubjectName(routine.subject_id)}
+                                </h4>
+                                <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300">{getTeacherName(routine.teacher_id)}</span>
+                                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                                  <span className="capitalize px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[11px] font-medium">{routine.day}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end justify-between gap-2 shrink-0">
+                              {/* Timings */}
+                              <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 border border-border px-2 py-0.5 rounded font-mono">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span>{routine.start_time} - {routine.end_time}</span>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => setActionMenuId(actionMenuId === routine._id ? null : routine._id)}
+                                  className={`p-1 rounded-lg transition-colors cursor-pointer ${actionMenuId === routine._id ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 border border-border bg-white dark:bg-slate-900"}`}
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </button>
+                                {actionMenuId === routine._id && (
+                                  <>
+                                    <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
+                                    <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-1.5 text-left">
+                                      <button onClick={() => openEditModal(routine)} className="w-full px-4 py-2 text-[12.5px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-semibold transition-colors cursor-pointer">
+                                        <Edit className="w-4 h-4 text-slate-500" /> Edit
+                                      </button>
+                                      <button onClick={() => handleDelete(routine._id)} className="w-full px-4 py-2 text-[12.5px] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center gap-2 font-semibold transition-colors cursor-pointer">
+                                        <Trash2 className="w-4 h-4 text-rose-500" /> Delete
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -448,7 +518,7 @@ export default function ClassRoutinePage() {
                               </div>
                               <p className="text-[13px] font-bold text-slate-900 dark:text-white leading-snug">{getSubjectName(routine.subject_id)}</p>
                               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Teacher: {getTeacherName(routine.teacher_id)}</p>
-                              
+
                               <div className="absolute right-2 top-2 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center gap-1 bg-white/80 dark:bg-slate-950/80 p-1 rounded-lg">
                                 <button onClick={() => openEditModal(routine)} className="p-1 hover:text-primary transition-colors text-slate-500 cursor-pointer dark:text-slate-400"><Edit className="w-3.5 h-3.5" /></button>
                                 <button onClick={() => handleDelete(routine._id)} className="p-1 hover:text-red-500 transition-colors text-slate-500 cursor-pointer dark:text-slate-400"><Trash2 className="w-3.5 h-3.5" /></button>

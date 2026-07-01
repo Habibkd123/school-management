@@ -13,6 +13,7 @@ export interface ApiHomeworkSubmission {
   submitted_at: string;
   grade?: string;
   feedback?: string;
+  remarks?: string;
 }
 
 export interface ApiHomework {
@@ -36,6 +37,7 @@ export interface ApiHomework {
   assigned_date: string;
   due_date: string;
   attachment_url?: string;
+  status: "draft" | "published" | "completed";
   submissions: ApiHomeworkSubmission[];
 }
 
@@ -82,6 +84,7 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
     subject: string;
     dueDate: string;
     attachmentUrl?: string;
+    status?: string;
   }): Promise<{ success: boolean; message: string; data?: ApiHomework }> => {
     try {
       const res = await fetch("/api/homework", {
@@ -101,7 +104,7 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
 
   const submitHomework = async (
     homeworkId: string,
-    studentId: string,
+    studentId: string | undefined,
     content: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
@@ -127,13 +130,14 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
     homeworkId: string,
     studentId: string,
     grade: string,
-    feedback?: string
+    feedback?: string,
+    remarks?: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await fetch(`/api/homework/${homeworkId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ action: "grade", studentId, grade, feedback }),
+        body: JSON.stringify({ action: "grade", studentId, grade, feedback, remarks }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to grade work" };
@@ -143,6 +147,46 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
         prev.map((hw) => (hw._id === homeworkId ? data.data : hw))
       );
       return { success: true, message: "Homework graded successfully" };
+    } catch {
+      return { success: false, message: "Network error" };
+    }
+  };
+
+  const markCompleted = async (homeworkId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await fetch(`/api/homework/${homeworkId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ action: "complete" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to mark homework as completed" };
+
+      // Update local state
+      setHomework((prev) =>
+        prev.map((hw) => (hw._id === homeworkId ? data.data : hw))
+      );
+      return { success: true, message: "Homework marked as completed" };
+    } catch {
+      return { success: false, message: "Network error" };
+    }
+  };
+
+  const publishHomework = async (homeworkId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await fetch(`/api/homework/${homeworkId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ action: "publish" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) return { success: false, message: data.message || "Failed to publish homework" };
+
+      // Update local state
+      setHomework((prev) =>
+        prev.map((hw) => (hw._id === homeworkId ? data.data : hw))
+      );
+      return { success: true, message: "Homework published successfully" };
     } catch {
       return { success: false, message: "Network error" };
     }
@@ -172,6 +216,8 @@ export function useHomework(classId?: string, options?: { skip?: boolean }) {
     createHomework,
     submitHomework,
     gradeHomework,
+    markCompleted,
+    publishHomework,
     deleteHomework,
   };
 }

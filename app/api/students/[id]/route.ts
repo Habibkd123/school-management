@@ -197,7 +197,36 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
       updateData.admission_no = admNo;
     }
+    if (updateData.class_id !== undefined) {
+      const classIdStr = updateData.class_id as string;
+      if (!classIdStr) {
+        return NextResponse.json(
+          { success: false, message: "Class selection is mandatory" },
+          { status: 400 }
+        );
+      }
 
+      const selectedClass = await Class.findOne({ _id: classIdStr, school_id: schoolId });
+      if (!selectedClass) {
+        return NextResponse.json(
+          { success: false, message: "Selected class does not exist" },
+          { status: 400 }
+        );
+      }
+
+      const sectionsExistForClass = await Class.exists({
+        school_id: schoolId,
+        name: { $regex: new RegExp(`^${selectedClass.name}$`, "i") },
+        section: { $ne: "" }
+      });
+
+      if (sectionsExistForClass && (!selectedClass.section || !selectedClass.section.trim())) {
+        return NextResponse.json(
+          { success: false, message: "Section selection is mandatory because sections exist for this class" },
+          { status: 400 }
+        );
+      }
+    }
     const student = await Student.findOneAndUpdate(
       { _id: id, school_id: schoolId },
       { $set: updateData },

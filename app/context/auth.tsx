@@ -12,6 +12,7 @@ import {
   clearMustChangePassword,
   StoredUser,
 } from "@/lib/utils/session";
+import { AlertCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────
 interface AuthContextType {
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<Record<string, Record<string, string[]>> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [sessionExpiredToast, setSessionExpiredToast] = useState(false);
 
   const fetchPermissions = useCallback(async () => {
     try {
@@ -192,7 +194,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearSession();
     setUser(null);
     setMustChangePassword(false);
-    router.push("/login");
+    router.push("/");
+  }, [router]);
+
+  // ─── Global Fetch Interceptor ─────────────────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const originalFetch = window.fetch;
+    window.fetch = async (input, init) => {
+      const response = await originalFetch(input, init);
+      if (response.status === 401 || response.status === 403) {
+        const urlStr = typeof input === "string" ? input : (input as Request).url;
+        // Don't intercept credentials or login validation/config requests
+        const isAuthApi =
+          urlStr.includes("/api/auth/login") ||
+          urlStr.includes("/api/auth/refresh") ||
+          urlStr.includes("/api/school/login-config");
+
+        if (!isAuthApi) {
+          clearSession();
+          setUser(null);
+          setMustChangePassword(false);
+          setSessionExpiredToast(true);
+          setTimeout(() => setSessionExpiredToast(false), 5000);
+          router.push("/");
+        }
+      }
+      return response;
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
   }, [router]);
 
   // ─── Clear mustChangePassword after forced change ───────────────
@@ -296,6 +330,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      {sessionExpiredToast && (
+        <div className="fixed top-5 right-5 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[13px] font-medium transition-all bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-400">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Your session has expired. Please log in again.
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
     // ─── Check if this is a super_admin login (no school_id needed) ─────────
     const isSuperAdminAttempt = body.is_super_admin === true;
 
+    // ─── Accept 'username' as an alias for 'email' ───────────────────
+    // Both field names work so that UI changes don't break the API
+    if (!body.email && body.username) {
+      body.email = body.username;
+    }
+
     // ─── Strict Validation ──────────────────────────────────────
     const errors = validate(body, {
       email: { required: true },
@@ -94,7 +100,7 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { success: false, message: "Invalid ID/email or password" },
+          { success: false, message: "Invalid username or password" },
           { status: 401 }
         );
       }
@@ -124,7 +130,7 @@ export async function POST(request: NextRequest) {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return NextResponse.json(
-        { success: false, message: "Invalid email or password" },
+        { success: false, message: "Invalid username or password" },
         { status: 401 }
       );
     }

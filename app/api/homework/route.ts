@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { title, description, classId, subject, dueDate, attachmentUrl } = body;
+    const { title, description, classId, subject, dueDate, attachmentUrl, status } = body;
 
     if (!title || !classId || !subject || !dueDate) {
       return NextResponse.json(
@@ -193,6 +193,7 @@ export async function POST(req: NextRequest) {
       description: description?.trim(),
       due_date: new Date(dueDate),
       attachment_url: attachmentUrl?.trim() || null,
+      status: status || "published",
       submissions: [],
     });
 

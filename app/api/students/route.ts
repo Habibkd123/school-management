@@ -199,7 +199,28 @@ export async function POST(request: NextRequest) {
     }
     if (!class_id) {
       return NextResponse.json(
-        { success: false, message: "Class is required" },
+        { success: false, message: "Class selection is mandatory" },
+        { status: 400 }
+      );
+    }
+
+    const selectedClass = await Class.findOne({ _id: class_id, school_id: schoolId });
+    if (!selectedClass) {
+      return NextResponse.json(
+        { success: false, message: "Selected class does not exist" },
+        { status: 400 }
+      );
+    }
+
+    const sectionsExistForClass = await Class.exists({
+      school_id: schoolId,
+      name: { $regex: new RegExp(`^${selectedClass.name}$`, "i") },
+      section: { $ne: "" }
+    });
+
+    if (sectionsExistForClass && (!selectedClass.section || !selectedClass.section.trim())) {
+      return NextResponse.json(
+        { success: false, message: "Section selection is mandatory because sections exist for this class" },
         { status: 400 }
       );
     }

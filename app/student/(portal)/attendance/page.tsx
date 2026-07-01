@@ -87,6 +87,7 @@ export default function StudentAttendancePage() {
   const lateCount = attendanceRecords.filter((r) => r.status === "late").length;
   const halfDayCount = attendanceRecords.filter((r) => r.status === "half_day").length;
   const holidayCount = attendanceRecords.filter((r) => r.status === "holiday").length;
+  const leaveCount = attendanceRecords.filter((r) => r.status === "leave").length;
 
   const activeDays = totalMarked - holidayCount;
   const presentRate =
@@ -133,6 +134,13 @@ export default function StudentAttendancePage() {
       text: "text-sky-700 dark:text-sky-400",
       dot: "bg-sky-500",
       border: "border-sky-200 dark:border-sky-500/20",
+    },
+    leave: {
+      label: "Leave",
+      bg: "bg-violet-50 dark:bg-violet-500/10",
+      text: "text-violet-700 dark:text-violet-400",
+      dot: "bg-violet-500",
+      border: "border-violet-200 dark:border-violet-500/20",
     },
   };
 
@@ -186,24 +194,9 @@ export default function StudentAttendancePage() {
       </div>
 
       {/* ── Stats Summary ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        {/* Attendance Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 col-span-2 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[120px] h-[120px] rounded-full opacity-5" style={{ background: "radial-gradient(circle, #6366f1, transparent 70%)", transform: "translate(30px, -30px)" }} />
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20">
-              <TrendingUp className="w-4 h-4 text-indigo-500" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly Rate</span>
-          </div>
-          <p className="text-3xl font-extrabold text-slate-900 dark:text-white">{presentRate}%</p>
-          <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Based on {activeDays} class days
-          </p>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Present */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left">
           <div className="flex items-center justify-between mb-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -215,7 +208,7 @@ export default function StudentAttendancePage() {
         </div>
 
         {/* Absent */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left">
           <div className="flex items-center justify-between mb-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20">
               <XCircle className="w-4 h-4 text-rose-500" />
@@ -226,28 +219,31 @@ export default function StudentAttendancePage() {
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Days absent</p>
         </div>
 
-        {/* Late */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        {/* Leave */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-left">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
-              <Clock className="w-4 h-4 text-amber-500" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20">
+              <Clock className="w-4 h-4 text-violet-500" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Late</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Leave</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{lateCount}</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Days late</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{leaveCount}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Days on leave</p>
         </div>
 
-        {/* Half Day */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        {/* Attendance Rate */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden text-left">
+          <div className="absolute top-0 right-0 w-[120px] h-[120px] rounded-full opacity-5" style={{ background: "radial-gradient(circle, #6366f1, transparent 70%)", transform: "translate(30px, -30px)" }} />
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
-              <AlertCircle className="w-4 h-4 text-orange-500" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20">
+              <TrendingUp className="w-4 h-4 text-indigo-500" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Half Day</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly Percentage</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{halfDayCount}</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Half days</p>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{presentRate}%</p>
+          <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+            Based on {activeDays} class days
+          </p>
         </div>
       </div>
 

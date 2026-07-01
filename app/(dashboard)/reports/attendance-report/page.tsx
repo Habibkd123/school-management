@@ -1,77 +1,172 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Search, List, Filter, ChevronDown, RefreshCw, Printer, Download, FileText, Calendar, Loader2
+  Search, RefreshCw, Printer, Download, FileText, ChevronDown, Loader2
 } from "lucide-react";
 import { useClasses } from "../../../hooks/useClasses";
-import { useStudents } from "../../../hooks/useStudents";
-import { useAuth } from "@/app/context/auth";
+import { getAuthHeaders } from "@/lib/utils/session";
 import ReportTabs from "../ReportTabs";
 
-export default function AttendanceReportPage() {
-  const { classes, isLoading } = useClasses();
-  const { students } = useStudents();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "school_admin" || user?.role === "super_admin";
+interface MonthlyClassStat {
+  classId: string;
+  className: string;
+  section: string;
+  studentCount: number;
+  workingDays: number;
+  averagePresent: number;
+  averageAbsent: number;
+  rate: number;
+}
 
+export default function AttendanceReportPage() {
+  const { classes } = useClasses();
+  const [stats, setStats] = useState<MonthlyClassStat[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [filterMonth, setFilterMonth] = useState("");
+  const [filterMonth, setFilterMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [filterClass, setFilterClass] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
-  const filteredClasses = useMemo(() => {
-    return classes.filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.section.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [classes, searchTerm]);
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/reports/attendance?type=monthly&month=${filterMonth}`,
+        { headers: getAuthHeaders() }
+      );
+      const json = await res.json();
+      if (json.success) {
+        setStats(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const getStudentsInClass = (classId: string) =>
-    students.filter(s => {
-      const cid = typeof s.class_id === "object" ? s.class_id?._id : s.class_id;
-      return cid === classId;
+  useEffect(() => {
+    fetchStats();
+  }, [filterMonth]);
+
+  const filteredStats = useMemo(() => {
+    return stats.filter((s) => {
+      const matchSearch =
+        s.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.section.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchClass = !filterClass || s.classId === filterClass;
+      return matchSearch && matchClass;
     });
+  }, [stats, searchTerm, filterClass]);
 
-  // Mock aggregated attendance for the class report since we don't have a bulk API yet
-  const generateClassStats = (classId: string) => {
-    const studentCount = getStudentsInClass(classId).length;
-    const base = classId.charCodeAt(classId.length - 1);
-    const presentRate = 75 + (base % 20); // 75-94%
-    const totalWorkingDays = 22;
-    return {
-      studentCount,
-      presentRate,
-      averagePresent: Math.round((presentRate / 100) * studentCount),
-      averageAbsent: studentCount - Math.round((presentRate / 100) * studentCount),
-      totalWorkingDays
-    };
+  const paginatedStats = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredStats.slice(start, start + PAGE_SIZE);
+  }, [filteredStats, page]);
+
+  const totalPages = Math.ceil(filteredStats.length / PAGE_SIZE);
+
+  const handleExport = (format: "csv" | "excel") => {
+    if (filteredStats.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    const headers = [
+      "Class",
+      "Section",
+      "Total Students",
+      "Working Days",
+      "Avg Present",
+      "Avg Absent",
+      "Overall Rate"
+    ];
+    const rows = filteredStats.map((s) => [
+      s.className,
+      s.section,
+      s.studentCount,
+      s.workingDays,
+      s.averagePresent,
+      s.averageAbsent,
+      `${s.rate}%`
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        headers.join(","),
+        ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `monthly_attendance_report_${filterMonth}.${format === "csv" ? "csv" : "xls"}`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsExportOpen(false);
   };
 
   return (
     <div className="space-y-6 bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] min-h-screen -m-6 p-6">
       <ReportTabs />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Attendance Report (Class-wise)</h1>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Monthly Attendance Report</h1>
           <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 mt-1">
-            <span>Dashboard</span><span>/</span>
-            <span className="hover:text-primary cursor-pointer">Reports</span><span>/</span>
-            <span className="text-slate-900 dark:text-white font-medium">Attendance Report</span>
+            <span>Dashboard</span>
+            <span>/</span>
+            <span>Reports</span>
+            <span>/</span>
+            <span className="text-slate-900 dark:text-white font-medium">Monthly Attendance</span>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 hover:text-primary transition-colors shadow-sm cursor-pointer dark:text-slate-400"><RefreshCw className="w-4 h-4" /></button>
-          <button className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 hover:text-primary transition-colors shadow-sm cursor-pointer dark:text-slate-400"><Printer className="w-4 h-4" /></button>
+          <button
+            onClick={fetchStats}
+            className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 hover:text-primary transition-colors shadow-sm cursor-pointer dark:text-slate-400"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 hover:text-primary transition-colors shadow-sm cursor-pointer dark:text-slate-400"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
           <div className="relative">
-            <button onClick={() => setIsExportOpen(!isExportOpen)} className="px-4 py-2 bg-white dark:bg-slate-900 border border-border text-slate-700 dark:text-slate-200 text-[13px] font-semibold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm cursor-pointer">
-              <Download className="w-4 h-4" /> Export <ChevronDown className="w-3 h-3 text-slate-400" />
+            <button
+              onClick={() => setIsExportOpen(!isExportOpen)}
+              className="px-4 py-2 bg-white dark:bg-slate-900 border border-border text-slate-700 dark:text-slate-200 text-[13px] font-semibold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Export{" "}
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
             {isExportOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsExportOpen(false)} />
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg z-50 py-2">
-                  <button className="w-full px-4 py-2.5 text-[14px] font-medium text-foreground dark:text-slate-100 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"><FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Export as PDF</button>
-                  <button className="w-full px-4 py-2.5 text-[14px] font-medium text-foreground dark:text-slate-100 hover:bg-slate-50 flex items-center gap-3 cursor-pointer"><FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Export as Excel</button>
+                  <button
+                    onClick={() => handleExport("csv")}
+                    className="w-full px-4 py-2.5 text-[14px] font-medium text-foreground dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Export as PDF/CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport("excel")}
+                    className="w-full px-4 py-2.5 text-[14px] font-medium text-foreground dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Export as Excel
+                  </button>
                 </div>
               </>
             )}
@@ -83,17 +178,46 @@ export default function AttendanceReportPage() {
         <div className="p-5 border-b border-border flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <h2 className="text-[16px] font-bold text-slate-800 dark:text-slate-100">Class Attendance Summary</h2>
           <div className="flex flex-wrap items-center gap-3">
-            {!isAdmin && (
-              <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300" />
-            )}
+            <select
+              value={filterClass}
+              onChange={(e) => {
+                setFilterClass(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+            >
+              <option value="">All Classes</option>
+              {classes.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name} - {c.section}
+                </option>
+              ))}
+            </select>
+            <input
+              type="month"
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg text-[13px] outline-none bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+            />
           </div>
         </div>
 
         <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/50">
-          <span className="text-[13px] text-slate-500 dark:text-slate-400">Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredClasses.length}</span> classes</span>
+          <span className="text-[13px] text-slate-500 dark:text-slate-400">
+            Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredStats.length}</span> classes
+          </span>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search class…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-primary transition-colors" />
+            <input
+              type="text"
+              placeholder="Search class..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 pr-4 py-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-border rounded-lg text-[13px] outline-none focus:border-primary transition-colors"
+            />
           </div>
         </div>
 
@@ -111,34 +235,79 @@ export default function AttendanceReportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {isLoading ? (
-                <tr><td colSpan={7} className="px-6 py-10 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
-              ) : filteredClasses.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-10 text-center text-slate-400">No classes found.</td></tr>
-              ) : filteredClasses.map(c => {
-                const stats = generateClassStats(c._id);
-                return (
-                  <tr key={c._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-foreground dark:text-slate-100">{c.name}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{c.section}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{stats.studentCount}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{stats.totalWorkingDays}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-medium">{stats.averagePresent}</td>
-                    <td className="px-6 py-4 text-rose-600 font-medium">{stats.averageAbsent}</td>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                    <Loader2 className="w-5 h-5 animate-spin inline" />
+                  </td>
+                </tr>
+              ) : paginatedStats.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                    No stats found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedStats.map((s) => (
+                  <tr
+                    key={s.classId}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-semibold text-foreground dark:text-slate-100">{s.className}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{s.section}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{s.studentCount}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{s.workingDays}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium">{s.averagePresent}</td>
+                    <td className="px-6 py-4 text-rose-600 font-medium">{s.averageAbsent}</td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="w-24 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${stats.presentRate}%` }} />
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${s.rate}%` }}
+                          />
                         </div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{stats.presentRate}%</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{s.rate}%</span>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-5 border-t border-border flex items-center justify-end gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-7 h-7 rounded-lg text-[13px] font-medium flex items-center justify-center ${
+                  page === p
+                    ? "bg-primary text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-[13px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -92,7 +92,10 @@ export async function GET(req: NextRequest) {
 
     if (detail && recordId) {
       const dailyRecords = attendances.map((att: any) => {
-        const record = att.records.find((r: any) => r.student_id.toString() === recordId);
+        const record = att.records.find((r: any) => {
+          const refId = type === "student" ? r.student_id : r.teacher_id;
+          return refId && refId.toString() === recordId;
+        });
         return {
           date: att.date,
           status: record ? record.status : null,
@@ -106,14 +109,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Aggregate results by student_id or teacherId
-    const summary: Record<string, { present: number; absent: number; late: number; holiday: number; half_day: number }> = {};
+    // Aggregate results by student_id or teacher_id
+    const summary: Record<string, { present: number; absent: number; late: number; holiday: number; half_day: number; leave: number }> = {};
 
     attendances.forEach((att: any) => {
       att.records.forEach((record: any) => {
-        const id = record.student_id.toString();
+        const refId = type === "student" ? record.student_id : record.teacher_id;
+        if (!refId) return;
+        const id = refId.toString();
         if (!summary[id]) {
-          summary[id] = { present: 0, absent: 0, late: 0, holiday: 0, half_day: 0 };
+          summary[id] = { present: 0, absent: 0, late: 0, holiday: 0, half_day: 0, leave: 0 };
         }
         
         const status = record.status as keyof typeof summary[string];

@@ -23,6 +23,7 @@ export interface ApiSchedule {
   day: string; // monday, tuesday, etc.
   start_time: string; // e.g. "09:30 AM"
   end_time: string;
+  period_no?: number;
   room?: string;
   academic_year?: string;
 }
@@ -72,6 +73,7 @@ export function useSchedules(classId?: string, teacherId?: string, options?: { s
     endTime: string;
     room?: string;
     academicYear?: string;
+    periodNo?: number;
   }): Promise<{ success: boolean; message: string; data?: ApiSchedule }> => {
     try {
       const res = await fetch("/api/schedules", {
@@ -100,6 +102,7 @@ export function useSchedules(classId?: string, teacherId?: string, options?: { s
       endTime: string;
       room: string;
       academicYear: string;
+      periodNo: number;
     }>
   ): Promise<{ success: boolean; message: string; data?: ApiSchedule }> => {
     try {

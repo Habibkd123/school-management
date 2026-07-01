@@ -168,7 +168,7 @@ export default function SyllabusDetailsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] min-h-screen -m-6 p-6">
       {/* Header and Breadcrumbs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
         <div>
@@ -192,7 +192,7 @@ export default function SyllabusDetailsPage() {
 
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4.5 shadow-sm flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Course Progress</span>
@@ -211,9 +211,9 @@ export default function SyllabusDetailsPage() {
 
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4.5 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Chapters</span>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.total}</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Syllabus segments</p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Completed Chapters</span>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.completed} / {stats.total}</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Syllabus segments done</p>
             </div>
             <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/20 text-blue-505 flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-blue-500" />
@@ -222,23 +222,12 @@ export default function SyllabusDetailsPage() {
 
           <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4.5 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">In Progress</span>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.inProgress}</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Underway</p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining Chapters</span>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.inProgress + stats.notStarted}</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">In progress & pending</p>
             </div>
             <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-505 flex items-center justify-center">
               <PlayCircle className="w-5 h-5 text-amber-500" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4.5 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Not Started</span>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.notStarted}</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Pending kickoff</p>
-            </div>
-            <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-              <Circle className="w-5 h-5" />
             </div>
           </div>
         </div>

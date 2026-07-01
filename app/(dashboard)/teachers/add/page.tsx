@@ -477,7 +477,7 @@ function AddTeacherContent() {
       const res = await createTeacher(payload as CreateTeacherInput);
       setIsSubmitting(false);
       if (res.success) {
-        const loginId = res?.credentials?.loginId || `${(firstName + lastName).toLowerCase().trim().replace(/\s+/g, "")}.school@gmail.com`;
+        const loginId = res?.credentials?.loginId || `${(firstName + lastName).toLowerCase().trim().replace(/\s+/g, "")}.myschoollife@gmail.com`;
         const pswd = res?.credentials?.password || "Master#2026";
         setCreatedCredentials({ loginId, password: pswd });
         setShowCredentials(true);

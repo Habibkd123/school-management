@@ -276,12 +276,14 @@ export interface IHomework extends Document {
   assigned_date: Date;
   due_date: Date;
   attachment_url?: string;
+  status: 'draft' | 'published' | 'completed';
   submissions: Array<{
     student_id: mongoose.Types.ObjectId;
     content: string;
     submitted_at: Date;
     grade?: string;
     feedback?: string;
+    remarks?: string;
   }>;
 }
 
@@ -292,6 +294,7 @@ const homeworkSubmissionSchema = new Schema(
     submitted_at: { type: Date, default: Date.now },
     grade: { type: String, default: null },
     feedback: { type: String, default: null },
+    remarks: { type: String, default: null },
   },
   { _id: false }
 );
@@ -307,6 +310,7 @@ const homeworkSchema = new Schema<IHomework>(
     assigned_date: { type: Date, default: Date.now },
     due_date: { type: Date, required: true },
     attachment_url: { type: String, default: null },
+    status: { type: String, enum: ['draft', 'published', 'completed'], default: 'published' },
     submissions: [homeworkSubmissionSchema],
   },
   { timestamps: true }
@@ -826,3 +830,94 @@ export const FeeMaster: Model<IFeeMaster> = mongoose.models.FeeMaster || mongoos
 export const FeeAllocation: Model<IFeeAllocation> = mongoose.models.FeeAllocation || mongoose.model("FeeAllocation", feeAllocationSchema);
 export const FeePayment: Model<IFeePayment> = mongoose.models.FeePayment || mongoose.model("FeePayment", feePaymentSchema);
 export const RolePermission: Model<any> = mongoose.models.RolePermission || require("./RolePermission").default;
+
+// ─── Class Test (Assessment Module) ──────────────────────────────────────────
+// Completely independent from the Exam module. For regular class tests only.
+
+export type ClassTestStatus = "draft" | "scheduled" | "ongoing" | "completed" | "published";
+
+export interface IClassTest extends Document {
+  school_id: mongoose.Types.ObjectId;
+  title: string;
+  description?: string;
+  class_id: mongoose.Types.ObjectId;
+  subject_id: mongoose.Types.ObjectId;
+  teacher_id: mongoose.Types.ObjectId;
+  test_date: Date;
+  start_time: string;
+  end_time: string;
+  total_marks: number;
+  passing_marks: number;
+  chapter?: string;
+  academic_year: string;
+  status: ClassTestStatus;
+  is_published: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const classTestSchema = new Schema<IClassTest>(
+  {
+    school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    class_id: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+    subject_id: { type: mongoose.Schema.Types.ObjectId, ref: "Subject", required: true },
+    teacher_id: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true },
+    test_date: { type: Date, required: true },
+    start_time: { type: String, required: true, trim: true },
+    end_time: { type: String, required: true, trim: true },
+    total_marks: { type: Number, required: true, min: 1 },
+    passing_marks: { type: Number, required: true, min: 0 },
+    chapter: { type: String, trim: true, default: null },
+    academic_year: { type: String, required: true, trim: true },
+    status: {
+      type: String,
+      enum: ["draft", "scheduled", "ongoing", "completed", "published"],
+      default: "scheduled",
+    },
+    is_published: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+classTestSchema.index({ school_id: 1, class_id: 1, test_date: 1 });
+classTestSchema.index({ school_id: 1, teacher_id: 1 });
+
+export const ClassTest: Model<IClassTest> =
+  mongoose.models.ClassTest || mongoose.model<IClassTest>("ClassTest", classTestSchema);
+
+// ─── Class Test Mark (per-student marks entry) ───────────────────────────────
+
+export interface IClassTestMark extends Document {
+  school_id: mongoose.Types.ObjectId;
+  test_id: mongoose.Types.ObjectId;
+  student_id: mongoose.Types.ObjectId;
+  marks_obtained: number;
+  is_pass: boolean;
+  rank?: number;
+  remarks?: string;
+  entered_by: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const classTestMarkSchema = new Schema<IClassTestMark>(
+  {
+    school_id: { type: mongoose.Schema.Types.ObjectId, ref: "School", required: true, index: true },
+    test_id: { type: mongoose.Schema.Types.ObjectId, ref: "ClassTest", required: true },
+    student_id: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
+    marks_obtained: { type: Number, required: true, min: 0 },
+    is_pass: { type: Boolean, required: true },
+    rank: { type: Number, default: null },
+    remarks: { type: String, trim: true, default: null },
+    entered_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { timestamps: true }
+);
+
+classTestMarkSchema.index({ test_id: 1, student_id: 1 }, { unique: true });
+
+export const ClassTestMark: Model<IClassTestMark> =
+  mongoose.models.ClassTestMark || mongoose.model<IClassTestMark>("ClassTestMark", classTestMarkSchema);
+

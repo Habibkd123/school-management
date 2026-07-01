@@ -29,6 +29,7 @@ const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = [
   { prefix: "/leave", module: "leaves" },
   { prefix: "/homework", module: "homework" },
   { prefix: "/results", module: "results" },
+  { prefix: "/assessments", module: "assessments" },
 ];
 
 export default function DashboardLayout({
@@ -43,14 +44,14 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 
     // Allow student and parent logins on this portal as requested
     const ADMIN_PORTAL_ROLES = ["super_admin", "school_admin", "accountant", "teacher", "student", "parent"];
     if (!isLoading && isAuthenticated && user?.role && !ADMIN_PORTAL_ROLES.includes(user.role)) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 

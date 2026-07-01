@@ -22,7 +22,8 @@ export type PermissionModule =
   | "settings"
   | "leaves"
   | "homework"
-  | "results";
+  | "results"
+  | "assessments";
 
 export type AppRole =
   // | "super_admin"
@@ -75,6 +76,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, RolePermissions> = {
     leaves: ["view", "create", "approve", "delete"],
     homework: ["view", "create", "edit", "delete"],
     results: ["view", "create", "edit", "delete"],
+    assessments: ["view", "create", "edit", "delete"],
   },
 
   // ── Accountant: only fees & finance related ──────────────────────────────
@@ -100,6 +102,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, RolePermissions> = {
     homework: ["view", "create", "edit", "delete"],
     results: ["view", "create", "edit"],
     reports: ["view"],
+    assessments: ["view", "create", "edit"],
   },
 
   // ── Parent: read-only for their child ────────────────────────────────────
@@ -123,6 +126,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, RolePermissions> = {
     leaves: ["view", "create"],
     homework: ["view"],
     results: ["view"],
+    assessments: ["view"],
   },
 };
 
@@ -228,6 +232,7 @@ export const MODULE_LABELS: Record<PermissionModule, string> = {
   leaves: "Leave Management",
   homework: "Homework",
   results: "Exam Results",
+  assessments: "Assessments / Tests",
 };
 
 export const ALL_MODULES: PermissionModule[] = Object.keys(MODULE_LABELS) as PermissionModule[];

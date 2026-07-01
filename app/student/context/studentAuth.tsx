@@ -133,7 +133,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
     clearSession();
     setUser(null);
     setStudentProfile(null);
-    router.push("/student/login");
+    router.push("/");
   }, [router]);
 
   // ── Refresh profile ───────────────────────────────────────────────

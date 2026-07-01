@@ -109,6 +109,7 @@ export default function MyAttendancePage() {
   const lateCount = records.filter(r => r.status === "late").length;
   const absentCount = records.filter(r => r.status === "absent").length;
   const halfDayCount = records.filter(r => r.status === "half_day").length;
+  const leaveCount = records.filter(r => r.status === "leave").length;
 
   const attendanceRate = workingDays > 0
     ? Math.round(((presentCount + lateCount + halfDayCount * 0.5) / workingDays) * 100)
@@ -126,6 +127,8 @@ export default function MyAttendancePage() {
         return "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/30";
       case "holiday":
         return "bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800/30";
+      case "leave":
+        return "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800/30";
       default:
         return "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-border";
     }
@@ -143,6 +146,8 @@ export default function MyAttendancePage() {
         return "bg-indigo-500";
       case "holiday":
         return "bg-sky-500";
+      case "leave":
+        return "bg-violet-500";
       default:
         return "bg-slate-400";
     }
@@ -160,6 +165,8 @@ export default function MyAttendancePage() {
         return "Half Day";
       case "holiday":
         return "Holiday";
+      case "leave":
+        return "Leave";
       default:
         return status;
     }
@@ -197,31 +204,11 @@ export default function MyAttendancePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-5">
             <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Working Days</span>
-                <CalendarIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-              </div>
-              <span className="text-2xl font-bold text-slate-900 dark:text-white block mt-1">
-                {workingDays}
-              </span>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Present Rate</span>
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Present</span>
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               </div>
               <span className="text-2xl font-bold text-emerald-600 block mt-1">
-                {attendanceRate}%
-              </span>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Late</span>
-                <Clock className="w-4 h-4 text-amber-500" />
-              </div>
-              <span className="text-2xl font-bold text-amber-600 block mt-1">
-                {lateCount}
+                {presentCount}
               </span>
             </div>
 
@@ -232,6 +219,26 @@ export default function MyAttendancePage() {
               </div>
               <span className="text-2xl font-bold text-rose-600 block mt-1">
                 {absentCount}
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Leave</span>
+                <Clock className="w-4 h-4 text-violet-500" />
+              </div>
+              <span className="text-2xl font-bold text-violet-600 block mt-1">
+                {leaveCount}
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Monthly Percentage</span>
+                <CalendarIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+              </div>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white block mt-1">
+                {attendanceRate}%
               </span>
             </div>
           </div>

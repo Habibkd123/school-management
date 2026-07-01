@@ -8,7 +8,7 @@ import { useAcademicConfig } from "@/app/hooks/useAcademicConfig";
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, Clock, BookOpen,
   ClipboardList, Megaphone, ChevronDown, ChevronRight, Building2,
-  BarChart, LogOut, User, ChevronUp, Menu, Bus, X, Globe, Layers, LayoutGrid, Link2, Settings2
+  BarChart, LogOut, User, ChevronUp, Menu, Bus, X, Globe, Layers, LayoutGrid, Link2, Settings2, FileText
 } from "lucide-react";
 
 // Map DB roles → sidebar role key
@@ -59,22 +59,18 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Progress & Grading", href: "/academic/progress" },
       ]
     },
+
     {
-      name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam", href: "/examination/exam" },
-        { name: "Exam Schedule", href: "/examination/exam-schedule" },
-        { name: "Grade", href: "/examination/grade" },
-        { name: "Exam Attendance", href: "/examination/exam-attendance" },
-        { name: "Marks Entry", href: "/examination/marks-entry" },
-        { name: "Exam Results", href: "/examination/exam-results" }
+      name: "Assessments", icon: <FileText className="w-4 h-4" />, subItems: [
+        { name: "Test List", href: "/assessments" },
+        { name: "Create Test", href: "/assessments/create" }
       ]
     },
     {
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
         { name: "Student Attendance", href: "/attendance/student" },
         { name: "Teacher Attendance", href: "/attendance/teacher" },
-        { name: "Class Teacher Assignment", href: "/attendance/class-teacher" },
-        { name: "Reports", href: "/attendance/reports" }
+        // { name: "Reports", href: "/attendance/reports" }
       ]
     },
 
@@ -92,7 +88,7 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Daily Attendance Report", href: "/reports/daily-attendance" },
         { name: "Monthly Attendance Report", href: "/reports/attendance-report" },
         // Fees Report hidden (Issue 9)
-        { name: "Examination Reports", href: "/reports/examination-reports" },
+        // { name: "Examination Reports", href: "/reports/examination-reports" },
         { name: "Merit List", href: "/reports/merit-list" },
         { name: "Student Report", href: "/reports/student-report" },
         { name: "Class Report", href: "/reports/class-report" },
@@ -129,7 +125,7 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
     {
       name: "Classes & Schedule", icon: <Calendar className="w-4 h-4" />, subItems: [
         { name: "My Classes", href: "/classes" },
-        { name: "Schedule", href: "/classes/schedule" }
+        { name: "My Routines", href: "/classes/schedule" }
       ]
     },
     {
@@ -139,13 +135,11 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Progress & Grading", href: "/academic/progress" }
       ]
     },
+
     {
-      name: "Examination", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam Schedule", href: "/examination/exam-schedule" },
-        { name: "Grades", href: "/examination/grade" },
-        { name: "Exam Attendance", href: "/examination/exam-attendance" },
-        { name: "Marks Entry", href: "/examination/marks-entry" },
-        { name: "Exam Results", href: "/examination/exam-results" }
+      name: "Assessments", icon: <FileText className="w-4 h-4" />, subItems: [
+        { name: "My Tests", href: "/assessments" },
+        { name: "Create Test", href: "/assessments/create" }
       ]
     },
     {
@@ -184,12 +178,8 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         { name: "Progress & Grading", href: "/academic/progress" }
       ]
     },
-    {
-      name: "Examination", href: "/examination/exam-schedule", icon: <ClipboardList className="w-4 h-4" />, subItems: [
-        { name: "Exam Schedule", href: "/examination/exam-schedule" },
-        { name: "My Grades", href: "/examination/exam-results" }
-      ]
-    },
+
+    { name: "My Tests", href: "/assessments", icon: <FileText className="w-4 h-4" /> },
     {
       name: "Attendance", href: "/attendance/my-attendance", icon: <Clock className="w-4 h-4" />,
       // subItems: [
@@ -294,11 +284,11 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
         {/* Navigation Links */}
         {/* Navigation Links */}
         <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'} py-6 space-y-1 overflow-y-auto`}>
-          {!isCollapsed && (
+          {/* {!isCollapsed && (
             <div className="px-2 mb-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Main Menu
             </div>
-          )}
+          )} */}
           {links.map((link) => {
             if ('subItems' in link && link.subItems) {
               const isExpanded = expandedMenu === link.name;

@@ -25,7 +25,7 @@ function cleanAttachmentUrl(url?: string): string {
 }
 
 export default function ClassHomeWorkPage() {
-  const { homework, isLoading, createHomework, deleteHomework, fetchHomework, submitHomework, gradeHomework } = useHomework();
+  const { homework, isLoading, createHomework, deleteHomework, fetchHomework, submitHomework, gradeHomework, markCompleted, publishHomework } = useHomework();
   const { uploading, uploadFile } = useUpload();
   const { classes } = useClasses();
 
@@ -52,6 +52,7 @@ export default function ClassHomeWorkPage() {
   const [formChapterId, setFormChapterId] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formAttachmentUrl, setFormAttachmentUrl] = useState("");
+  const [formStatus, setFormStatus] = useState("published");
   const [submitting, setSubmitting] = useState(false);
 
   // Syllabus/chapter cascade state
@@ -64,7 +65,7 @@ export default function ClassHomeWorkPage() {
 
   // View Submissions States (Teacher)
   const [viewSubmissionsHw, setViewSubmissionsHw] = useState<ApiHomework | null>(null);
-  const [gradingState, setGradingState] = useState<{ [key: string]: { grade: string, feedback: string } }>({});
+  const [gradingState, setGradingState] = useState<{ [key: string]: { grade: string, feedback?: string, remarks?: string } }>({});
 
   // Fetch subjects dynamically based on selected class in the form
   const { subjects: allSubjects } = useSubjects();
@@ -159,6 +160,7 @@ export default function ClassHomeWorkPage() {
     setSyllabusChapters([]);
     setFormDueDate("");
     setFormAttachmentUrl("");
+    setFormStatus("published");
     setIsAddOpen(true);
   };
 
@@ -191,6 +193,7 @@ export default function ClassHomeWorkPage() {
       subject: formSubject,
       dueDate: formDueDate,
       attachmentUrl: formAttachmentUrl,
+      status: formStatus,
     });
     setSubmitting(false);
     setIsAddOpen(false);
@@ -209,11 +212,24 @@ export default function ClassHomeWorkPage() {
 
   const handleGradeSubmit = async (studentId: string) => {
     if (!viewSubmissionsHw) return;
-    const { grade, feedback } = gradingState[studentId] || {};
+    const { grade, remarks } = gradingState[studentId] || {};
     if (!grade) return;
 
     setSubmitting(true);
-    await gradeHomework(viewSubmissionsHw._id, studentId, grade, feedback);
+    const res = await gradeHomework(viewSubmissionsHw._id, studentId, grade, undefined, remarks);
+    if (res.success) {
+      setViewSubmissionsHw((prev) => {
+        if (!prev) return null;
+        const newSubmissions = prev.submissions.map((sub) => {
+          const subId = typeof sub.student_id === "object" ? sub.student_id._id : sub.student_id;
+          if (subId === studentId) {
+            return { ...sub, grade, remarks };
+          }
+          return sub;
+        });
+        return { ...prev, submissions: newSubmissions };
+      });
+    }
     setSubmitting(false);
   };
 
@@ -354,6 +370,7 @@ export default function ClassHomeWorkPage() {
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Class</th>
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Subject</th>
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Submission Date</th>
+                <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Status</th>
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Progress</th>
                 <th className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-200">Attachment</th>
                 <th className="px-6 py-4 text-center font-bold text-slate-700 dark:text-slate-200 w-20">Action</th>
@@ -362,13 +379,13 @@ export default function ClassHomeWorkPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin inline" />
                   </td>
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                     No homework found.
                   </td>
                 </tr>
@@ -380,6 +397,21 @@ export default function ClassHomeWorkPage() {
                   </td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{getSubjectName(item.subject_id)}</td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{new Date(item.due_date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    {item.status === "draft" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                        Draft
+                      </span>
+                    ) : item.status === "completed" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-800/30 dark:text-emerald-400">
+                        Completed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-400">
+                        Published
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -406,6 +438,28 @@ export default function ClassHomeWorkPage() {
                       <>
                         <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
                         <div className="absolute right-10 top-10 w-44 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
+                          {item.status === "draft" && (
+                            <button
+                              onClick={async () => {
+                                await publishHomework(item._id);
+                                setActionMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-blue-500" /> Publish Task
+                            </button>
+                          )}
+                          {item.status === "published" && (
+                            <button
+                              onClick={async () => {
+                                await markCompleted(item._id);
+                                setActionMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Mark Completed
+                            </button>
+                          )}
                           <button onClick={() => openSubmitModal(item)} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
                             <Upload className="w-4 h-4 text-emerald-500" /> Submit Work
                           </button>
@@ -563,6 +617,23 @@ export default function ClassHomeWorkPage() {
             </div>
           </div>
 
+          {/* Status Selection */}
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Status</label>
+            <div className="relative">
+              <select
+                value={formStatus}
+                onChange={(e) => setFormStatus(e.target.value)}
+                className="w-full px-4 py-2.5 text-[14px] bg-white dark:bg-slate-900 border border-border rounded-lg outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
+                required
+              >
+                <option value="published">Publish Now</option>
+                <option value="draft">Save as Draft</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
           {/* Description */}
           <div className="space-y-1.5">
             <label className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Description</label>
@@ -683,13 +754,30 @@ export default function ClassHomeWorkPage() {
       {/* View Submissions & Grade Modal */}
       <Modal isOpen={!!viewSubmissionsHw} onClose={() => setViewSubmissionsHw(null)} title="Student Progress & Grading">
         <div className="p-0 text-left max-h-[80vh] overflow-y-auto custom-scrollbar">
+          {viewSubmissionsHw && viewSubmissionsHw.status !== "completed" && (
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-border flex justify-between items-center">
+              <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Homework is currently active</span>
+              <button
+                onClick={async () => {
+                  const res = await markCompleted(viewSubmissionsHw._id);
+                  if (res.success) {
+                    setViewSubmissionsHw(prev => prev ? { ...prev, status: "completed" } : null);
+                  }
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors cursor-pointer"
+              >
+                Mark Homework Completed
+              </button>
+            </div>
+          )}
+
           <table className="w-full text-[13px] whitespace-nowrap">
             <thead className="bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] border-b border-border sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Student Name</th>
                 <th className="px-6 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Status</th>
                 <th className="px-6 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Content / Link</th>
-                <th className="px-6 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Grade & Feedback</th>
+                <th className="px-6 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Grade & Remarks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -738,24 +826,35 @@ export default function ClassHomeWorkPage() {
                       {submission ? (
                         submission.grade ? (
                           <div className="text-slate-700 dark:text-slate-200 font-bold">
-                            {submission.grade}
-                            {submission.feedback && <span className="block text-slate-500 font-normal text-[11px] truncate max-w-full sm:w-[150px] dark:text-slate-400">{submission.feedback}</span>}
+                            <div>Grade: {submission.grade}</div>
+                            {(submission.remarks || submission.feedback) && (
+                              <span className="block text-slate-500 font-normal text-[11px] truncate max-w-full sm:w-[180px] dark:text-slate-400">
+                                Remarks: {submission.remarks || submission.feedback}
+                              </span>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-col gap-1.5 w-44">
                             <input
                               type="text"
                               placeholder="Grade (e.g. A+)"
-                              className="w-24 px-2 py-1.5 text-[12px] bg-white dark:bg-slate-900 border border-border rounded outline-none focus:border-primary"
+                              className="px-2 py-1 text-[12px] bg-white dark:bg-slate-900 border border-border rounded outline-none focus:border-primary w-full"
                               value={gradingState[student._id]?.grade || ""}
                               onChange={(e) => setGradingState(prev => ({ ...prev, [student._id]: { ...prev[student._id], grade: e.target.value } }))}
+                            />
+                            <input
+                              type="text"
+                              placeholder="Remarks (optional)"
+                              className="px-2 py-1 text-[12px] bg-white dark:bg-slate-900 border border-border rounded outline-none focus:border-primary w-full"
+                              value={gradingState[student._id]?.remarks || ""}
+                              onChange={(e) => setGradingState(prev => ({ ...prev, [student._id]: { ...prev[student._id], remarks: e.target.value } }))}
                             />
                             <button
                               onClick={() => handleGradeSubmit(student._id)}
                               disabled={submitting}
-                              className="px-3 py-1.5 bg-primary text-white rounded text-[12px] font-bold hover:bg-[var(--primary-hover)] transition-colors cursor-pointer disabled:opacity-50"
+                              className="px-3 py-1 bg-primary text-white rounded text-[11px] font-bold hover:bg-[var(--primary-hover)] transition-colors cursor-pointer disabled:opacity-50 w-full"
                             >
-                              Grade
+                              Submit Evaluation
                             </button>
                           </div>
                         )

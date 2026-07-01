@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth";
 import { useTheme } from "next-themes";
-import { Mail, Eye, EyeOff, ChevronRight, AlertCircle, Loader2, Sun, Moon } from "lucide-react";
+import { User, Eye, EyeOff, ChevronRight, AlertCircle, Loader2, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 
 const newsItems = [
@@ -25,7 +25,7 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,12 +35,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim()) { setError("Email or Employee ID is required"); return; }
+    if (!username.trim()) { setError("School username is required"); return; }
     if (!password) { setError("Password is required"); return; }
 
     setIsLoading(true);
 
-    const result = await login(email.trim(), password);
+    const result = await login(username.trim(), password);
 
     if (result.success) {
       router.push("/dashboard");
@@ -105,21 +105,21 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleLogin} className="space-y-4" noValidate>
-              {/* Email */}
+              {/* Username */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">Email or Employee ID</label>
+                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">School Username</label>
                 <div className="relative">
                   <input
-                    id="login-email"
+                    id="login-username"
                     type="text"
                     autoComplete="username"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                    placeholder="e.g., admin@school.com or EMP0001"
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); setError(""); }}
+                    placeholder="e.g., greenvalley.myschoollife"
                     className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-primary dark:focus:border-primary transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <Mail className="w-4 h-4" />
+                    <User className="w-4 h-4" />
                   </div>
                 </div>
               </div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Forgot Password */}
+              {/* Forgot Password — visible on admin portal only */}
               <div className="flex justify-end">
                 <Link href="/forget-password" className="text-[12px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
                   Forgot Password?

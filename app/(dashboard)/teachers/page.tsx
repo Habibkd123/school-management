@@ -33,7 +33,8 @@ import {
   AlignLeft,
   Lock,
   ToggleRight,
-  FileText
+  FileText,
+  Upload
 } from "lucide-react";
 
 function getAvatar(name: string) {
@@ -315,6 +316,13 @@ export default function TeachersPage() {
                 </>
               )}
             </div>
+            <button
+              onClick={() => router.push('/teachers/import')}
+              className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Bulk Import</span>
+            </button>
             <button
               onClick={() => router.push('/teachers/add')}
               className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-primary hover:bg-[var(--primary-hover)] rounded-lg shadow-sm transition-colors cursor-pointer"

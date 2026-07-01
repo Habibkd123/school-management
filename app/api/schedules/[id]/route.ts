@@ -43,7 +43,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { classId, subject, teacherId, day, startTime, endTime, room, academicYear } = body;
+    const { classId, subject, teacherId, day, startTime, endTime, room, academicYear, periodNo } = body;
 
     if (classId) timetable.class_id = new mongoose.Types.ObjectId(classId);
     if (day) timetable.day = day.toLowerCase();
@@ -52,6 +52,9 @@ export async function PUT(
     if (room !== undefined) timetable.room = room;
     if (academicYear) timetable.academic_year = academicYear;
     if (teacherId) timetable.teacher_id = new mongoose.Types.ObjectId(teacherId);
+    if (periodNo !== undefined) {
+      timetable.period_no = periodNo ? parseInt(periodNo.toString(), 10) : undefined;
+    }
 
     // ── Conflict check: same class+day, overlapping time, excluding self ─────
     const checkStart = parseTimeToMinutes(timetable.start_time);

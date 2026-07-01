@@ -26,17 +26,21 @@ export async function GET(req: NextRequest) {
     const andFilters: any[] = [];
     
     if (user.role === "teacher") {
-      const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
-      if (teacher) {
-        const classIdsAsClassTeacher = await mongoose.model("Class").find({ class_teacher_id: teacher._id, school_id: schoolId }).distinct("_id");
-        andFilters.push({
-          $or: [
-            { teacher_id: teacher._id },
-            { class_id: { $in: classIdsAsClassTeacher } }
-          ]
-        });
+      if (teacherId) {
+        andFilters.push({ teacher_id: teacherId });
       } else {
-        andFilters.push({ teacher_id: null });
+        const teacher = await Teacher.findOne({ user_id: user.user_id, school_id: schoolId }).lean();
+        if (teacher) {
+          const classIdsAsClassTeacher = await mongoose.model("Class").find({ class_teacher_id: teacher._id, school_id: schoolId }).distinct("_id");
+          andFilters.push({
+            $or: [
+              { teacher_id: teacher._id },
+              { class_id: { $in: classIdsAsClassTeacher } }
+            ]
+          });
+        } else {
+          andFilters.push({ teacher_id: null });
+        }
       }
     } else if (user.role === "student") {
       const studentProfile = await Student.findOne({ school_id: schoolId, user_id: user.user_id }).select("class_id").lean();
@@ -77,7 +81,7 @@ export async function GET(req: NextRequest) {
     if (classId && user.role !== "student" && user.role !== "parent") {
       andFilters.push({ class_id: classId });
     }
-    if (teacherId) {
+    if (teacherId && user.role !== "teacher") {
       andFilters.push({ teacher_id: teacherId });
     }
     // academic_year intentionally NOT filtered here — timetable records may have been
@@ -128,7 +132,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { classId, subject, teacherId, day, startTime, endTime, room, academicYear = "2026-2027" } = body;
+    const { classId, subject, teacherId, day, startTime, endTime, room, academicYear = "2026-2027", periodNo } = body;
 
     if (!classId || !subject || !day || !startTime || !endTime) {
       return NextResponse.json(
@@ -251,6 +255,7 @@ export async function POST(req: NextRequest) {
       day: day.toLowerCase(),
       start_time: startTime,
       end_time: endTime,
+      period_no: periodNo ? parseInt(periodNo, 10) : undefined,
       room: room || undefined,
       academic_year: academicYear,
     });

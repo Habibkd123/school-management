@@ -4,12 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const REPORT_TABS = [
-  { label: "Attendance Report",       href: "/reports/attendance-report" },
-  { label: "Students Attendance Type", href: "/reports/students-attendance-type" },
-  { label: "Daily Attendance",        href: "/reports/daily-attendance" },
-  { label: "Student Day Wise",        href: "/reports/student-day-wise" },
-  { label: "Teacher Day Wise",        href: "/reports/teacher-day-wise" },
+  { label: "Daily Attendance Report",  href: "/reports/daily-attendance" },
+  { label: "Monthly Attendance Report", href: "/reports/attendance-report" },
+  { label: "Student Report",          href: "/reports/student-report" },
   { label: "Teacher Report",          href: "/reports/teacher-report" },
+  { label: "Class Report",            href: "/reports/class-report" },
 ];
 
 export default function ReportTabs() {

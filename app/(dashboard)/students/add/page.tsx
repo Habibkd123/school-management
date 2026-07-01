@@ -8,7 +8,7 @@ import { useStudents } from "../../../hooks/useStudents";
 import { useUpload } from "../../../hooks/useUpload";
 import {
   Upload, User, MapPin, Users,
-  X, Loader2, ImageIcon, Copy, Check, Lock, KeyRound
+  X, Loader2, ImageIcon, Copy, Check, Lock, KeyRound, AlertCircle
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────
@@ -128,12 +128,13 @@ function AddStudentContent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [formError, setFormError] = useState("");
 
   // Upload states
   const [uploadingStudentPhoto, setUploadingStudentPhoto] = useState(false);
   const [uploadingGuardianPhoto, setUploadingGuardianPhoto] = useState(false);
 
-  const classOptions = apiClasses.map(c => ({ label: `${c.name} - ${c.section}`, value: c._id }));
+  const classOptions = apiClasses.map(c => ({ label: c.section ? `${c.name} - ${c.section}` : c.name, value: c._id }));
 
   // ── Personal Info ──────────────────────────────────────────────
   const [photoPreview, setPhotoPreview] = useState("");
@@ -298,6 +299,32 @@ function AddStudentContent() {
   // ── Submit ─────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    if (!classId) {
+      setFormError("Class selection is mandatory.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const selectedClass = apiClasses.find(c => c._id === classId);
+    if (!selectedClass) {
+      setFormError("Selected class is invalid.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    // Check if sections exist in the school for this class name
+    const sectionsExistForClass = apiClasses.some(
+      c => c.name.toLowerCase() === selectedClass.name.toLowerCase() && c.section && c.section.trim() !== ""
+    );
+
+    if (sectionsExistForClass && (!selectedClass.section || !selectedClass.section.trim())) {
+      setFormError("Section selection is mandatory because sections exist for this class.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (submittingRef.current) return;
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -308,7 +335,7 @@ function AddStudentContent() {
         name: studentName,
         email: email || undefined,
         guardian_email: guardianEmail || undefined,
-        class_id: classId || classOptions[0]?.value || "",
+        class_id: classId,
         roll_no: rollNo || undefined,
         guardian_name: guardianName || undefined,
         guardian_phone: guardianPhone || undefined,
@@ -340,7 +367,8 @@ function AddStudentContent() {
         if (result?.success !== false) {
           router.push("/students");
         } else {
-          alert(result.message || "Failed to save student");
+          setFormError(result.message || "Failed to save student");
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
       } else {
         result = await createStudent(payload as any);
@@ -350,9 +378,13 @@ function AddStudentContent() {
           setCreatedCredentials({ loginId, password });
           setShowCredentials(true);
         } else {
-          alert(result.message || "Failed to save student");
+          setFormError(result.message || "Failed to save student");
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
       }
+    } catch (err: any) {
+      setFormError(err.message || "An unexpected error occurred.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
@@ -377,6 +409,13 @@ function AddStudentContent() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Validation Error Banner */}
+        {formError && (
+          <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-4 py-3 text-left animate-in fade-in">
+            <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-rose-600 dark:text-rose-400 font-semibold leading-snug">{formError}</p>
+          </div>
+        )}
 
         {/* ── 1. Personal Information ── */}
         <SectionCard icon={<User className="w-4 h-4" />} title="Personal Information">

@@ -63,7 +63,7 @@ export default function DashboardPage() {
   const isParent     = storedRole === "parent";
   const isSuperAdmin = storedRole === "super_admin";
   const theme = useThemeColors();
-  const { students } = useStudents({ skip: isSuperAdmin });
+  const { students, fetchStudents } = useStudents({ skip: isSuperAdmin });
   const { teachers } = useTeachers({ skip: isSuperAdmin || isStudent || isParent });
   const { classes }  = useClasses({ skip: isSuperAdmin || isStudent || isParent });
   // Fees only used in admin dashboard — pass skip as second arg (studentId is first)
@@ -94,6 +94,7 @@ export default function DashboardPage() {
   const [loadingSchools, setLoadingSchools] = useState(false);
 
   const [teacherSyllabi, setTeacherSyllabi] = useState<any[]>([]);
+  const [todaysAttendanceStatus, setTodaysAttendanceStatus] = useState<string>("—");
 
   const currentTeacherProfile = useMemo(() => {
     if (!isTeacher || teachers.length === 0) return null;
@@ -104,10 +105,16 @@ export default function DashboardPage() {
   }, [isTeacher, teachers, user?.id]);
 
   React.useEffect(() => {
-    if (isTeacher) {
-      fetchTeacherAssignments({ academic_year: academicYear, limit: 500 });
+    if (isTeacher && currentTeacherProfile) {
+      fetchTeacherAssignments({ teacher_id: currentTeacherProfile._id, academic_year: academicYear, limit: 500 });
     }
-  }, [isTeacher, fetchTeacherAssignments, academicYear]);
+  }, [isTeacher, currentTeacherProfile, fetchTeacherAssignments, academicYear]);
+
+  React.useEffect(() => {
+    if (isTeacher) {
+      fetchStudents({ academic_year: academicYear, limit: 1000 });
+    }
+  }, [isTeacher, fetchStudents, academicYear]);
 
   React.useEffect(() => {
     if (isTeacher && currentTeacherProfile) {
@@ -390,6 +397,122 @@ export default function DashboardPage() {
 
   const approvedLeaves = useMemo(() => myLeaves.filter(l => l.status === "approved").length, [myLeaves]);
   const pendingLeaves = useMemo(() => myLeaves.filter(l => l.status === "pending").length, [myLeaves]);
+
+  // ── Teacher Dashboard Dynamic Stats ─────────────────────────────
+  // Unique class IDs from the teacher's schedule
+  const teacherClassIds = useMemo(() => {
+    const ids = new Set<string>();
+    teacherSchedules.forEach(s => {
+      const cId = typeof s.class_id === 'object' && s.class_id !== null ? (s.class_id as any)._id : s.class_id;
+      if (cId) ids.add(String(cId));
+    });
+    return ids;
+  }, [teacherSchedules]);
+
+  // Students belonging to classes this teacher teaches
+  const teacherStudents = useMemo(() => {
+    return students.filter(s => {
+      const cId = typeof s.class_id === 'object' && s.class_id !== null ? (s.class_id as any)._id : s.class_id;
+      return cId && teacherClassIds.has(String(cId));
+    });
+  }, [students, teacherClassIds]);
+
+  const totalTeacherStudentsCount = teacherStudents.length;
+
+  // Active (non-completed) homework for teacher's classes
+  const pendingHomeworkCount = useMemo(() => {
+    return homework.filter(h => h.status !== "completed").length;
+  }, [homework]);
+
+  // Classes where the logged-in teacher is the designated class teacher
+  const myClassTeacherClasses = useMemo(() => {
+    if (!currentTeacherProfile) return [];
+    return classes.filter(c => {
+      const ctId = typeof c.class_teacher_id === 'object' && c.class_teacher_id !== null
+        ? (c.class_teacher_id as any)._id
+        : c.class_teacher_id;
+      return String(ctId) === String(currentTeacherProfile._id);
+    });
+  }, [classes, currentTeacherProfile]);
+
+  // Check whether attendance has been marked today for the teacher's class(es)
+  React.useEffect(() => {
+    if (!isTeacher || !currentTeacherProfile) return;
+    if (myClassTeacherClasses.length === 0) {
+      setTodaysAttendanceStatus("N/A");
+      return;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    const checkAttendance = async () => {
+      try {
+        let takenCount = 0;
+        for (const cls of myClassTeacherClasses) {
+          const res = await fetch(
+            `/api/attendance/student?date=${todayStr}&classId=${cls._id}&academic_year=${academicYear}`,
+            { headers: getAuthHeaders() }
+          );
+          const data = await res.json();
+          if (data.success && data.data && data.data.length > 0) takenCount++;
+        }
+        setTodaysAttendanceStatus(
+          takenCount === myClassTeacherClasses.length ? "Taken" : `${takenCount}/${myClassTeacherClasses.length}`
+        );
+      } catch {
+        setTodaysAttendanceStatus("—");
+      }
+    };
+    checkAttendance();
+  }, [isTeacher, currentTeacherProfile, myClassTeacherClasses, academicYear]);
+
+  // Syllabus chapters that are not yet completed (pending / in-progress)
+  const pendingOrInProgressChapters = useMemo(() => {
+    const list: any[] = [];
+    teacherSyllabi.forEach(syl => {
+      const assignment = teacherAssignments.find(a => a._id === syl.teacher_assignment_id);
+      const className = assignment?.class_id && typeof assignment.class_id === 'object'
+        ? `${(assignment.class_id as any).name} ${(assignment.class_id as any).section || ""}`.trim()
+        : "Class";
+      const subjectName = assignment?.subject_master_id && typeof assignment.subject_master_id === 'object'
+        ? (assignment.subject_master_id as any).name
+        : "Subject";
+      (syl.chapters || []).forEach((ch: any) => {
+        if (ch.status !== "Completed") list.push({ ...ch, className, subjectName });
+      });
+    });
+    return list;
+  }, [teacherSyllabi, teacherAssignments]);
+
+  // Student marks mapped for the table
+  const studentMarksList = useMemo(() => {
+    return teacherResults.map(r => {
+      const studentInfo = typeof r.student_id === 'object' ? r.student_id as any : null;
+      const foundStudent = students.find(s => s._id === studentInfo?._id);
+      const classIdObj = foundStudent ? foundStudent.class_id : null;
+      let className = "—";
+      let sectionName = "—";
+      if (classIdObj) {
+        if (typeof classIdObj === 'object') {
+          className = (classIdObj as any).name || "—";
+          sectionName = (classIdObj as any).section || "—";
+        } else {
+          const cls = classes.find(c => c._id === classIdObj);
+          if (cls) { className = cls.name; sectionName = (cls as any).section || "—"; }
+        }
+      }
+      const percentage = r.total_marks > 0 ? (r.marks_obtained / r.total_marks) * 100 : 0;
+      const cgpa = (percentage / 20).toFixed(1);
+      return {
+        id: (foundStudent as any)?.admission_no || (foundStudent as any)?.roll_no || r._id.slice(-5),
+        name: studentInfo?.name || "Student",
+        photo: foundStudent ? (foundStudent as any)?.photo_url || null : null,
+        class: className,
+        section: sectionName,
+        marks: `${Math.round(percentage)}%`,
+        cgpa,
+        status: r.is_pass !== false ? "Pass" : "Fail"
+      };
+    });
+  }, [teacherResults, students, classes]);
 
   const syllabusStats = useMemo(() => {
     let total = 0;
@@ -1438,72 +1561,71 @@ export default function DashboardPage() {
             </div>
 
             {/* Right Column (4-span) */}
-            <div className="lg:col-span-4 space-y-6">
-              {/* Schedules Card */}
-              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Schedules</h3>
-                  <button className="text-[12px] font-semibold text-primary flex items-center gap-1 hover:text-[var(--primary-hover)]">
-                    <Plus className="w-3.5 h-3.5" />
-                    Add New
-                  </button>
+            <div className="lg:col-span-4 space-y-4">
+              {/* Today's Classes Card */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center gap-4 hover:scale-[1.02] transition-all duration-300 hover:shadow-md group">
+                <div className="p-3 bg-purple-500/10 text-purple-500 rounded-xl group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                  <Clock className="w-6 h-6" />
                 </div>
-
-                {/* Mock Calendar */}
-                <div className="w-full text-center">
-                  <div className="flex items-center justify-between mb-4 px-2">
-                    <button className="p-1 hover:bg-slate-100 dark:bg-slate-800 rounded text-slate-400 dark:text-slate-500">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <span className="font-bold text-[14px] text-slate-900 dark:text-white">
-                      {today.toLocaleDateString("en-US", { month: 'long', year: 'numeric' })}
-                    </span>
-                    <button className="p-1 hover:bg-slate-100 dark:bg-slate-800 rounded text-slate-400 dark:text-slate-500">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1 text-[12px] font-semibold text-slate-900 dark:text-white mb-2">
-                    <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1 text-[13px] text-slate-600 dark:text-slate-300">
-                    {calendarDays.map((calDate, idx) => {
-                      const isCurrentMonth = calDate.getMonth() === today.getMonth();
-                      const isToday = calDate.toDateString() === today.toDateString();
-                      return (
-                        <div key={idx} className={`p-2 ${!isCurrentMonth ? 'text-slate-400 dark:text-slate-500' : ''} ${isToday ? 'bg-primary text-white rounded-lg font-bold shadow-sm' : ''}`}>
-                          {calDate.getDate()}
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="text-left">
+                  <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+                    {todaysClasses.length}
+                  </h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Today's Classes</p>
                 </div>
               </div>
 
-              {/* Upcoming Events Card */}
-              {/* <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-6 card-shadow flex flex-col text-left">
-                <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white mb-5">Upcoming Events</h3>
-                <div className="space-y-4">
-                  {upcomingEvents.length > 0 ? (
-                    upcomingEvents.map((event, idx) => (
-                      <div key={event.id || idx} className={`relative pl-4 border-l-2 py-1`} style={{ borderColor: event.color }}>
-                        <div className="flex gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0`} style={{ backgroundColor: event.bgColor, color: event.color }}>
-                            {event.type === 'holiday' ? <Award className="w-5 h-5" /> : <Users className="w-5 h-5" />}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">{event.title}</h4>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
-                              <CalendarIcon className="w-3.5 h-3.5" /> {event.date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-[12px] text-slate-500 dark:text-slate-400 text-center py-4">No upcoming events</div>
-                  )}
+              {/* Total Students Card */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center gap-4 hover:scale-[1.02] transition-all duration-300 hover:shadow-md group">
+                <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                  <Users className="w-6 h-6" />
                 </div>
-              </div> */}
+                <div className="text-left">
+                  <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+                    {totalTeacherStudentsCount}
+                  </h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Total Students</p>
+                </div>
+              </div>
+
+              {/* Homework Pending Card */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center gap-4 hover:scale-[1.02] transition-all duration-300 hover:shadow-md group">
+                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+                    {pendingHomeworkCount}
+                  </h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Homework Pending</p>
+                </div>
+              </div>
+
+              {/* Attendance Taken Today Card */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center gap-4 hover:scale-[1.02] transition-all duration-300 hover:shadow-md group">
+                <div className="p-3 bg-sky-500/10 text-sky-500 rounded-xl group-hover:bg-sky-500 group-hover:text-white transition-all duration-300">
+                  <UserCheck className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+                    {todaysAttendanceStatus}
+                  </h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Attendance Taken Today</p>
+                </div>
+              </div>
+
+              {/* Assignments Card */}
+              <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-5 card-shadow flex items-center gap-4 hover:scale-[1.02] transition-all duration-300 hover:shadow-md group">
+                <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
+                  <Award className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+                    {teacherAssignments.length}
+                  </h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Assignments</p>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1516,71 +1638,40 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {pendingOrInProgressChapters.length > 0 ? (
+                pendingOrInProgressChapters.slice(0, 4).map((ch, idx) => {
+                  const bgColors = [
+                    'bg-success/10 text-success',
+                    'bg-primary/10 text-primary',
+                    'bg-info/10 text-info',
+                    'bg-danger/10 text-danger'
+                  ];
+                  const bgClass = bgColors[idx % bgColors.length];
 
-              {/* Lesson 1 */}
-              <div className="border border-border rounded-xl p-4 flex flex-col justify-between h-[140px] hover:shadow-md transition-shadow">
-                <div className="bg-success/10 text-success text-[11px] font-bold text-center py-1.5 rounded-md mb-3">
-                  Class V, B
+                  return (
+                    <div key={idx} className="border border-border rounded-xl p-4 flex flex-col justify-between h-[140px] hover:shadow-md transition-shadow">
+                      <div className={`${bgClass} text-[11px] font-bold text-center py-1.5 rounded-md mb-3`}>
+                        {ch.className}
+                      </div>
+                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2 line-clamp-2" title={ch.chapter_name}>
+                        Ch {ch.chapter_no}: {ch.chapter_name}
+                      </h4>
+                      <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize">
+                          {ch.subjectName}
+                        </span>
+                        <span className={`text-[10.5px] font-bold ${ch.status === 'In Progress' ? 'text-amber-500' : 'text-slate-400'}`}>
+                          {ch.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-full text-center py-8 text-[13px] text-slate-500 border border-dashed border-border rounded-xl">
+                  All chapters are completed! No pending lesson plans.
                 </div>
-                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">Introduction Note to Physics on Tech</h4>
-                <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
-                  <button className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary">
-                    <RefreshCcw className="w-3 h-3" /> Reschedule
-                  </button>
-                  <button className="text-[11px] font-semibold text-info flex items-center gap-1.5 hover:text-info">
-                    <Share2 className="w-3 h-3" /> Share
-                  </button>
-                </div>
-              </div>
-
-              {/* Lesson 2 */}
-              <div className="border border-border rounded-xl p-4 flex flex-col justify-between h-[140px] hover:shadow-md transition-shadow">
-                <div className="bg-[var(--section-alt)] text-primary text-[11px] font-bold text-center py-1.5 rounded-md mb-3">
-                  Class V, A
-                </div>
-                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">Biometric & their Working Functionality</h4>
-                <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
-                  <button className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary">
-                    <RefreshCcw className="w-3 h-3" /> Reschedule
-                  </button>
-                  <button className="text-[11px] font-semibold text-info flex items-center gap-1.5 hover:text-info">
-                    <Share2 className="w-3 h-3" /> Share
-                  </button>
-                </div>
-              </div>
-
-              {/* Lesson 3 */}
-              <div className="border border-border rounded-xl p-4 flex flex-col justify-between h-[140px] hover:shadow-md transition-shadow">
-                <div className="bg-info/10 text-info text-[11px] font-bold text-center py-1.5 rounded-md mb-3">
-                  Class IV, C
-                </div>
-                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">Analyze and interpret literary texts skills</h4>
-                <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
-                  <button className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary">
-                    <RefreshCcw className="w-3 h-3" /> Reschedule
-                  </button>
-                  <button className="text-[11px] font-semibold text-info flex items-center gap-1.5 hover:text-info">
-                    <Share2 className="w-3 h-3" /> Share
-                  </button>
-                </div>
-              </div>
-
-              {/* Lesson 4 */}
-              <div className="border border-border rounded-xl p-4 flex flex-col justify-between h-[140px] hover:shadow-md transition-shadow">
-                <div className="bg-danger/10 text-danger text-[11px] font-bold text-center py-1.5 rounded-md mb-3">
-                  Class V, A
-                </div>
-                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">Enhance vocabulary and grammar skills</h4>
-                <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
-                  <button className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 hover:text-primary">
-                    <RefreshCcw className="w-3 h-3" /> Reschedule
-                  </button>
-                  <button className="text-[11px] font-semibold text-info flex items-center gap-1.5 hover:text-info">
-                    <Share2 className="w-3 h-3" /> Share
-                  </button>
-                </div>
-              </div>
-
+              )}
             </div>
           </div>
 
@@ -1614,51 +1705,40 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="text-[13px] text-slate-700 dark:text-slate-200 font-medium">
-                  <tr className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-4">35013</td>
-                    <td className="py-3 px-4 flex items-center gap-2"><img src="/asset 12.webp" className="w-6 h-6 rounded-full" /> Janet</td>
-                    <td className="py-3 px-4">III</td>
-                    <td className="py-3 px-4">A</td>
-                    <td className="py-3 px-4">89%</td>
-                    <td className="py-3 px-4">4.2</td>
-                    <td className="py-3 px-4"><span className="bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded">Pass</span></td>
-                  </tr>
-                  <tr className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-4">35013</td>
-                    <td className="py-3 px-4 flex items-center gap-2"><img src="/asset 13.webp" className="w-6 h-6 rounded-full" /> Joann</td>
-                    <td className="py-3 px-4">IV</td>
-                    <td className="py-3 px-4">B</td>
-                    <td className="py-3 px-4">88%</td>
-                    <td className="py-3 px-4">3.2</td>
-                    <td className="py-3 px-4"><span className="bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded">Pass</span></td>
-                  </tr>
-                  <tr className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-4">35011</td>
-                    <td className="py-3 px-4 flex items-center gap-2"><img src="/asset 14.webp" className="w-6 h-6 rounded-full" /> Kathleen</td>
-                    <td className="py-3 px-4">II</td>
-                    <td className="py-3 px-4">A</td>
-                    <td className="py-3 px-4">69%</td>
-                    <td className="py-3 px-4">4.5</td>
-                    <td className="py-3 px-4"><span className="bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded">Pass</span></td>
-                  </tr>
-                  <tr className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-4">35010</td>
-                    <td className="py-3 px-4 flex items-center gap-2"><img src="/asset 12.webp" className="w-6 h-6 rounded-full" /> Gifford</td>
-                    <td className="py-3 px-4">I</td>
-                    <td className="py-3 px-4">B</td>
-                    <td className="py-3 px-4">21%</td>
-                    <td className="py-3 px-4">4.5</td>
-                    <td className="py-3 px-4"><span className="bg-success text-white text-[10px] font-bold px-2 py-0.5 rounded">Pass</span></td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-4">35009</td>
-                    <td className="py-3 px-4 flex items-center gap-2"><img src="/asset 13.webp" className="w-6 h-6 rounded-full" /> Lisa</td>
-                    <td className="py-3 px-4">II</td>
-                    <td className="py-3 px-4">B</td>
-                    <td className="py-3 px-4">31%</td>
-                    <td className="py-3 px-4">3.9</td>
-                    <td className="py-3 px-4"><span className="bg-danger text-white text-[10px] font-bold px-2 py-0.5 rounded">Fail</span></td>
-                  </tr>
+                  {studentMarksList.length > 0 ? (
+                    studentMarksList.slice(0, 5).map((row, idx) => (
+                      <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                        <td className="py-3 px-4">{row.id}</td>
+                        <td className="py-3 px-4 flex items-center gap-2">
+                          {row.photo ? (
+                            <img src={row.photo} className="w-6 h-6 rounded-full object-cover" alt="" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                              {row.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          {row.name}
+                        </td>
+                        <td className="py-3 px-4">{row.class}</td>
+                        <td className="py-3 px-4">{row.section}</td>
+                        <td className="py-3 px-4">{row.marks}</td>
+                        <td className="py-3 px-4">{row.cgpa}</td>
+                        <td className="py-3 px-4">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            row.status === "Pass" ? "bg-success text-white" : "bg-danger text-white"
+                          }`}>
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                        No student marks found for your subjects.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1673,61 +1753,45 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Leave 1 */}
-                <div className="border border-border rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-danger/10 text-danger flex items-center justify-center">
-                      <X className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">Emergency Leave</h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Date : 15 Jun 2024</p>
-                    </div>
+                {myLeaves.length > 0 ? (
+                  myLeaves.slice(0, 4).map((leave, idx) => {
+                    const statusColors = leave.status === 'approved'
+                      ? 'bg-success/10 text-success'
+                      : (leave.status as string) === 'rejected' || (leave.status as string) === 'declined'
+                        ? 'bg-danger/10 text-danger'
+                        : 'bg-info/10 text-info';
+                    const iconColor = leave.status === 'approved'
+                      ? 'text-success bg-success/10'
+                      : 'text-danger bg-danger/10';
+                    return (
+                      <div key={leave._id || idx} className="border border-border rounded-xl p-4 flex items-center justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor}`}>
+                            {leave.status === 'approved'
+                              ? <CheckCircle2 className="w-4 h-4" />
+                              : <X className="w-4 h-4" />
+                            }
+                          </div>
+                          <div>
+                            <h4 className="text-[13px] font-bold text-slate-900 dark:text-white capitalize">
+                              {leave.leave_type || leave.reason || "Leave"} Leave
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Date: {new Date(leave.from_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] font-bold px-2 py-1 rounded capitalize ${statusColors}`}>
+                          {leave.status}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-[12px] text-slate-500 dark:text-slate-400 text-center py-8">
+                    No leave history found.
                   </div>
-                  <span className="bg-info/10 text-info text-[9px] font-bold px-2 py-1 rounded">Pending</span>
-                </div>
-
-                {/* Leave 2 */}
-                <div className="border border-border rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                      <CalendarDays className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">Medical Leave</h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Date : 15 Jun 2024</p>
-                    </div>
-                  </div>
-                  <span className="bg-success/10 text-success text-[9px] font-bold px-2 py-1 rounded">Approved</span>
-                </div>
-
-                {/* Leave 3 */}
-                <div className="border border-border rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                      <CalendarDays className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">Medical Leave</h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Date : 16 Jun 2024</p>
-                    </div>
-                  </div>
-                  <span className="bg-danger/10 text-danger text-[9px] font-bold px-2 py-1 rounded">Declined</span>
-                </div>
-
-                {/* Leave 4 */}
-                <div className="border border-border rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-danger/10 text-danger flex items-center justify-center">
-                      <X className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">Not Well</h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Date : 16 Jun 2024</p>
-                    </div>
-                  </div>
-                  <span className="bg-success/10 text-success text-[9px] font-bold px-2 py-1 rounded">Approved</span>
-                </div>
+                )}
               </div>
             </div>
 

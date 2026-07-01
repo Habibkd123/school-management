@@ -32,6 +32,7 @@ export default function StudentHomeworkPage() {
   const today = new Date();
 
   const getStatus = (hw: any) => {
+    if (hw.status === "completed") return "completed";
     const hasSubmitted = hw.submissions?.some((s: any) => {
       const sid = typeof s.student_id === "object" ? s.student_id._id : s.student_id;
       return sid === studentProfile?._id;
@@ -41,10 +42,12 @@ export default function StudentHomeworkPage() {
     return "pending";
   };
 
-  const filtered = homework.filter((hw) => {
-    if (filter === "all") return true;
-    return getStatus(hw) === filter;
-  });
+  const filtered = homework
+    .filter((hw) => hw.status !== "draft")
+    .filter((hw) => {
+      if (filter === "all") return true;
+      return getStatus(hw) === filter;
+    });
 
   const handleSubmit = async (homeworkId: string) => {
     if (!submissionContent.trim() || !studentProfile?._id) return;
@@ -59,6 +62,7 @@ export default function StudentHomeworkPage() {
     submitted: { label: "Submitted", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-500/10", border: "border-emerald-200 dark:border-emerald-500/20" },
     overdue: { label: "Overdue", icon: XCircle, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-500/10", border: "border-rose-200 dark:border-rose-500/20" },
     pending: { label: "Pending", icon: Clock, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-200 dark:border-amber-500/20" },
+    completed: { label: "Completed", icon: CheckCircle2, color: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-500/10", border: "border-indigo-200 dark:border-indigo-500/20" },
   };
 
   return (
@@ -172,9 +176,9 @@ export default function StudentHomeworkPage() {
                             Grade: {mySubmission.grade}
                           </p>
                         )}
-                        {mySubmission.feedback && (
+                        {(mySubmission.remarks || mySubmission.feedback) && (
                           <p className="text-[12px] mt-1 text-slate-600 dark:text-slate-400">
-                            Feedback: {mySubmission.feedback}
+                            Remarks: {mySubmission.remarks || mySubmission.feedback}
                           </p>
                         )}
                       </div>

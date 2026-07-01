@@ -21,7 +21,7 @@ export default function StudentPortalLayout({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace("/student/login");
+      router.replace("/");
       return;
     }
     if (HIDE_FEES_FEATURE && !isLoading && isAuthenticated && pathname.startsWith("/student/fees")) {

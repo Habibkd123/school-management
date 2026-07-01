@@ -40,16 +40,19 @@ export default function TeacherAttendancePage() {
   // Sync state when attendance changes
   useEffect(() => {
     const newRecords: Record<string, { status: string; note: string }> = {};
+    
+    // First, set defaults for all teachers
+    teachers.forEach(t => {
+      newRecords[t._id] = { status: "present", note: "" };
+    });
+
+    // Then, overlay existing records from database
     if (attendance?.records) {
       attendance.records.forEach(r => {
-        if (r.teacher_id?._id) {
-          newRecords[r.teacher_id._id] = { status: r.status, note: r.note || "" };
+        const tId = typeof r.teacher_id === "object" && r.teacher_id ? r.teacher_id._id : r.teacher_id;
+        if (tId) {
+          newRecords[tId.toString()] = { status: r.status, note: r.note || "" };
         }
-      });
-    } else {
-      // Default all to Present
-      teachers.forEach(t => {
-        newRecords[t._id] = { status: "present", note: "" };
       });
     }
     setAttendanceRecords(newRecords);
