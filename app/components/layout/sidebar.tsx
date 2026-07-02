@@ -148,7 +148,7 @@ export const Sidebar = React.memo(function Sidebar({ isMobileOpen = false, onClo
       name: "Attendance", icon: <Clock className="w-4 h-4" />, subItems: [
         { name: "Student Attendance", href: "/attendance/student" },
         { name: "My Attendance", href: "/attendance/my-attendance" },
-        { name: "Reports", href: "/attendance/reports" }
+        // { name: "Reports", href: "/attendance/reports" }
       ]
     },
     {

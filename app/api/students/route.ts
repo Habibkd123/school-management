@@ -145,7 +145,14 @@ export async function GET(request: NextRequest) {
 
     const [students, total] = await Promise.all([
       Student.find(filter)
-        .populate("class_id", "name section")
+        .populate({
+          path: "class_id",
+          select: "name section class_teacher_id",
+          populate: {
+            path: "class_teacher_id",
+            select: "name"
+          }
+        })
         .populate("user_id", "name email role is_active plain_password must_change_password")
         .sort(sortObj)
         .skip(skip)
@@ -412,7 +419,16 @@ export async function POST(request: NextRequest) {
       other_info: other_info?.trim(),
     });
 
-    const populated = await Student.findById(student._id).populate("class_id", "name section").lean();
+    const populated = await Student.findById(student._id)
+      .populate({
+        path: "class_id",
+        select: "name section class_teacher_id",
+        populate: {
+          path: "class_teacher_id",
+          select: "name"
+        }
+      })
+      .lean();
 
     // Generate password format for credentials output display (DDMMYY)
     let studentPassword = "student123";

@@ -16,6 +16,7 @@ import { useHolidays } from "../../hooks/useHolidays";
 import { useResults } from "../../hooks/useResults";
 import { getAuthHeaders, getStoredUser } from "@/lib/utils/session";
 import { useLeave } from "../../hooks/useLeave";
+import { useAttendanceSummary } from "../../hooks/useAttendanceSummary";
 import { useSubjects } from "../../hooks/useSubjects";
 import { useParent } from "../../hooks/useParent";
 import { useTeacherAssignment } from "../../hooks/useTeacherAssignment";
@@ -109,12 +110,12 @@ export default function DashboardPage() {
   const { notices } = useNotices();
   // Homework: teacher, student, parent — classId is first arg, options second
   const { homework } = useHomework(undefined, { skip: isSuperAdmin || isAdmin });
-  // Holidays: admin + teacher for calendar
-  const { holidays } = useHolidays({ skip: isSuperAdmin || isStudent || isParent });
-  // Results: admin, teacher, student
-  const { results } = useResults({ skip: isSuperAdmin || isParent });
-  // Leave: admin (attendance tab), teacher — statusFilter/userId are first two args, options third
-  const { leaveRequests: leaves } = useLeave(undefined, undefined, { skip: isSuperAdmin || isStudent || isParent });
+  // Holidays: needed by all roles for calendar highlights
+  const { holidays } = useHolidays({ skip: isSuperAdmin });
+  // Results: admin, teacher, student, parent
+  const { results } = useResults({ skip: isSuperAdmin });
+  // Leave: needed by all roles to view leave request status
+  const { leaveRequests: leaves } = useLeave(undefined, undefined, { skip: isSuperAdmin });
   // Dashboard stats (real-time school-wide attendance metrics)
   const { stats: dashboardStats } = useDashboardStats({
     skip: isSuperAdmin || isStudent || isParent
@@ -125,6 +126,91 @@ export default function DashboardPage() {
   const { academicYear } = useAppState();
   // Parent portal only
   const { children, selectedChildId, setSelectedChildId, isLoading: parentLoading } = useParent({ skip: !isParent });
+
+  const student = useMemo(() => {
+    return students.find(s => {
+      const sUserId = typeof s.user_id === 'object' && s.user_id ? s.user_id._id : s.user_id;
+      return sUserId === user?.id;
+    }) || null;
+  }, [students, user?.id]);
+
+  const selectedChild = useMemo(() => {
+    return children.find(c => c._id === selectedChildId) || children[0] || null;
+  }, [children, selectedChildId]);
+
+  const activeRole = isSuperAdmin ? "super_admin" : isTeacher ? "teacher" : isParent ? "parent" : isStudent ? "student" : "admin";
+  const displayStudent = activeRole === "parent" ? selectedChild : student;
+  const displayStudentId = displayStudent?._id;
+  const displayStudentClassId = typeof displayStudent?.class_id === 'object' ? displayStudent?.class_id?._id : displayStudent?.class_id;
+
+  const [studentAttendanceSummary, setStudentAttendanceSummary] = useState<{
+    present: number;
+    absent: number;
+    late: number;
+    holiday: number;
+    half_day: number;
+    leave: number;
+  } | null>(null);
+  const [studentWeeklyAttendance, setStudentWeeklyAttendance] = useState<Array<{ date: string; status: string; note?: string }>>([]);
+
+  const { fetchSummary, fetchDetail } = useAttendanceSummary();
+
+  React.useEffect(() => {
+    if ((isStudent || isParent) && displayStudentId) {
+      const fetchMonthly = async () => {
+        const todayDate = new Date();
+        const startOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).toISOString().split('T')[0];
+        const endOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).toISOString().split('T')[0];
+        const summaryData = await fetchSummary(startOfMonth, endOfMonth, "student");
+        if (summaryData && summaryData[displayStudentId]) {
+          setStudentAttendanceSummary(summaryData[displayStudentId]);
+        } else {
+          setStudentAttendanceSummary({ present: 0, absent: 0, late: 0, holiday: 0, half_day: 0, leave: 0 });
+        }
+      };
+
+      const fetchWeekly = async () => {
+        const todayDate = new Date();
+        const monday = new Date(todayDate);
+        const dayOfWeek = todayDate.getDay(); 
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        monday.setDate(todayDate.getDate() + diffToMonday);
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const startOfWeek = monday.toISOString().split('T')[0];
+        const endOfWeek = sunday.toISOString().split('T')[0];
+
+        const details = await fetchDetail(startOfWeek, endOfWeek, "student", displayStudentId);
+        if (details) {
+          setStudentWeeklyAttendance(details);
+        } else {
+          setStudentWeeklyAttendance([]);
+        }
+      };
+
+      fetchMonthly();
+      fetchWeekly();
+    }
+  }, [displayStudentId, isStudent, isParent, fetchSummary, fetchDetail]);
+  const [assessments, setAssessments] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if ((isStudent || isParent) && displayStudentClassId) {
+      fetch(`/api/assessments?class_id=${displayStudentClassId}&academic_year=${academicYear}`, {
+        headers: getAuthHeaders(),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAssessments(data.data || []);
+          }
+        })
+        .catch(err => console.error(err));
+    }
+  }, [isStudent, isParent, displayStudentClassId, academicYear]);
+
   const { assignments: teacherAssignments, fetchAssignments: fetchTeacherAssignments } = useTeacherAssignment();
 
   const [attendanceTab, setAttendanceTab] = useState<'Students' | 'Teachers' | 'Staff'>('Students');
@@ -143,9 +229,10 @@ export default function DashboardPage() {
     });
   }, [isTeacher, teachers, user?.id]);
 
-  // Schedules: loaded role-based. Admins see all, teachers see theirs.
+  // Schedules: loaded role-based. Admins see all, teachers see theirs, students/parents see their class's.
   const scheduleTeacherId = isTeacher ? currentTeacherProfile?._id : undefined;
-  const { schedules } = useSchedules(undefined, scheduleTeacherId, { skip: isSuperAdmin || isStudent || isParent });
+  const scheduleClassId = (isStudent || isParent) ? displayStudentClassId : undefined;
+  const { schedules } = useSchedules(scheduleClassId, scheduleTeacherId, { skip: isSuperAdmin });
 
   React.useEffect(() => {
     if (isTeacher && currentTeacherProfile) {
@@ -307,31 +394,8 @@ export default function DashboardPage() {
   // ----------------------------------------------------
   // STUDENT LOGIC
   // ----------------------------------------------------
-  const student = students.find(s => {
-    const sUserId = typeof s.user_id === 'object' && s.user_id ? s.user_id._id : s.user_id;
-    return sUserId === user?.id;
-  }) || students[0];
-  const studentAttendanceRate = 95; // Placeholder
-  const pendingHwCount = homework.length; // Placeholder
-  const averageGrade = 88; // Placeholder
-  const studentPendingFees = 0; // Mocked for now
-
-  // Map roles to dashboard views
-  let activeRole: "super_admin" | "admin" | "teacher" | "student" | "parent" = "admin";
-  if (user?.role === "super_admin") activeRole = "super_admin";
-  else if (user?.role === "teacher") activeRole = "teacher";
-  else if (user?.role === "parent") activeRole = "parent";
-  else if (user?.role === "student") activeRole = "student";
-
-  const selectedChild = children.find(c => c._id === selectedChildId) || children[0] || null;
-  const displayStudent = activeRole === "parent" ? selectedChild : student;
-
   const today = new Date();
   const currentDayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-
-  // Student specific data
-  const displayStudentId = displayStudent?._id;
-  const displayStudentClassId = typeof displayStudent?.class_id === 'object' ? displayStudent?.class_id?._id : displayStudent?.class_id;
 
   const studentHomework = homework.filter(hw => {
     const hwClassId = typeof hw.class_id === 'object' ? hw.class_id?._id : hw.class_id;
@@ -356,6 +420,78 @@ export default function DashboardPage() {
   const studentTodaysClasses = studentSchedules
     .filter(s => s.day === currentDayName)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  const totalAttendanceDays = studentAttendanceSummary
+    ? (studentAttendanceSummary.present + studentAttendanceSummary.absent + studentAttendanceSummary.late + studentAttendanceSummary.half_day + studentAttendanceSummary.leave)
+    : 0;
+  const studentAttendanceRate = totalAttendanceDays > 0 && studentAttendanceSummary
+    ? Math.round((studentAttendanceSummary.present / totalAttendanceDays) * 100)
+    : 100; // Default to 100 if no records
+  const pendingHwCount = studentHomework.filter(hw => hw.status !== "completed").length;
+
+  const averageGrade = studentResults.length > 0
+    ? Math.round(studentResults.reduce((acc, r) => acc + (r.total_marks > 0 ? (r.marks_obtained / r.total_marks) * 100 : 0), 0) / studentResults.length)
+    : 0;
+  const studentPendingFees = 0; // Mocked for now
+
+  const totalSubjectsCount = useMemo(() => {
+    const seen = new Set();
+    studentSchedules.forEach(s => {
+      const subId = typeof s.subject_id === 'object' && s.subject_id ? s.subject_id._id : s.subject_id;
+      if (subId) seen.add(subId);
+    });
+    return seen.size;
+  }, [studentSchedules]);
+
+  const examPerformance = useMemo(() => {
+    const examsMap: Record<string, { totalObtained: number; totalMax: number }> = {};
+    studentResults.forEach(r => {
+      const examName = typeof r.exam_id === 'object' && r.exam_id ? (r.exam_id as any).name : 'Exam';
+      if (!examsMap[examName]) {
+        examsMap[examName] = { totalObtained: 0, totalMax: 0 };
+      }
+      examsMap[examName].totalObtained += r.marks_obtained;
+      examsMap[examName].totalMax += r.total_marks;
+    });
+
+    const list = Object.entries(examsMap).map(([examName, data]) => {
+      const score = data.totalMax > 0 ? Math.round((data.totalObtained / data.totalMax) * 100) : 0;
+      return { label: examName, score };
+    });
+
+    if (list.length === 0) {
+      return [
+        { label: "Quarter 1", score: 0 },
+        { label: "Quarter 2", score: 0 },
+        { label: "Half Yearly", score: 0 },
+        { label: "Model", score: 0 },
+        { label: "Final", score: 0 }
+      ];
+    }
+    return list;
+  }, [studentResults]);
+
+  const examPoints = useMemo(() => {
+    return examPerformance.map((item, idx) => {
+      const x = (idx / Math.max(1, examPerformance.length - 1)) * 100;
+      const y = 100 - item.score;
+      return `${x},${y}`;
+    });
+  }, [examPerformance]);
+
+  const attendancePoints = useMemo(() => {
+    return examPerformance.map((item, idx) => {
+      const x = (idx / Math.max(1, examPerformance.length - 1)) * 100;
+      const y = 100 - studentAttendanceRate;
+      return `${x},${y}`;
+    });
+  }, [examPerformance, studentAttendanceRate]);
+
+  const examPath = examPoints.length > 0 ? `M ${examPoints.join(' L ')}` : '';
+  const examAreaPath = examPoints.length > 0 ? `M 0,100 L ${examPoints.join(' L ')} L 100,100 Z` : '';
+  
+  const attendancePath = attendancePoints.length > 0 ? `M ${attendancePoints.join(' L ')}` : '';
+  const attendanceAreaPath = attendancePoints.length > 0 ? `M 0,100 L ${attendancePoints.join(' L ')} L 100,100 Z` : '';
 
   // Latest Notice (used in multiple places)
   const latestNotice = notices.filter(n => n.is_published).sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime())[0];
@@ -1944,6 +2080,113 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
+              {/* Overview Cards Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-left">
+                {/* Today's Classes */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-lg">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {studentTodaysClasses.length}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Today's Classes</p>
+                  </div>
+                </div>
+
+                {/* Total Subjects */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {totalSubjectsCount}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Total Subjects</p>
+                  </div>
+                </div>
+
+                {/* Attendance Rate */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-purple-500/10 text-purple-500 rounded-lg">
+                    <Percent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {studentAttendanceRate}%
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Attendance Rate</p>
+                  </div>
+                </div>
+
+                {/* Present Days */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-teal-500/10 text-teal-500 rounded-lg">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {studentAttendanceSummary?.present ?? 0}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Present Days</p>
+                  </div>
+                </div>
+
+                {/* Absent Days */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-rose-500/10 text-rose-500 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {studentAttendanceSummary?.absent ?? 0}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Absent Days</p>
+                  </div>
+                </div>
+
+                {/* Pending Homework */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-lg">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {pendingHwCount}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Pending Homework</p>
+                  </div>
+                </div>
+
+                {/* Upcoming Tests */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-lg">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {assessments.filter(t => new Date(t.test_date) >= new Date() && t.computedStatus !== "completed").length}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Upcoming Tests</p>
+                  </div>
+                </div>
+
+                {/* Latest Result */}
+                <div className="bg-white dark:bg-slate-900 border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+                  <div className="p-2.5 bg-sky-500/10 text-sky-500 rounded-lg">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {averageGrade > 0 ? `${averageGrade}%` : "—"}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Latest Result</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Top Section: Masonry-like 3 Columns */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -1963,16 +2206,34 @@ export default function DashboardPage() {
                         }
                       </div>
                       <div>
-                        <span className="bg-white text-primary text-[9px] font-bold px-2 py-0.5 rounded uppercase dark:bg-slate-900">#{(displayStudent as any)?.roll_no || "ST123456"}</span>
+                        <span className="bg-white text-primary text-[9px] font-bold px-2 py-0.5 rounded uppercase dark:bg-slate-900">#{(displayStudent as any)?.admission_no || (displayStudent as any)?.roll_no || "ST123456"}</span>
                         <h3 className="text-[16px] font-bold mt-1.5">{(displayStudent as any)?.name}</h3>
                         <p className="text-[11px] text-white/70 mt-0.5">
-                          Class : {(displayStudent as any)?.class_id ? `${(displayStudent as any).class_id?.name} ${(displayStudent as any).class_id?.section}` : "N/A"}
-                          | Roll No : {(displayStudent as any)?.roll_no || "N/A"}
+                          Class : {(displayStudent as any)?.class_id ? (typeof (displayStudent as any).class_id === 'object' ? (displayStudent as any).class_id.name : "N/A") : "N/A"}
+                          | Section : {(displayStudent as any)?.class_id ? (typeof (displayStudent as any).class_id === 'object' ? (displayStudent as any).class_id.section : "N/A") : "N/A"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="relative z-10 flex items-center justify-between mt-8 border-t border-white/10 pt-4">
+                    {/* Academic Info Grid inside profile card */}
+                    <div className="relative z-10 mt-6 pt-4 border-t border-white/10 grid grid-cols-2 gap-y-3 text-left text-white/80">
+                      <div>
+                        <span className="text-[9px] block text-white/60">Roll Number</span>
+                        <span className="text-[12px] font-bold text-white">{(displayStudent as any)?.roll_no || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] block text-white/60">Academic Year</span>
+                        <span className="text-[12px] font-bold text-white">{(displayStudent as any)?.academic_year || academicYear || "N/A"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[9px] block text-white/60">Class Teacher</span>
+                        <span className="text-[12px] font-bold text-white">
+                          {(displayStudent as any)?.class_id?.class_teacher_id?.name || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex items-center justify-between mt-6 border-t border-white/10 pt-4">
                       <div className="flex flex-col">
                         <span className="text-[11px] text-white/60">{today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         <span className="text-[12px] font-bold text-white/90 mt-0.5">{(displayStudent as any)?.gender || 'Student'}</span>
@@ -2066,53 +2327,96 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between px-6 mb-6">
                       <div className="text-center">
                         <p className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Present</p>
-                        <p className="text-[16px] font-bold mt-1">25</p>
+                        <p className="text-[16px] font-bold mt-1">{studentAttendanceSummary?.present ?? 0}</p>
                       </div>
                       <div className="w-px h-8 bg-border"></div>
                       <div className="text-center">
                         <p className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Absent</p>
-                        <p className="text-[16px] font-bold mt-1">2</p>
+                        <p className="text-[16px] font-bold mt-1">{studentAttendanceSummary?.absent ?? 0}</p>
                       </div>
                       <div className="w-px h-8 bg-border"></div>
                       <div className="text-center">
-                        <p className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Halfday</p>
-                        <p className="text-[16px] font-bold mt-1">0</p>
+                        <p className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Late / Leave</p>
+                        <p className="text-[16px] font-bold mt-1">{(studentAttendanceSummary?.late ?? 0) + (studentAttendanceSummary?.leave ?? 0)}</p>
                       </div>
                     </div>
 
                     {/* Donut Chart SVG */}
                     <div className="flex-1 flex flex-col items-center justify-center">
                       <div className="relative w-40 h-40">
-                        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                          {/* Background circle */}
-                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="#F1F5F9" strokeWidth="12" className="dark:stroke-slate-800" />
+                        {(() => {
+                          const attPresent = studentAttendanceSummary?.present ?? 0;
+                          const attAbsent = studentAttendanceSummary?.absent ?? 0;
+                          const attLate = studentAttendanceSummary?.late ?? 0;
+                          const attHalfDay = studentAttendanceSummary?.half_day ?? 0;
+                          const attLeave = studentAttendanceSummary?.leave ?? 0;
+                          const attTotal = attPresent + attAbsent + attLate + attHalfDay + attLeave;
 
-                          {/* Absent (Red) - Top Left (approx 10%) */}
-                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12"
-                            strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * 10) / 100}
-                            className="transition-all duration-1000 ease-out" />
+                          const pctPresent = attTotal > 0 ? (attPresent / attTotal) * 100 : 0;
+                          const pctLate = attTotal > 0 ? (attLate / attTotal) * 100 : 0;
+                          const pctHalfDay = attTotal > 0 ? (attHalfDay / attTotal) * 100 : 0;
+                          const pctLeave = attTotal > 0 ? (attLeave / attTotal) * 100 : 0;
+                          const pctAbsent = attTotal > 0 ? (attAbsent / attTotal) * 100 : 0;
 
-                          {/* Halfday (Blue) - Bottom Left (approx 15%) */}
-                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12"
-                            strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * 15) / 100}
-                            strokeLinecap="round"
-                            transform="rotate(36, 50, 50)"
-                            className="transition-all duration-1000 ease-out" />
+                          const dashOffset1 = 251.2 - (251.2 * pctPresent) / 100;
+                          const dashOffset2 = 251.2 - (251.2 * pctLate) / 100;
+                          const rotate2 = (pctPresent * 3.6);
+                          const dashOffset3 = 251.2 - (251.2 * pctHalfDay) / 100;
+                          const rotate3 = ((pctPresent + pctLate) * 3.6);
+                          const dashOffset4 = 251.2 - (251.2 * pctLeave) / 100;
+                          const rotate4 = ((pctPresent + pctLate + pctHalfDay) * 3.6);
+                          const dashOffset5 = 251.2 - (251.2 * pctAbsent) / 100;
+                          const rotate5 = ((pctPresent + pctLate + pctHalfDay + pctLeave) * 3.6);
 
-                          {/* Present (Green) - Remaining (approx 75%) */}
-                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10B981" strokeWidth="12"
-                            strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * 75) / 100}
-                            strokeLinecap="round"
-                            transform="rotate(90, 50, 50)"
-                            className="transition-all duration-1000 ease-out" />
-                        </svg>
+                          return (
+                            <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                              {/* Background circle */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#F1F5F9" strokeWidth="12" className="dark:stroke-slate-800" />
+                              
+                              {/* Present (Green) */}
+                              {pctPresent > 0 && (
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10B981" strokeWidth="12"
+                                  strokeDasharray="251.2" strokeDashoffset={dashOffset1}
+                                  className="transition-all duration-1000 ease-out" />
+                              )}
+                              {/* Late (Blue) */}
+                              {pctLate > 0 && (
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12"
+                                  strokeDasharray="251.2" strokeDashoffset={dashOffset2}
+                                  transform={`rotate(${rotate2}, 50, 50)`}
+                                  className="transition-all duration-1000 ease-out" />
+                              )}
+                              {/* Half Day (Gray) */}
+                              {pctHalfDay > 0 && (
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#94A3B8" strokeWidth="12"
+                                  strokeDasharray="251.2" strokeDashoffset={dashOffset3}
+                                  transform={`rotate(${rotate3}, 50, 50)`}
+                                  className="transition-all duration-1000 ease-out" />
+                              )}
+                              {/* Leave (Purple) */}
+                              {pctLeave > 0 && (
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#A855F7" strokeWidth="12"
+                                  strokeDasharray="251.2" strokeDashoffset={dashOffset4}
+                                  transform={`rotate(${rotate4}, 50, 50)`}
+                                  className="transition-all duration-1000 ease-out" />
+                              )}
+                              {/* Absent (Red) */}
+                              {pctAbsent > 0 && (
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12"
+                                  strokeDasharray="251.2" strokeDashoffset={dashOffset5}
+                                  transform={`rotate(${rotate5}, 50, 50)`}
+                                  className="transition-all duration-1000 ease-out" />
+                              )}
+                            </svg>
+                          );
+                        })()}
                       </div>
 
                       {/* Legend */}
                       <div className="flex items-center gap-4 mt-6">
                         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#10B981]"></div><span className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Present</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div><span className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Late</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-300"></div><span className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Half Day</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-400"></div><span className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Half Day</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#EF4444]"></div><span className="text-[11px] text-slate-500 font-medium dark:text-slate-400">Absent</span></div>
                       </div>
                     </div>
@@ -2128,11 +2432,29 @@ export default function DashboardPage() {
                             dayDate.setDate(today.getDate() + diff);
                             const isWeekend = i >= 5;
                             const isPast = dayDate < today;
+
+                            const dateStr = dayDate.toISOString().split('T')[0];
+                            const matchingRecord = studentWeeklyAttendance.find(rec => {
+                              const recDate = new Date(rec.date).toISOString().split('T')[0];
+                              return recDate === dateStr;
+                            });
+
+                            let dotColor = "bg-primary/10 text-primary";
+                            if (matchingRecord) {
+                              const status = matchingRecord.status;
+                              if (status === "present") dotColor = "bg-[#10B981] text-white";
+                              else if (status === "late") dotColor = "bg-[#3B82F6] text-white";
+                              else if (status === "absent") dotColor = "bg-[#EF4444] text-white";
+                              else if (status === "leave") dotColor = "bg-[#A855F7] text-white";
+                              else if (status === "half_day") dotColor = "bg-slate-400 text-white";
+                            } else if (isWeekend) {
+                              dotColor = "bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700";
+                            } else if (isPast) {
+                              dotColor = "bg-slate-200 dark:bg-slate-800/40 text-slate-400";
+                            }
+
                             return (
-                              <div key={i} className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold ${isWeekend ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
-                                : isPast ? 'bg-[#10B981] text-white'
-                                  : 'bg-primary/10 text-primary'
-                                }`}>{d}</div>
+                              <div key={i} className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold ${dotColor}`}>{d}</div>
                             );
                           })}
                         </div>
@@ -2282,33 +2604,39 @@ export default function DashboardPage() {
                       </defs>
 
                       {/* Avg Attendance (Light Blue) line + area */}
-                      <path d="M0,30 Q15,20 25,40 T50,50 T75,40 T100,20 L100,85 L0,85 Z" fill="url(#gradBlue)" />
-                      <path d="M0,30 Q15,20 25,40 T50,50 T75,40 T100,20" fill="none" stroke="var(--info)" strokeWidth="2" />
+                      {attendancePath && (
+                        <>
+                          <path d={attendanceAreaPath} fill="url(#gradBlue)" />
+                          <path d={attendancePath} fill="none" stroke="var(--info)" strokeWidth="2" />
+                        </>
+                      )}
 
                       {/* Dots for light blue line */}
-                      <circle cx="25" cy="40" r="1.5" fill="var(--info)" />
-                      <circle cx="50" cy="50" r="1.5" fill="var(--info)" />
-                      <circle cx="75" cy="40" r="1.5" fill="var(--info)" />
-                      <circle cx="100" cy="20" r="1.5" fill="var(--info)" />
+                      {attendancePoints.map((pt, i) => {
+                        const [x, y] = pt.split(',');
+                        return <circle key={i} cx={x} cy={y} r="1.5" fill="var(--info)" />;
+                      })}
 
                       {/* Avg Exam Score (Navy Blue) line + area */}
-                      <path d="M0,85 Q15,80 25,70 T50,60 T75,80 T100,50 L100,85 L0,85 Z" fill="url(#gradNavy)" />
-                      <path d="M0,85 Q15,80 25,70 T50,60 T75,80 T100,50" fill="none" stroke="var(--primary)" strokeWidth="2" />
+                      {examPath && (
+                        <>
+                          <path d={examAreaPath} fill="url(#gradNavy)" />
+                          <path d={examPath} fill="none" stroke="var(--primary)" strokeWidth="2" />
+                        </>
+                      )}
 
                       {/* Dots for navy line */}
-                      <circle cx="25" cy="70" r="1.5" fill="var(--primary)" />
-                      <circle cx="50" cy="60" r="1.5" fill="var(--primary)" />
-                      <circle cx="75" cy="80" r="1.5" fill="var(--primary)" />
-                      <circle cx="100" cy="50" r="1.5" fill="var(--primary)" />
+                      {examPoints.map((pt, i) => {
+                        const [x, y] = pt.split(',');
+                        return <circle key={i} cx={x} cy={y} r="1.5" fill="var(--primary)" />;
+                      })}
                     </svg>
 
                     {/* X-axis labels */}
                     <div className="absolute left-6 right-0 bottom-0 flex justify-between text-[10px] text-slate-400">
-                      <span>Quarter 1</span>
-                      <span>Quarter 2</span>
-                      <span>Half Yearly</span>
-                      <span>Model</span>
-                      <span>Final</span>
+                      {examPerformance.map((item, idx) => (
+                        <span key={idx}>{item.label}</span>
+                      ))}
                     </div>
                   </div>
 
@@ -2339,11 +2667,15 @@ export default function DashboardPage() {
                       const subject = typeof hw.subject_id === 'object' ? (hw.subject_id as any)?.name : "Subject";
                       const teacher = typeof hw.teacher_id === 'object' ? hw.teacher_id : null;
 
-                      // Compute "completion percentage" mock since this isn't stored per-student yet
-                      const pct = Math.floor(Math.random() * 60) + 40; // 40-99
-                      let color = "#3B82F6";
-                      if (pct > 80) color = "#10B981";
-                      else if (pct < 50) color = "#EF4444";
+                      // Calculate real status and completion percentage
+                      const isCompleted = hw.status === "completed" || hw.status === "submitted";
+                      const isOverdue = !isCompleted && new Date(hw.due_date) < new Date();
+                      
+                      const pct = isCompleted ? 100 : isOverdue ? 0 : 50;
+                      let color = "#3B82F6"; // default blue
+                      if (isCompleted) color = "#10B981"; // green
+                      else if (isOverdue) color = "#EF4444"; // red
+                      else color = "#F59E0B"; // amber
 
                       const dueStr = new Date(hw.due_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 

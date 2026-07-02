@@ -9,7 +9,8 @@ import { useSubjects } from "../../../hooks/useSubjects";
 import { useAuth } from "../../../context/auth";
 import { 
   Plus, Search, Edit, Trash2,
-  Calendar, ChevronDown, RefreshCw, Loader2, Clock, MapPin, User, BookOpen
+  Calendar, ChevronDown, RefreshCw, Loader2, Clock, MapPin, User, BookOpen,
+  MoreVertical, CalendarDays, CheckCircle, Layout, ListVideo, Layers
 } from "lucide-react";
 import { Modal } from "../../../components/ui/modal";
 
@@ -20,6 +21,8 @@ export default function SchedulePage() {
   const { teachers, isLoading: teachersLoading } = useTeachers();
 
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  const [filterClassId, setFilterClassId] = useState<string>("");
+  const [filterSubject, setFilterSubject] = useState<string>("");
 
   // Hook to fetch schedules filtered by teacher
   const { schedules, isLoading: schedulesLoading, fetchSchedules, createSchedule, updateSchedule, deleteSchedule } = useSchedules(
@@ -31,6 +34,9 @@ export default function SchedulePage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  
+  // Action Menu State
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   // Form states
   const [formClassId, setFormClassId] = useState("");
@@ -44,6 +50,13 @@ export default function SchedulePage() {
 
   // Fetch dynamic subjects based on selected class
   const { subjects: availableSubjects } = useSubjects(formClassId);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuId(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   // Generate time slots (every 15 mins from 7 AM to 6 PM)
   const timeSlots = [];
@@ -106,6 +119,7 @@ export default function SchedulePage() {
     setFormRoom(schedule.room || "");
     setFormPeriodNo(schedule.period_no ? schedule.period_no.toString() : "");
     setIsEditOpen(true);
+    setActiveMenuId(null);
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -154,6 +168,7 @@ export default function SchedulePage() {
         alert(res.message || "Failed to delete schedule");
       }
     }
+    setActiveMenuId(null);
   };
 
   const getClassName = (c: any) => {
@@ -161,6 +176,11 @@ export default function SchedulePage() {
       return `${c.name} - ${c.section}`;
     }
     return classes.find(item => item._id === c)?.name || "N/A";
+  };
+
+  const getClassId = (c: any) => {
+    if (typeof c === "object" && c !== null) return c._id;
+    return c;
   };
 
   const getTeacherName = (t: any) => {
@@ -179,12 +199,12 @@ export default function SchedulePage() {
 
   const getSubjectColor = (subjectName: string) => {
     const colors = [
-      "border-l-4 border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300",
-      "border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300",
-      "border-l-4 border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300",
-      "border-l-4 border-l-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-300",
-      "border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300",
-      "border-l-4 border-l-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/20 text-cyan-700 dark:text-cyan-300",
+      "border-l-4 border-l-rose-500",
+      "border-l-4 border-l-blue-500",
+      "border-l-4 border-l-emerald-500",
+      "border-l-4 border-l-violet-500",
+      "border-l-4 border-l-amber-500",
+      "border-l-4 border-l-cyan-500",
     ];
     let hash = 0;
     for (let i = 0; i < subjectName.length; i++) {
@@ -198,7 +218,7 @@ export default function SchedulePage() {
   const parseTimeToMinutes = (t: string): number => {
     const match = t.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!match) return 0;
-    let [, h, m, period] = match;
+    const [, h, m, period] = match;
     let hours = parseInt(h, 10);
     const mins = parseInt(m, 10);
     if (period.toUpperCase() === "PM" && hours !== 12) hours += 12;
@@ -213,54 +233,78 @@ export default function SchedulePage() {
     const sId = s._id.toLowerCase();
     const search = searchTerm.toLowerCase();
 
+    // Filters
+    if (filterClassId && getClassId(s.class_id) !== filterClassId) return false;
+    if (filterSubject && getSubjectName(s.subject_id) !== filterSubject) return false;
+
     return sId.includes(search) || sName.includes(search) || cName.includes(search) || tName.includes(search);
   });
 
-  // Group schedules by weekday
-  const groupedSchedules = DAYS_OF_WEEK.reduce((acc, day) => {
-    const daySchedules = filteredSchedules.filter(
-      s => s.day.toLowerCase() === day.toLowerCase()
-    );
-    // Sort schedules chronologically by start time, and secondarily by period number
-    daySchedules.sort((a, b) => {
-      if (a.period_no !== undefined && b.period_no !== undefined && a.period_no !== b.period_no) {
-        return a.period_no - b.period_no;
-      }
-      return parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time);
-    });
-    acc[day] = daySchedules;
+  // Extract unique subjects for the filter dropdown
+  const uniqueSubjectsList = Array.from(new Set(schedules.map(s => getSubjectName(s.subject_id)))).sort();
+
+  // Group schedules by Class (Kanban layout)
+  const groupedSchedulesByClass = filteredSchedules.reduce((acc, schedule) => {
+    const className = getClassName(schedule.class_id);
+    if (!acc[className]) acc[className] = [];
+    acc[className].push(schedule);
     return acc;
   }, {} as Record<string, typeof filteredSchedules>);
+
+  // Sort each class column by Day then Time
+  Object.keys(groupedSchedulesByClass).forEach(className => {
+    groupedSchedulesByClass[className].sort((a, b) => {
+      const dayDiff = DAYS_OF_WEEK.indexOf(a.day) - DAYS_OF_WEEK.indexOf(b.day);
+      if (dayDiff !== 0) return dayDiff;
+      return parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time);
+    });
+  });
+
+  // Sort class columns alphabetically
+  const sortedClassNames = Object.keys(groupedSchedulesByClass).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   const hasAnySchedules = filteredSchedules.length > 0;
   const isLoading = classesLoading || teachersLoading || schedulesLoading;
 
+  // Summary Metrics
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const todaysClassesCount = filteredSchedules.filter(s => s.day === today).length;
+  const weeklyClassesCount = filteredSchedules.length;
+  const uniqueClassIds = new Set(filteredSchedules.map(s => getClassId(s.class_id)));
+  const assignedClassesCount = uniqueClassIds.size;
+  const freePeriodsCount = Math.max(0, (assignedClassesCount * 30) - weeklyClassesCount);
+
   return (
     <div className="space-y-6 bg-[#F8FAFC] dark:bg-[var(--sidebar-bg)] min-h-screen -m-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-border shadow-sm">
         <div className="text-left">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">My Routines</h1>
-          <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400 mt-1">
-            <span>Dashboard</span>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Layout className="w-6 h-6 text-primary" />
+            My Routines
+          </h1>
+          <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1.5">
+            View your complete weekly teaching schedule.
+          </p>
+          <div className="flex items-center gap-2 text-[12px] text-slate-400 dark:text-slate-500 mt-3 font-medium">
+            <Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
             <span>/</span>
-            <Link href="/classes" className="hover:text-primary">Classes</Link>
-            <span>/</span>
-            <span className="text-slate-900 dark:text-white font-medium">My Routines</span>
+            <span className="text-slate-700 dark:text-slate-300">My Routines</span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={() => fetchSchedules(undefined, selectedTeacherId || undefined)} 
-            className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border border-border flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors shadow-sm cursor-pointer"
+            className="w-10 h-10 rounded-xl bg-[#F8FAFC] dark:bg-slate-800 border border-border flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/5 transition-all shadow-sm cursor-pointer"
+            title="Refresh Schedule"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-primary' : ''}`} />
           </button>
           {isAdmin && (
             <button 
               onClick={openAddModal}
-              className="px-4 py-2 bg-primary hover:bg-[var(--primary-hover)] text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+              className="px-5 py-2.5 bg-primary hover:bg-[var(--primary-hover)] text-white text-[14px] font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm shadow-primary/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Routine
             </button>
@@ -268,143 +312,251 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-border rounded-xl shadow-sm p-4 text-left">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Teacher Select Filter */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filter By Teacher</label>
-              <div className="relative min-w-[200px]">
-                <select
-                  value={selectedTeacherId}
-                  onChange={(e) => setSelectedTeacherId(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2 text-[13px] bg-[#F8FAFC] dark:bg-slate-800 border border-border rounded-lg outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
-                >
-                  <option value="">All Teachers</option>
-                  {teachers.map(t => (
-                    <option key={t._id} value={t._id}>{t.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Today's Classes */}
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <CalendarDays className="w-6 h-6" />
           </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Today&apos;s Classes</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{todaysClassesCount}</h3>
+          </div>
+        </div>
+        
+        {/* Weekly Classes */}
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <ListVideo className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Weekly Classes</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{weeklyClassesCount}</h3>
+          </div>
+        </div>
 
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search routines" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 w-full sm:w-[260px] bg-[#F8FAFC] dark:bg-slate-800 border border-border rounded-lg text-[13px] outline-none focus:border-primary transition-colors text-left"
-            />
+        {/* Assigned Classes */}
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            <Layers className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned Classes</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{assignedClassesCount}</h3>
+          </div>
+        </div>
+
+        {/* Free Periods */}
+        <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Free Periods</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{freePeriodsCount}</h3>
           </div>
         </div>
       </div>
 
-      {/* Routine Timetable Grid */}
+      {/* Filters */}
+      <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Teacher Select Filter (Admin Only) */}
+          {isAdmin && (
+            <div className="relative min-w-[180px] flex-1 md:flex-none">
+              <select
+                value={selectedTeacherId}
+                onChange={(e) => setSelectedTeacherId(e.target.value)}
+                className="w-full pl-3 pr-10 py-2.5 text-[13px] font-medium bg-[#F8FAFC] dark:bg-slate-800 border border-border rounded-xl outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
+              >
+                <option value="">All Teachers</option>
+                {teachers.map(t => (
+                  <option key={t._id} value={t._id}>{t.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Class Filter */}
+          <div className="relative min-w-[150px] flex-1 md:flex-none">
+            <select
+              value={filterClassId}
+              onChange={(e) => setFilterClassId(e.target.value)}
+              className="w-full pl-3 pr-10 py-2.5 text-[13px] font-medium bg-[#F8FAFC] dark:bg-slate-800 border border-border rounded-xl outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => (
+                <option key={c._id} value={c._id}>{c.name} - {c.section}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Subject Filter */}
+          <div className="relative min-w-[150px] flex-1 md:flex-none">
+            <select
+              value={filterSubject}
+              onChange={(e) => setFilterSubject(e.target.value)}
+              className="w-full pl-3 pr-10 py-2.5 text-[13px] font-medium bg-[#F8FAFC] dark:bg-slate-800 border border-border rounded-xl outline-none focus:border-primary transition-colors appearance-none text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <option value="">All Subjects</option>
+              {uniqueSubjectsList.map(sub => (
+                <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Routine Timetable Grid (Kanban Layout) */}
       <div>
         {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-2 dark:text-slate-400 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-sm">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span>Fetching routines data...</span>
+          <div className="py-24 flex flex-col items-center justify-center text-slate-500 gap-3 dark:text-slate-400 bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <span className="font-medium">Fetching routines data...</span>
           </div>
         ) : !hasAnySchedules ? (
-          <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3 dark:text-slate-400 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-sm text-center px-4">
-            <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-700 animate-pulse" />
-            <h3 className="font-bold text-slate-700 dark:text-slate-300">No Routines Found</h3>
-            <p className="text-[13px] text-slate-400 max-w-[320px]">
+          <div className="py-24 flex flex-col items-center justify-center text-slate-500 gap-4 dark:text-slate-400 bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm text-center px-4">
+            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2">
+              <Calendar className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">No Routines Found</h3>
+            <p className="text-[14px] text-slate-400 max-w-[320px]">
               {selectedTeacherId 
-                ? "This teacher doesn't have any classes scheduled yet." 
+                ? "This teacher doesn't have any classes scheduled matching the criteria." 
                 : "No schedule routines mapped yet. Click 'Add Routine' to start planning."}
             </p>
           </div>
         ) : (
-          <div className="space-y-8 text-left">
-            {DAYS_OF_WEEK.map((day) => {
-              const routines = groupedSchedules[day];
-              if (routines.length === 0) return null;
+          <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm p-4 sm:p-6 overflow-hidden">
+            {/* Inner Header for All Routines (as seen in image) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-border/40 gap-4">
+              <h2 className="text-[16px] font-bold text-slate-800 dark:text-slate-100">All Routines</h2>
+              
+              {/* Search Bar directly opposite to All Routines */}
+              <div className="relative w-full sm:w-[280px]">
+                <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  placeholder="Search routines" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] font-medium outline-none focus:border-primary transition-colors text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                />
+              </div>
+            </div>
 
-              return (
-                <div key={day} className="space-y-4">
-                  <div className="flex items-center gap-2.5 pb-1.5 border-b border-border">
-                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">{day}</h3>
-                    <span className="px-2 py-0.5 text-[11px] font-bold bg-primary/10 text-primary rounded-full">
-                      {routines.length} {routines.length === 1 ? "Class" : "Classes"}
-                    </span>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+              {sortedClassNames.map((className) => {
+                const routines = groupedSchedulesByClass[className];
+                return (
+                  <div key={className} className="bg-white dark:bg-slate-800/20 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[70vh]">
+                    
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                        <h3 className="font-bold text-slate-800 dark:text-slate-200 text-[15px] truncate pr-2">{className}</h3>
+                      </div>
+                      <span className="px-2.5 py-1 text-[11px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-md shrink-0">
+                        {routines.length} {routines.length === 1 ? 'Period' : 'Periods'}
+                      </span>
+                    </div>
+                    
+                    {/* Column Cards */}
+                    <div className="space-y-4 flex-1 overflow-y-auto p-4 custom-scrollbar">
+                      {routines.map((schedule) => {
+                        const subjectName = getSubjectName(schedule.subject_id);
+                        const isMenuOpen = activeMenuId === schedule._id;
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {routines.map((schedule) => {
-                      const subjectName = getSubjectName(schedule.subject_id);
-                      const colorClass = getSubjectColor(subjectName);
-
-                      return (
-                        <div 
-                          key={schedule._id} 
-                          className={`relative rounded-xl border border-border p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${colorClass}`}
-                        >
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <div>
-                              <h4 className="text-base font-bold tracking-tight">{subjectName}</h4>
-                              <p className="text-[13px] font-bold opacity-90 mt-0.5">{getClassName(schedule.class_id)}</p>
-                            </div>
-                            
-                            {/* Actions & Period */}
-                            <div className="flex items-center gap-2">
-                              {schedule.period_no && (
-                                <span className="px-2 py-0.5 text-[11px] font-bold bg-white/70 dark:bg-black/20 rounded-full border border-black/5 dark:border-white/5">
-                                  P{schedule.period_no}
-                                </span>
-                              )}
+                        return (
+                          <div 
+                            key={schedule._id} 
+                            className="relative group bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700/50 p-3.5 transition-all duration-300 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 flex flex-col gap-3"
+                          >
+                            {/* Top Row: Subject & Actions */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2.5">
+                                {/* Period Badge - More Compact */}
+                                <div className="min-w-[32px] h-[32px] rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100/50 dark:border-amber-900/30 flex flex-col items-center justify-center shrink-0 mt-0.5">
+                                  <span className="text-[7px] font-bold text-amber-600/70 uppercase tracking-wider leading-none mb-[1px]">PER</span>
+                                  <span className="text-[12px] font-black text-amber-600 leading-none">{schedule.period_no || "-"}</span>
+                                </div>
+                                
+                                <div className="flex flex-col">
+                                  <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide leading-tight">
+                                    {subjectName}
+                                  </h4>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                                      {getTeacherName(schedule.teacher_id)}
+                                    </span>
+                                    {schedule.room && (
+                                      <>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                        <span className="text-[10px] text-slate-400">Room {schedule.room}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Action Menu (Admin Only) */}
                               {isAdmin && (
-                                <div className="flex items-center gap-1 bg-white/70 dark:bg-black/20 rounded-lg p-0.5 border border-black/5 dark:border-white/5">
+                                <div className="relative shrink-0">
                                   <button 
-                                    onClick={() => openEditModal(schedule)}
-                                    className="p-1 text-slate-500 hover:text-primary rounded hover:bg-slate-100/50 dark:hover:bg-slate-800/50 cursor-pointer"
-                                    title="Edit"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuId(isMenuOpen ? null : schedule._id);
+                                    }}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-transparent hover:border-slate-200 dark:hover:border-slate-700/50 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                   >
-                                    <Edit className="w-3.5 h-3.5" />
+                                    <MoreVertical className="w-4 h-4" />
                                   </button>
-                                  <button 
-                                    onClick={() => handleDelete(schedule._id)}
-                                    className="p-1 text-slate-500 hover:text-rose-500 rounded hover:bg-slate-100/50 dark:hover:bg-slate-800/50 cursor-pointer"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                  
+                                  {isMenuOpen && (
+                                    <div className="absolute right-0 top-8 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-border py-1.5 z-10 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); openEditModal(schedule); }}
+                                        className="w-full px-3 py-1.5 text-[13px] font-medium text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" /> Edit
+                                      </button>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(schedule._id); }}
+                                        className="w-full px-3 py-1.5 text-[13px] font-medium text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          </div>
 
-                          <div className="space-y-2.5 pt-2.5 border-t border-black/5 dark:border-white/5 text-[13px] text-slate-600 dark:text-slate-300">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                              <span className="font-mono font-semibold">{schedule.start_time} - {schedule.end_time}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                <span className="truncate max-w-[120px]">{getTeacherName(schedule.teacher_id)}</span>
+                            {/* Bottom Row: Time and Day */}
+                            <div className="flex items-center justify-between pt-2.5 border-t border-slate-50 dark:border-slate-700/30 mt-1">
+                              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-100/50 dark:border-slate-700/50">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 font-mono whitespace-nowrap">
+                                  {schedule.start_time} - {schedule.end_time}
+                                </span>
                               </div>
-
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                                <span>Room {schedule.room || "N/A"}</span>
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+                                {schedule.day}
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

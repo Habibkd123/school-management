@@ -39,7 +39,14 @@ export async function GET(request: NextRequest) {
 
     // Find students where parent_id matches
     const children = await Student.find(query)
-      .populate("class_id", "name section")
+      .populate({
+        path: "class_id",
+        select: "name section class_teacher_id",
+        populate: {
+          path: "class_teacher_id",
+          select: "name"
+        }
+      })
       .sort({ name: 1 })
       .lean();
 

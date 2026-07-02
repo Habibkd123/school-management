@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth";
-import { useTheme } from "next-themes";
-import { User, Eye, EyeOff, ChevronRight, AlertCircle, Loader2, Sun, Moon } from "lucide-react";
+import { User, Mail, Eye, EyeOff, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const newsItems = [
@@ -18,13 +17,9 @@ const newsItems = [
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  type LoginRole = "admin" | "principal" | "teacher" | "student";
+  const [activeTab, setActiveTab] = useState<LoginRole>("admin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,14 +31,27 @@ export default function LoginPage() {
     setError("");
 
     const trimmedUsername = username.trim();
-    if (!trimmedUsername) {
-      setError("Please enter your School Username.");
-      return;
+    if (activeTab === "admin") {
+      if (!trimmedUsername) {
+        setError("Please enter your Email Address.");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedUsername)) {
+        setError("Please enter a valid Email Address.");
+        return;
+      }
+    } else {
+      if (!trimmedUsername) {
+        setError("Please enter your School Username.");
+        return;
+      }
+      if (!trimmedUsername.endsWith(".myschoollife") || trimmedUsername.includes(" ") || trimmedUsername.includes("@")) {
+        setError("Please enter a valid School Username.");
+        return;
+      }
     }
-    if (!trimmedUsername.endsWith(".myschoollife") || trimmedUsername.includes(" ") || trimmedUsername.includes("@")) {
-      setError("Please enter a valid School Username.");
-      return;
-    }
+
     if (!password) {
       setError("Password is required");
       return;
@@ -51,7 +59,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    const result = await login(trimmedUsername, password);
+    const result = await login(trimmedUsername, password, activeTab);
 
     if (result.success) {
       router.push("/dashboard");
@@ -71,7 +79,7 @@ export default function LoginPage() {
       >
         <div className="absolute inset-0 bg-primary/80 dark:bg-slate-900/80 backdrop-blur-[2px]" />
         <div className="relative z-10 w-full max-w-full sm:w-[500px] bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-6 shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-6">What's New on School ERP !!!</h2>
+          <h2 className="text-xl font-bold text-white mb-6">What&apos;s New on School ERP !!!</h2>
           <div className="space-y-3">
             {newsItems.map((item, idx) => (
               <div key={idx} className="bg-white dark:bg-slate-800 rounded-lg p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-shadow">
@@ -107,6 +115,29 @@ export default function LoginPage() {
               <p className="text-[13px] text-slate-500 dark:text-slate-400">Sign in to your school account</p>
             </div>
 
+            {/* Tabs */}
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl mb-6">
+              {(["admin", "principal", "teacher", "student"] as const).map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(role);
+                    setError("");
+                    setUsername("");
+                    setPassword("");
+                  }}
+                  className={`py-2 text-[11px] font-semibold rounded-lg capitalize transition-all ${
+                    activeTab === role
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+
             {/* Error Message */}
             {error && (
               <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg px-3.5 py-3 mb-5">
@@ -116,21 +147,27 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleLogin} className="space-y-4" noValidate>
-              {/* Username */}
+              {/* Username/Email */}
               <div className="space-y-1.5">
-                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">School Username</label>
+                <label className="text-[13px] font-bold text-slate-900 dark:text-slate-100">
+                  {activeTab === "admin" ? "Email Address" : "School Username"}
+                </label>
                 <div className="relative">
                   <input
                     id="login-username"
-                    type="text"
-                    autoComplete="username"
+                    type={activeTab === "admin" ? "email" : "text"}
+                    autoComplete={activeTab === "admin" ? "email" : "username"}
                     value={username}
                     onChange={(e) => { setUsername(e.target.value); setError(""); }}
-                    placeholder="Enter your school username. Example: greenvalley.myschoollife"
+                    placeholder={
+                      activeTab === "admin"
+                        ? "admin@school.com"
+                        : "Enter your school username. Example: greenvalley.myschoollife"
+                    }
                     className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] outline-none focus:border-primary dark:focus:border-primary transition-colors text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
+                    {activeTab === "admin" ? <Mail className="w-4 h-4" /> : <User className="w-4 h-4" />}
                   </div>
                 </div>
               </div>
@@ -157,6 +194,15 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Forgot Password */}
+              {(activeTab === "admin" || activeTab === "principal") && (
+                <div className="flex justify-end">
+                  <Link href="/forget-password" className="text-[12px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
+                    Forgot Password?
+                  </Link>
+                </div>
+              )}
 
               {/* Submit */}
               <button

@@ -21,7 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   mustChangePassword: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  login: (email: string, password: string, loginType?: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -91,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Login ────────────────────────────────────────────────────
   const login = async (
     username: string,
-    password: string
+    password: string,
+    loginType?: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
       const schoolId = process.env.NEXT_PUBLIC_SCHOOL_ID;
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, school_id: schoolId }),
+        body: JSON.stringify({ username, password, school_id: schoolId, login_type: loginType }),
       });
 
       const data = await res.json();

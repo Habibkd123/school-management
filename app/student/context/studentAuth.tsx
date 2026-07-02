@@ -93,7 +93,7 @@ export function StudentAuthProvider({ children }: { children: React.ReactNode })
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, school_id: schoolId }),
+        body: JSON.stringify({ username, password, school_id: schoolId, login_type: "student" }),
       });
 
       const data = await res.json();

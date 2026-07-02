@@ -7,7 +7,13 @@ import { requireAuth } from "@/lib/utils/auth";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
-  const { schoolId, role, userId, error } = requireAuth(req, ["school_admin", "teacher", "super_admin"]);
+  const { schoolId, role, userId, error } = requireAuth(req, [
+    "school_admin",
+    "teacher",
+    "super_admin",
+    "student",
+    "parent"
+  ]);
   if (error) return error;
 
   try {
@@ -18,13 +24,40 @@ export async function GET(req: NextRequest) {
     const endDateParam = url.searchParams.get("endDate"); // YYYY-MM-DD
     const type = url.searchParams.get("type") || "student";
     const classId = url.searchParams.get("classId");
-    const recordId = url.searchParams.get("recordId");
+    let recordId = url.searchParams.get("recordId");
 
     if (!startDateParam || !endDateParam) {
       return NextResponse.json(
         { success: false, message: "startDate and endDate are required" },
         { status: 400 }
       );
+    }
+
+    // Role-based restrictions for student role
+    if (role === "student") {
+      const Student = (await import("@/lib/models/Student")).default;
+      const studentProfile = await Student.findOne({ school_id: schoolId, user_id: userId }).select("_id").lean();
+      if (!studentProfile) {
+        return NextResponse.json({ success: false, message: "Student record not found" }, { status: 404 });
+      }
+      recordId = studentProfile._id.toString();
+    }
+
+    // Role-based restrictions for parent role
+    if (role === "parent") {
+      if (!recordId) {
+        return NextResponse.json({ success: false, message: "recordId is required for parent" }, { status: 400 });
+      }
+      const Parent = (await import("@/lib/models/Parent")).default;
+      const parentProfile = await Parent.findOne({ school_id: schoolId, user_id: userId }).lean();
+      if (!parentProfile) {
+        return NextResponse.json({ success: false, message: "Parent record not found" }, { status: 404 });
+      }
+      const Student = (await import("@/lib/models/Student")).default;
+      const studentProfile = await Student.findOne({ _id: recordId, parent_id: parentProfile._id, school_id: schoolId }).select("_id").lean();
+      if (!studentProfile) {
+        return NextResponse.json({ success: false, message: "Unauthorized access to child data" }, { status: 403 });
+      }
     }
 
     if (type === "student" && !classId && !recordId) {
@@ -36,6 +69,7 @@ export async function GET(req: NextRequest) {
 
     // Verify teacher assignment for student attendance summary
     if (type === "student" && role === "teacher") {
+      const Teacher = (await import("@/lib/models/Teacher")).default;
       const teacher = await Teacher.findOne({ user_id: userId, school_id: schoolId });
       if (!teacher) {
         return NextResponse.json({ success: false, message: "Teacher record not found" }, { status: 403 });
@@ -117,6 +151,12 @@ export async function GET(req: NextRequest) {
         const refId = type === "student" ? record.student_id : record.teacher_id;
         if (!refId) return;
         const id = refId.toString();
+
+        // Security: restrict records to recordId if role is student or parent
+        if ((role === "student" || role === "parent") && id !== recordId) {
+          return;
+        }
+
         if (!summary[id]) {
           summary[id] = { present: 0, absent: 0, late: 0, holiday: 0, half_day: 0, leave: 0 };
         }

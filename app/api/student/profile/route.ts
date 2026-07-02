@@ -19,7 +19,14 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const student = await Student.findOne({ user_id: auth.userId })
-      .populate("class_id", "name section")
+      .populate({
+        path: "class_id",
+        select: "name section class_teacher_id",
+        populate: {
+          path: "class_teacher_id",
+          select: "name"
+        }
+      })
       .lean();
 
     if (!student) {
