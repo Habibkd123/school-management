@@ -215,9 +215,9 @@ export default function CreateTestPage() {
   const labelClass = "block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5";
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 mb-10">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mb-3">
         <button onClick={() => router.back()}
           className="p-2 rounded-xl border border-border text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
           <ArrowLeft className="w-4 h-4" />
@@ -299,10 +299,10 @@ export default function CreateTestPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Class <span className="text-rose-500">*</span></label>
-              <select 
+              <select
                 id="classId"
-                value={classId} 
-                onChange={(e) => setClassId(e.target.value)} 
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
                 className={`${fieldClass} cursor-pointer ${valErrors.classId ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
               >
                 <option value="">{isLoadingClasses ? "Loading..." : "Select Class"}</option>
@@ -320,11 +320,11 @@ export default function CreateTestPage() {
             </div>
             <div>
               <label className={labelClass}>Subject <span className="text-rose-500">*</span></label>
-              <select 
+              <select
                 id="subjectId"
-                value={subjectId} 
-                onChange={(e) => setSubjectId(e.target.value)} 
-                disabled={!classId} 
+                value={subjectId}
+                onChange={(e) => setSubjectId(e.target.value)}
+                disabled={!classId}
                 className={`${fieldClass} cursor-pointer disabled:opacity-60 ${valErrors.subjectId ? "border border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : ""}`}
               >
                 <option value="">{isLoadingSubjects ? "Loading..." : classId ? "Select Subject" : "Select class first"}</option>

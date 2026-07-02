@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/auth";
@@ -128,6 +129,38 @@ export default function AssessmentsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, bottom: false, right: false });
+
+  // Close action menu on scroll to prevent detached fixed positioning
+  useEffect(() => {
+    const handleScroll = () => {
+      if (actionMenuId) setActionMenuId(null);
+    };
+    if (actionMenuId) {
+      window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    }
+    return () => window.removeEventListener("scroll", handleScroll, { capture: true });
+  }, [actionMenuId]);
+
+  const handleMenuClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (actionMenuId === id) {
+      setActionMenuId(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceRight = window.innerWidth - rect.right;
+    
+    setMenuPos({
+      top: spaceBelow < 280 ? rect.top - 8 : rect.bottom + 8,
+      left: spaceRight < 220 ? rect.right : rect.left,
+      bottom: spaceBelow < 280,
+      right: spaceRight < 220
+    });
+    setActionMenuId(id);
+  };
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMsg({ type, text });
@@ -477,7 +510,7 @@ export default function AssessmentsPage() {
       </div>
 
       {/* Main Content Card */}
-      <div className="bg-white dark:bg-slate-900 border border-border rounded-xl shadow-sm overflow-hidden text-left">
+      <div className="bg-white dark:bg-slate-900 border border-border rounded-xl shadow-sm text-left">
         
         {/* Table Header & Controls Section */}
         <div className="p-5 border-b border-border flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -739,7 +772,7 @@ export default function AssessmentsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 items-start">
               {paginatedGroups.map((group) => (
                 <div key={group.classId} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6">
                   
@@ -821,16 +854,25 @@ export default function AssessmentsPage() {
                           {/* Action Button */}
                           <div className="relative animate-in fade-in" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => setActionMenuId(actionMenuId === t._id ? null : t._id)}
+                              onClick={(e) => handleMenuClick(e, t._id)}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${actionMenuId === t._id ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800"}`}
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
                             
-                            {actionMenuId === t._id && (
+                            {actionMenuId === t._id && typeof document !== "undefined" && createPortal(
                               <>
-                                <div className="fixed inset-0 z-45" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
-                                <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 overflow-hidden py-2 text-left">
+                                <div className="fixed inset-0 z-[100]" onClick={(e) => { e.stopPropagation(); setActionMenuId(null); }} />
+                                <div 
+                                  className="fixed w-48 bg-white dark:bg-slate-900 border border-border rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] z-[110] overflow-hidden py-2 text-left animate-in fade-in zoom-in-95 duration-100"
+                                  style={{
+                                    top: menuPos.bottom ? "auto" : menuPos.top,
+                                    bottom: menuPos.bottom ? window.innerHeight - menuPos.top : "auto",
+                                    left: menuPos.right ? "auto" : menuPos.left,
+                                    right: menuPos.right ? window.innerWidth - menuPos.left : "auto",
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <Link href={`/assessments/${t._id}`} className="w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-2 font-medium transition-colors cursor-pointer">
                                     <Eye className="w-4 h-4 text-indigo-500" /> View Details
                                   </Link>
@@ -871,7 +913,7 @@ export default function AssessmentsPage() {
                                     </button>
                                   )}
                                 </div>
-                              </>
+                              </>, document.body
                             )}
                           </div>
                         </div>
