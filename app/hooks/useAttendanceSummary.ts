@@ -9,6 +9,7 @@ export interface AttendanceSummaryRecord {
   late: number;
   holiday: number;
   half_day: number;
+  leave?: number;
 }
 
 export function useAttendanceSummary() {

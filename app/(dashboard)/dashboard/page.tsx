@@ -16,7 +16,7 @@ import { useHolidays } from "../../hooks/useHolidays";
 import { useResults } from "../../hooks/useResults";
 import { getAuthHeaders, getStoredUser } from "@/lib/utils/session";
 import { useLeave } from "../../hooks/useLeave";
-import { useAttendanceSummary } from "../../hooks/useAttendanceSummary";
+import { useAttendanceSummary, AttendanceSummaryRecord } from "../../hooks/useAttendanceSummary";
 import { useSubjects } from "../../hooks/useSubjects";
 import { useParent } from "../../hooks/useParent";
 import { useTeacherAssignment } from "../../hooks/useTeacherAssignment";
@@ -143,14 +143,7 @@ export default function DashboardPage() {
   const displayStudentId = displayStudent?._id;
   const displayStudentClassId = typeof displayStudent?.class_id === 'object' ? displayStudent?.class_id?._id : displayStudent?.class_id;
 
-  const [studentAttendanceSummary, setStudentAttendanceSummary] = useState<{
-    present: number;
-    absent: number;
-    late: number;
-    holiday: number;
-    half_day: number;
-    leave: number;
-  } | null>(null);
+  const [studentAttendanceSummary, setStudentAttendanceSummary] = useState<AttendanceSummaryRecord | null>(null);
   const [studentWeeklyAttendance, setStudentWeeklyAttendance] = useState<Array<{ date: string; status: string; note?: string }>>([]);
 
   const { fetchSummary, fetchDetail } = useAttendanceSummary();
@@ -422,7 +415,7 @@ export default function DashboardPage() {
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   const totalAttendanceDays = studentAttendanceSummary
-    ? (studentAttendanceSummary.present + studentAttendanceSummary.absent + studentAttendanceSummary.late + studentAttendanceSummary.half_day + studentAttendanceSummary.leave)
+    ? (studentAttendanceSummary.present + studentAttendanceSummary.absent + studentAttendanceSummary.late + studentAttendanceSummary.half_day + (studentAttendanceSummary.leave ?? 0))
     : 0;
   const studentAttendanceRate = totalAttendanceDays > 0 && studentAttendanceSummary
     ? Math.round((studentAttendanceSummary.present / totalAttendanceDays) * 100)
@@ -2668,7 +2661,11 @@ export default function DashboardPage() {
                       const teacher = typeof hw.teacher_id === 'object' ? hw.teacher_id : null;
 
                       // Calculate real status and completion percentage
-                      const isCompleted = hw.status === "completed" || hw.status === "submitted";
+                      const hasSubmitted = (hw as any).submissions?.some((sub: any) => {
+                        const subStudentId = typeof sub.student_id === 'object' ? sub.student_id?._id : sub.student_id;
+                        return subStudentId?.toString() === displayStudentId?.toString();
+                      });
+                      const isCompleted = hw.status === "completed" || hasSubmitted;
                       const isOverdue = !isCompleted && new Date(hw.due_date) < new Date();
                       
                       const pct = isCompleted ? 100 : isOverdue ? 0 : 50;
